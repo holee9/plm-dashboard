@@ -1,0 +1,32 @@
+/* =============================================================================
+   Color tokens — brand-level, theme-independent
+   The palette is intentionally small. Grey is the default; colour carries
+   MEANING only (status + signal). Decorative colour is avoided by convention.
+   ========================================================================== */
+:root {
+  /* ---- accent (default = operational blue; swappable via Tweaks) ---- */
+  --accent: #3B82F6;
+  --accent-rgb: 59, 130, 246;
+
+  /* ---- accent presets (Tweaks swatches) ---- */
+  --accent-blue:   #3B82F6;
+  --accent-violet: #8B5CF6;
+  --accent-teal:   #14B8A6;
+  --accent-amber:  #F59E0B;
+  --accent-rose:   #EC4899;
+
+  /* ---- semantic signal (health / risk) ---- */
+  --c-green: #22C55E;  /* on track / ok        */
+  --c-amber: #F59E0B;  /* at risk / warning    */
+  --c-red:   #EF4444;  /* off track / overdue  */
+  --c-blue:  #3B82F6;  /* in progress / info   */
+
+  /* ---- OpenProject work-package status palette ---- */
+  --c-new:    #8B93A7;  /* New        */
+  --c-prog:   #3B82F6;  /* In progress */
+  --c-review: #8B5CF6;  /* In review  */
+  --c-test:   #06B6D4;  /* In testing */
+  --c-hold:   #F59E0B;  /* On hold    */
+  --c-done:   #22C55E;  /* Closed     */
+  --c-reject: #EF4444;  /* Rejected   */
+}

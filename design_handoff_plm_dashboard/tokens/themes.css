@@ -1,0 +1,56 @@
+/* =============================================================================
+   Theme tokens — surfaces, text, borders, shadow per [data-theme]
+   Dark is the primary mode (operations / always-on monitoring); light is for
+   bright rooms and print. Both expose the SAME token names so components are
+   theme-agnostic.
+   ========================================================================== */
+[data-theme="dark"] {
+  --bg:            #0B0E14;
+  --bg-elev:       #0F131B;
+  --panel:         #11161F;
+  --panel-2:       #161C27;
+  --panel-hover:   #1A2230;
+  --border:        #1E2530;
+  --border-strong: #2A333F;
+  --text:          #E6EAF2;
+  --text-dim:      #98A2B3;
+  --text-faint:    #5B6473;
+  --accent-soft:   rgba(var(--accent-rgb), 0.16);
+  --shadow:        0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
+  --grid-line:     rgba(255,255,255,.05);
+  color-scheme: dark;
+
+  /* ---- semantic aliases (recommended for new work) ---- */
+  --surface-app:    var(--bg);
+  --surface-card:   var(--panel);
+  --surface-sunken: var(--panel-2);
+  --text-body:      var(--text);
+  --text-muted:     var(--text-dim);
+  --hairline:       var(--border);
+}
+[data-theme="light"] {
+  --bg:            #F4F6FA;
+  --bg-elev:       #EDF1F7;
+  --panel:         #FFFFFF;
+  --panel-2:       #F7F9FC;
+  --panel-hover:   #F0F3F9;
+  --border:        #E3E8F0;
+  --border-strong: #D2DAE6;
+  --text:          #11161F;
+  --text-dim:      #5B6473;
+  --text-faint:    #9AA3B2;
+  --accent-soft:   rgba(var(--accent-rgb), 0.10);
+  --shadow:        0 1px 2px rgba(16,24,40,.06), 0 6px 18px rgba(16,24,40,.08);
+  --grid-line:     rgba(16,24,40,.06);
+  color-scheme: light;
+
+  --surface-app:    var(--bg);
+  --surface-card:   var(--panel);
+  --surface-sunken: var(--panel-2);
+  --text-body:      var(--text);
+  --text-muted:     var(--text-dim);
+  --hairline:       var(--border);
+}
+
+/* default theme if none set on <html> */
+:root { color-scheme: dark; }

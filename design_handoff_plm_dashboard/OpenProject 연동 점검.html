@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenProject 연동 점검 · PLM Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0B0E14; --panel:#11161F; --panel2:#161C27; --border:#1E2530; --border2:#2A333F;
+    --text:#E6EAF2; --dim:#98A2B3; --faint:#5B6473;
+    --blue:#3B82F6; --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --violet:#8B5CF6; --teal:#14B8A6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans KR',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 80px;}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:#BFD3F2;white-space:nowrap;}
+
+  /* header */
+  .head{display:flex;align-items:flex-start;gap:18px;border-bottom:1px solid var(--border);padding-bottom:26px;margin-bottom:30px;}
+  .head .mark{width:46px;height:46px;border-radius:11px;background:linear-gradient(135deg,var(--blue),#6AA3FF);display:grid;place-items:center;font-weight:700;font-size:20px;color:#fff;flex:0 0 auto;}
+  .head h1{font-size:23px;margin:0 0 5px;letter-spacing:-.01em;}
+  .head .sub{color:var(--dim);font-size:13.5px;}
+  .head .meta{margin-left:auto;text-align:right;font-size:11.5px;color:var(--faint);}
+  .head .meta b{color:var(--dim);font-weight:600;}
+
+  /* verdict banner */
+  .verdict{display:flex;align-items:center;gap:20px;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:12px;padding:20px 24px;margin-bottom:14px;}
+  .verdict .badge{width:54px;height:54px;border-radius:14px;background:rgba(245,158,11,.15);color:var(--amber);display:grid;place-items:center;font-size:27px;font-weight:700;flex:0 0 auto;}
+  .verdict h2{margin:0 0 4px;font-size:18px;word-break:keep-all;}
+  .verdict h2 .v{color:var(--amber);}
+  .verdict p{margin:0;color:var(--dim);font-size:13.5px;}
+  .verdict b{color:var(--text);}
+
+  .scorebar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:36px;}
+  .score{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:15px 17px;}
+  .score .n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;line-height:1;}
+  .score .l{font-size:11.5px;color:var(--dim);margin-top:7px;}
+  .score.ok .n{color:var(--green);} .score.warn .n{color:var(--amber);} .score.crit .n{color:var(--red);}
+
+  /* section */
+  section{margin-bottom:40px;}
+  .sec-h{display:flex;align-items:baseline;gap:11px;margin-bottom:16px;}
+  .sec-h .num{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--blue);font-weight:600;}
+  .sec-h h3{font-size:16.5px;margin:0;letter-spacing:-.01em;white-space:nowrap;word-break:keep-all;}
+  .sec-h .en{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-family:'IBM Plex Mono',monospace;margin-left:auto;}
+  p.lead{color:var(--dim);font-size:13.5px;margin:0 0 18px;}
+
+  /* architecture flow */
+  .flow{display:flex;align-items:stretch;gap:0;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px;overflow-x:auto;}
+  .node{flex:1;min-width:130px;text-align:center;padding:0 8px;position:relative;}
+  .node .box{border:1px solid var(--border2);border-radius:9px;padding:13px 10px;background:var(--panel2);}
+  .node.seam .box{border-color:var(--blue);background:rgba(59,130,246,.08);box-shadow:0 0 0 1px rgba(59,130,246,.3);}
+  .node .t{font-size:12.5px;font-weight:600;margin-bottom:3px;}
+  .node .d{font-size:10.5px;color:var(--faint);line-height:1.35;}
+  .node .arrow{position:absolute;right:-7px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:16px;z-index:2;}
+  .node:last-child .arrow{display:none;}
+  .flow-note{font-size:11.5px;color:var(--faint);margin-top:12px;text-align:center;}
+
+  /* mapping table */
+  table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+  th{text-align:left;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-family:'IBM Plex Mono',monospace;font-weight:600;padding:11px 13px;border-bottom:1px solid var(--border2);background:var(--panel2);}
+  td{padding:10px 13px;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td code{white-space:nowrap;}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .st i{width:7px;height:7px;border-radius:50%;}
+  .st.ok{color:var(--green);} .st.ok i{background:var(--green);}
+  .st.warn{color:var(--amber);} .st.warn i{background:var(--amber);}
+  .st.crit{color:var(--red);} .st.crit i{background:var(--red);}
+
+  /* gotcha cards */
+  .gotchas{display:flex;flex-direction:column;gap:12px;}
+  .g{display:grid;grid-template-columns:62px 1fr;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:17px 19px;}
+  .g .sev{width:62px;text-align:center;}
+  .g .sev .dot{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin:0 auto 6px;font-weight:700;font-size:15px;}
+  .g .sev .lv{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .g.crit .dot{background:rgba(239,68,68,.15);color:var(--red);} .g.crit .lv{color:var(--red);}
+  .g.high .dot{background:rgba(245,158,11,.16);color:var(--amber);} .g.high .lv{color:var(--amber);}
+  .g.med .dot{background:rgba(59,130,246,.14);color:var(--blue);} .g.med .lv{color:var(--blue);}
+  .g .body{min-width:0;}
+  .g h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;word-break:keep-all;}
+  .g h4 .tag{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--faint);border:1px solid var(--border2);border-radius:20px;padding:1px 8px;font-weight:500;}
+  .g p,.g .desc{margin:0 0 8px;font-size:12.5px;color:var(--dim);}
+  .g .fix{font-size:12px;color:var(--text);background:var(--panel2);border-radius:8px;padding:9px 12px;border-left:2px solid var(--green);}
+  .g .fix b{color:var(--green);font-weight:600;}
+  .g p:last-child,.g .fix:last-child{margin-bottom:0;}
+
+  /* checklist */
+  .checklist{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 6px;}
+  .ck{display:flex;gap:13px;padding:13px 16px;border-bottom:1px solid var(--border);align-items:flex-start;}
+  .ck:last-child{border-bottom:none;}
+  .ck .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);flex:0 0 auto;margin-top:1px;display:grid;place-items:center;font-size:12px;color:var(--bg);}
+  .ck.done .box{background:var(--green);border-color:var(--green);}
+  .ck .step{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);flex:0 0 auto;width:34px;margin-top:2px;}
+  .ck .c{flex:1;}
+  .ck .c b{font-size:13.5px;font-weight:600;}
+  .ck .c p{margin:3px 0 0;font-size:12px;color:var(--dim);}
+  .ck .ph{margin-left:auto;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--faint);border:1px solid var(--border);border-radius:20px;padding:2px 9px;flex:0 0 auto;white-space:nowrap;}
+
+  .callout{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.25);border-radius:11px;padding:16px 19px;font-size:13px;color:var(--dim);}
+  .callout b{color:var(--text);}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:760px){.twocol,.scorebar{grid-template-columns:1fr 1fr;}.head .meta{display:none;}}
+  .mini{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:16px 18px;}
+  .mini h5{margin:0 0 9px;font-size:12.5px;display:flex;align-items:center;gap:7px;}
+  .mini h5 i{width:8px;height:8px;border-radius:50%;}
+  .mini ul{margin:0;padding-left:17px;font-size:12px;color:var(--dim);}
+  .mini li{margin-bottom:5px;}
+  .foot{color:var(--faint);font-size:11.5px;text-align:center;border-top:1px solid var(--border);padding-top:22px;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="mark">P</div>
+    <div>
+      <h1>OpenProject 실연동 점검 리포트</h1>
+      <div class="sub">PLM Dashboard ↔ <span class="mono">plm.abyz-lab.work</span> · API v3 교차검증</div>
+    </div>
+    <div class="meta"><b>검토일</b> 2026.06.01<br /><b>대상</b> data.js · op-adapter.js<br /><b>기준</b> OpenProject API v3 spec</div>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="verdict">
+    <div class="badge">!</div>
+    <div>
+      <h2>연동 결론 · <span class="v">가능 — 단, 선결 과제 5건</span></h2>
+      <p>현재 데이터 모델은 OpenProject 스키마와 <b>구조적으로 정합</b>합니다. 모든 뷰는 그대로 두고 <b>어댑터 1개 파일</b>만 추가하면 라이브 전환됩니다. 다만 아래 <b>치명 2건(CORS·시간포맷)</b>은 반드시 먼저 해결해야 합니다.</p>
+    </div>
+  </div>
+
+  <div class="scorebar">
+    <div class="score ok"><div class="n">9/9</div><div class="l">매핑 가능한 핵심 리소스</div></div>
+    <div class="score crit"><div class="n">2</div><div class="l">치명 — 선결 필수</div></div>
+    <div class="score warn"><div class="n">3</div><div class="l">주의 — 보정 필요</div></div>
+    <div class="score ok"><div class="n">1</div><div class="l">신규 파일 (op-adapter.js)</div></div>
+  </div>
+
+  <!-- 1. ARCHITECTURE -->
+  <section>
+    <div class="sec-h"><span class="num">01</span><h3>연동 아키텍처</h3><span class="en">Integration seam</span></div>
+    <p class="lead">뷰·차트·상태관리는 <b>전혀 수정하지 않습니다.</b> 지금의 <code>data.js</code>(목업)가 만드는 평탄한 데이터 형태를 <b>"정규화 계약(contract)"</b>으로 삼고, 어댑터가 OpenProject의 HAL+JSON을 같은 형태로 변환해 끼워 넣습니다.</p>
+    <div class="flow">
+      <div class="node"><div class="box"><div class="t">OpenProject</div><div class="d">/api/v3/*<br />HAL+JSON</div></div><span class="arrow">→</span></div>
+      <div class="node"><div class="box"><div class="t">Proxy</div><div class="d">인증 주입<br />CORS 해소</div></div><span class="arrow">→</span></div>
+      <div class="node seam"><div class="box"><div class="t">op-adapter.js</div><div class="d">HAL → 평탄화<br />기간 파싱</div></div><span class="arrow">→</span></div>
+      <div class="node"><div class="box"><div class="t">window.DB</div><div class="d">정규화 형태<br />selectors</div></div><span class="arrow">→</span></div>
+      <div class="node"><div class="box"><div class="t">Views</div><div class="d">6개 뷰<br /><b style="color:var(--green)">무수정</b></div></div></div>
+    </div>
+    <div class="flow-note">교체 지점은 단 한 곳 — <code>buildDataset()</code>를 목업 생성에서 <code>OPAdapter.buildLiveDataset()</code>로 스왑.</div>
+  </section>
+
+  <!-- 2. FIELD MAPPING -->
+  <section>
+    <div class="sec-h"><span class="num">02</span><h3>필드 매핑 검증</h3><span class="en">Field-by-field</span></div>
+    <p class="lead">현재 내부 형태(좌) ← OpenProject API 실제 필드(우). 대부분 1:1로 맞지만, <span class="st warn" style="display:inline-flex"><i></i>주의</span> 표시 항목은 변환이 필요합니다.</p>
+    <table>
+      <thead><tr><th>내부 필드 (data.js)</th><th>OpenProject API v3</th><th>상태</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td><code>subject</code></td><td><code>subject</code> (scalar)</td><td><span class="st ok"><i></i>일치</span></td><td>루트 레벨 문자열</td></tr>
+        <tr><td><code>projectId</code></td><td><code>_links.project.href</code></td><td><span class="st warn"><i></i>변환</span></td><td>href 끝의 ID 파싱</td></tr>
+        <tr><td><code>statusId · typeId · priorityId</code></td><td><code>_links.{status,type,priority}</code></td><td><span class="st warn"><i></i>변환</span></td><td>HAL 링크 → ID</td></tr>
+        <tr><td><code>assigneeId · authorId</code></td><td><code>_links.{assignee,author}</code></td><td><span class="st warn"><i></i>변환</span></td><td>미할당 시 link 자체가 null</td></tr>
+        <tr><td><code>startDate · dueDate</code></td><td><code>startDate · dueDate</code></td><td><span class="st ok"><i></i>일치</span></td><td>ISO 날짜(YYYY-MM-DD)</td></tr>
+        <tr><td><code>estimatedHours</code> (number)</td><td><code>estimatedTime</code> <b style="color:var(--red)">"PT40H"</b></td><td><span class="st crit"><i></i>치명</span></td><td>ISO8601 기간 → 시간 파싱 필수</td></tr>
+        <tr><td><code>spentHours</code> (number)</td><td><code>spentTime</code> (파생, 권한 의존)</td><td><span class="st warn"><i></i>대체</span></td><td>time_entries 합산이 안전</td></tr>
+        <tr><td><code>percentDone</code></td><td><code>percentageDone</code></td><td><span class="st warn"><i></i>개명</span></td><td>이름만 다름, 값 동일</td></tr>
+        <tr><td><code>closedAt</code></td><td><b style="color:var(--amber)">기본 필드 없음</b></td><td><span class="st warn"><i></i>근사</span></td><td>updatedAt 근사 or journals 조회</td></tr>
+        <tr><td><code>createdAt · updatedAt</code></td><td><code>createdAt · updatedAt</code></td><td><span class="st ok"><i></i>일치</span></td><td>datetime → date 절삭</td></tr>
+        <tr><td><code>TimeEntry.hours</code> (number)</td><td><code>hours</code> <b style="color:var(--red)">"PT5H"</b></td><td><span class="st crit"><i></i>치명</span></td><td>동일한 기간 파싱 필요</td></tr>
+        <tr><td><code>Version.dueDate</code></td><td><code>effectiveDate</code></td><td><span class="st warn"><i></i>개명</span></td><td>버전 마감일 필드명 상이</td></tr>
+        <tr><td><code>User.role · title</code></td><td><b style="color:var(--amber)">API에 없음</b></td><td><span class="st warn"><i></i>유도</span></td><td>memberships의 roles에서 유도</td></tr>
+        <tr><td><code>User.capacityPerWeek</code></td><td><b style="color:var(--red)">개념 자체 없음</b></td><td><span class="st crit"><i></i>외부</span></td><td>OP에 리소스 가용량 개념 없음</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3. GOTCHAS -->
+  <section>
+    <div class="sec-h"><span class="num">03</span><h3>반드시 처리할 함정 5</h3><span class="en">Blockers &amp; pitfalls</span></div>
+    <div class="gotchas">
+
+      <div class="g crit">
+        <div class="sev"><div class="dot">1</div><div class="lv">치명</div></div>
+        <div class="body">
+          <h4>CORS &amp; API 키 노출 <span class="tag">배포 차단 요소</span></h4>
+          <div class="desc">브라우저에서 <code>plm.abyz-lab.work/api/v3</code>를 직접 호출하면 ① 교차출처(CORS) 차단, ② API 키가 클라이언트에 노출됩니다. OpenProject는 기본 인증을 <code>apikey:TOKEN</code> Basic 헤더로 받는데, 이를 프론트에 두면 누구나 키를 탈취할 수 있습니다.</div>
+          <div class="fix"><b>해결 →</b> 같은 출처(same-origin)에 <b>경량 프록시</b>를 두고 거기서만 인증 헤더를 주입합니다. 도커 구성이므로 Nginx 리버스 프록시 한 블록(<code>/op → /api/v3</code>)이면 끝. 또는 OP 관리자 설정의 CORS 허용 출처에 대시보드 도메인을 등록(키 노출 문제는 프록시가 정석).</div>
+        </div>
+      </div>
+
+      <div class="g crit">
+        <div class="sev"><div class="dot">2</div><div class="lv">치명</div></div>
+        <div class="body">
+          <h4>시간 = 숫자가 아니라 ISO8601 기간 문자열 <span class="tag">데이터 깨짐</span></h4>
+          <div class="desc">대시보드 전반(공수·번다운·가동률)이 <code>estimatedHours</code>·<code>spentHours</code>를 <b>숫자</b>로 전제합니다. 그러나 OP는 <code>estimatedTime: "PT40H"</code>, 타임엔트리 <code>hours: "PT5H30M"</code> 처럼 <b>기간 문자열</b>로 반환합니다. 그대로 쓰면 모든 시간 계산이 NaN/0이 됩니다.</div>
+          <div class="fix"><b>해결 →</b> <code>op-adapter.js</code>에 이미 포함한 <code>durationToHours()</code> 파서로 변환(1일=8h 규칙). <code>"PT40H"→40</code>, <code>"PT5H30M"→5.5</code>.</div>
+        </div>
+      </div>
+
+      <div class="g high">
+        <div class="sev"><div class="dot">3</div><div class="lv">주의</div></div>
+        <div class="body">
+          <h4>spentTime · closedAt 은 신뢰할 수 없는/없는 필드 <span class="tag">집계 보정</span></h4>
+          <div class="desc"><code>spentTime</code>은 파생 필드라 인스턴스·권한에 따라 비거나 다르게 나옵니다. <b>마감일(closedAt)은 아예 기본 필드가 없습니다</b> — Throughput(주간 완료)·번다운이 이 값에 의존합니다.</div>
+          <div class="fix"><b>해결 →</b> 투입시간은 <code>time_entries</code>를 WP별로 <b>합산</b>(어댑터에 구현). 완료일은 <code>updatedAt</code>으로 근사하거나, 정확도가 필요하면 <code>/work_packages/{id}/activities</code>(저널)에서 상태변경 시점을 읽음(요청량↑).</div>
+        </div>
+      </div>
+
+      <div class="g high">
+        <div class="sev"><div class="dot">4</div><div class="lv">주의</div></div>
+        <div class="body">
+          <h4>"가동률/가용량"은 OpenProject에 원천 데이터가 없음 <span class="tag">Resources 뷰</span></h4>
+          <div class="desc">개발자별 <b>주간 가용 시간(capacity)</b> 개념이 OP 코어에 존재하지 않습니다. 가동률 % 계산의 분모가 API에 없다는 뜻입니다. 직무(role)·직책(title)도 사용자 리소스엔 없고 멤버십의 역할에서 유도해야 합니다.</div>
+          <div class="fix"><b>해결 →</b> 기본 가용량(예: 40h/주)을 상수로 두고 관리자 설정값으로 덮어쓰기. 잔여공수·지연·WP수 등 <b>나머지 리소스 지표는 모두 산출 가능</b>하므로 Resources 뷰의 80%는 그대로 동작.</div>
+        </div>
+      </div>
+
+      <div class="g med">
+        <div class="sev"><div class="dot">5</div><div class="lv">경미</div></div>
+        <div class="body">
+          <h4>상태·유형·우선순위는 인스턴스마다 다름 + 페이지네이션 <span class="tag">하드코딩 금지</span></h4>
+          <div class="desc">현재 <code>STATUSES</code>·<code>TYPES</code> 등을 코드에 고정했는데, 실제 OP는 인스턴스별로 자유 구성됩니다(ID·색·이름 상이). 또 컬렉션은 <code>pageSize</code> 상한이 있어 250개 WP를 한 번에 못 받습니다.</div>
+          <div class="fix"><b>해결 →</b> 참조 데이터(<code>/statuses /types /priorities</code>)를 <b>기동 시 1회 fetch</b>해 동적 구성. 보드 컬럼은 <code>isClosed</code>+이름 규칙으로 매핑. 수집은 어댑터의 <code>fetchAll()</code>이 <code>offset/pageSize</code>로 자동 순회.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4. AUTH / DEPLOY -->
+  <section>
+    <div class="sec-h"><span class="num">04</span><h3>인증 · 배포 구성</h3><span class="en">Auth &amp; deploy</span></div>
+    <div class="twocol">
+      <div class="mini">
+        <h5><i style="background:var(--green)"></i>권장 — 리버스 프록시 (정석)</h5>
+        <ul>
+          <li>대시보드와 <b>같은 출처</b>에 정적 호스팅 + <code>/op</code> 경로를 프록시</li>
+          <li>프록시에서만 <code>Authorization: Basic base64(apikey:TOKEN)</code> 주입</li>
+          <li>브라우저는 키를 <b>전혀 모름</b> → 탈취 불가, CORS 무관</li>
+          <li>도커 구성이라 Nginx 컨테이너 1개 추가로 끝</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <h5><i style="background:var(--amber)"></i>대안 — CORS 허용 + OAuth2</h5>
+        <ul>
+          <li>OP 관리자 → API → CORS 허용 출처에 대시보드 도메인 등록</li>
+          <li>읽기 전용 모니터링이면 <b>OAuth2 인가코드+PKCE</b>로 사용자별 토큰</li>
+          <li>키를 프론트에 두지 않아도 됨(토큰은 사용자 세션)</li>
+          <li>구현 복잡도↑ — 단순 모니터링엔 프록시가 더 단순</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>읽기 전용 권한 키 권장.</b> 모니터링 용도이므로 쓰기 권한이 없는 전용 계정의 API 키를 사용하면, 만일 유출돼도 데이터 변경 위험이 없습니다. 인증은 <code>My account → Access token</code>에서 발급(사용자당 키 1개).
+    </div>
+  </section>
+
+  <!-- 5. ROADMAP -->
+  <section>
+    <div class="sec-h"><span class="num">05</span><h3>연동 진행 순서</h3><span class="en">Go-live checklist</span></div>
+    <div class="checklist">
+      <div class="ck done"><div class="box">✓</div><div class="step">00</div><div class="c"><b>정규화 계약 확정 + 어댑터 골격 작성</b><p>data.js의 평탄 형태를 계약으로 고정, op-adapter.js에 HAL 파서·기간 파서·페이지네이션 구현 완료</p></div><span class="ph">완료</span></div>
+      <div class="ck"><div class="box"></div><div class="step">01</div><div class="c"><b>읽기 전용 API 키 발급 + 프록시 1블록 구성</b><p>전용 계정 키 발급, Nginx에 <code>/op → plm.abyz-lab.work/api/v3</code> 프록시 + 인증 헤더 주입</p></div><span class="ph">0.5d</span></div>
+      <div class="ck"><div class="box"></div><div class="step">02</div><div class="c"><b>참조 데이터 동적 로딩 검증</b><p>statuses·types·priorities·activities를 실제 인스턴스에서 받아 색·라벨·보드 컬럼 매핑 확인</p></div><span class="ph">0.5d</span></div>
+      <div class="ck"><div class="box"></div><div class="step">03</div><div class="c"><b>work_packages · time_entries 수집 + 시간 파싱 검증</b><p>전 과제 WP 페이지 순회 수집, 기간 문자열 파싱·투입시간 합산이 실데이터와 맞는지 대조</p></div><span class="ph">1d</span></div>
+      <div class="ck"><div class="box"></div><div class="step">04</div><div class="c"><b>가용량(capacity) 설정값 입력 + 완료일 정책 결정</b><p>인원별 주간 가용시간 설정, closedAt을 updatedAt 근사로 갈지 저널 조회로 갈지 확정</p></div><span class="ph">0.5d</span></div>
+      <div class="ck"><div class="box"></div><div class="step">05</div><div class="c"><b>라이브 스왑 + 폴링/캐시</b><p><code>buildDataset()</code>를 <code>buildLiveDataset()</code>로 교체, N분 주기 갱신·에러 폴백 추가</p></div><span class="ph">0.5d</span></div>
+    </div>
+    <div class="callout" style="margin-top:14px">
+      <b>총 예상 공수 약 3.5일</b> (프록시·인증 0.5 / 참조데이터 0.5 / 수집·파싱 1 / 가용량·완료일 0.5 / 스왑·캐시 0.5 + 버퍼). 뷰는 손대지 않으므로 리스크는 데이터 계층에 한정됩니다.
+    </div>
+  </section>
+
+  <div class="foot">PLM Dashboard · OpenProject API v3 연동 점검 · 본 리포트는 공개 API 스펙 기준 교차검증이며, 실제 인스턴스 설정(커스텀 필드·상태·권한)에 따라 일부 매핑이 달라질 수 있습니다.</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+/* =============================================================================
+   Typography tokens
+   IBM Plex Sans KR for all prose & labels (Latin + Hangul in one family).
+   IBM Plex Mono for every number, ID, code, and uppercase mono-label — tabular
+   figures keep dense tables and KPI values aligned.
+   ========================================================================== */
+:root {
+  --font-sans: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* type scale (px — dashboards read better at fixed sizes than rem) */
+  --fs-display: 30px;  /* KPI values, hero numbers   */
+  --fs-h1:      20px;  /* view / project titles      */
+  --fs-h2:      15px;  /* panel headlines            */
+  --fs-body:    13px;  /* default body               */
+  --fs-sm:      12px;  /* table cells, secondary     */
+  --fs-xs:      11px;  /* meta, captions             */
+  --fs-micro:   10px;  /* uppercase mono labels      */
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* uppercase mono label — the system's signature label treatment */
+  --label-tracking: .08em;
+}

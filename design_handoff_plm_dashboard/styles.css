@@ -1,0 +1,18 @@
+/* =============================================================================
+   PLM Dashboard Design System — global entry point.
+   Consumers link THIS one file. It is an @import manifest only — every token
+   and font in the system is reachable from here. Application/component CSS is
+   layered on top by each product (the dashboard links app.css after this).
+
+   Theming model (set as attributes on <html>):
+     [data-theme="dark"|"light"]                    → surfaces & text
+     [data-density="compact"|"cozy"|"comfortable"]  → spacing rhythm
+     [data-style="telemetry"|"console"|"studio"]    → radius / border / shadow
+     --accent (+ --accent-rgb)                       → highlight colour
+   ========================================================================== */
+@import "fonts/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/themes.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/effects.css";

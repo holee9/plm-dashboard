@@ -1,0 +1,27 @@
+/* =============================================================================
+   Spacing, radius & density tokens
+   Density is a first-class control: the same layout reflows from a TV wall
+   (comfortable) to an analyst's packed screen (compact) by swapping one scope.
+   ========================================================================== */
+:root {
+  /* base spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* corner radius (default; [data-style] overrides) */
+  --r: 8px;
+
+  /* density-driven rhythm (defaults = cozy) */
+  --grid-1: 12px;   /* gap between panels        */
+  --pad:    16px;   /* panel inner padding       */
+  --row-h:  36px;   /* table row height          */
+  --kpi-pad:18px;   /* kpi card padding          */
+}
+
+[data-density="compact"]     { --grid-1: 8px;  --pad: 12px; --row-h: 30px; --kpi-pad: 14px; }
+[data-density="cozy"]        { --grid-1: 12px; --pad: 16px; --row-h: 36px; --kpi-pad: 18px; }
+[data-density="comfortable"] { --grid-1: 18px; --pad: 22px; --row-h: 44px; --kpi-pad: 24px; }

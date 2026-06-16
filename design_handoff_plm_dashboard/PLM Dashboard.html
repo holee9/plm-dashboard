@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark" data-density="cozy" data-style="telemetry">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLM Monitor · OpenProject Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="app.css" />
+  <script>
+    /* Host-persisted tweak defaults — rewritten on disk when the user changes a Tweak.
+       Mirrors the initial chrome on <html> above. */
+    window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "light",
+      "style": "telemetry",
+      "accent": "blue",
+      "density": "cozy"
+    }/*EDITMODE-END*/;
+  </script>
+</head>
+<body>
+  <div id="app" class="app"></div>
+
+  <script src="data.js"></script>
+  <script src="charts.js"></script>
+  <script src="ui.js"></script>
+  <script src="views/overview.js"></script>
+  <script src="views/projects.js"></script>
+  <script src="views/resources.js"></script>
+  <script src="views/board.js"></script>
+  <script src="views/timeline.js"></script>
+  <script src="views/risks.js"></script>
+  <script src="app.js"></script>
+  <script src="tweaks.js"></script>
+</body>
+</html>

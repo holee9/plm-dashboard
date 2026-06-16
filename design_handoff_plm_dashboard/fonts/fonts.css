@@ -1,0 +1,6 @@
+/* =============================================================================
+   Fonts — IBM Plex Sans KR (본문·라벨) + IBM Plex Mono (수치·코드)
+   NOTE: served from Google Fonts CDN. To fully self-host, drop the .woff2 files
+   into this folder and replace the @import with @font-face rules.
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');

@@ -1,0 +1,16 @@
+/* =============================================================================
+   Effects & style-direction tokens
+   "Style direction" repackages radius + border + shadow into three presets so
+   the same dashboard can read as telemetry (Grafana-like), console (terminal),
+   or studio (soft cards). Only token values live here — component overrides
+   that reference classes live in the app layer.
+   ========================================================================== */
+:root {
+  /* safe defaults so cards render even without [data-style] on <html> */
+  --panel-bd: 1px solid var(--border);
+  --panel-sh: none;
+}
+
+[data-style="telemetry"] { --r: 8px;  --panel-bd: 1px solid var(--border);        --panel-sh: none; }
+[data-style="console"]   { --r: 3px;  --panel-bd: 1px solid var(--border-strong); --panel-sh: none; }
+[data-style="studio"]    { --r: 16px; --panel-bd: 1px solid var(--border);        --panel-sh: var(--shadow); }

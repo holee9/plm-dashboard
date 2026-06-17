@@ -1,6 +1,7 @@
 server {
+    listen 80;
     listen 8088;
-    server_name _;
+    server_name plm-dash.work _;
 
     # Serve dashboard static files
     root /dashboard;

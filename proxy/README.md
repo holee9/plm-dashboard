@@ -32,7 +32,11 @@ proxy/
 ├── docker-compose.yml              nginx:alpine 서비스 (network_mode: host)
 ├── nginx/default.conf.template     nginx 설정 템플릿 (envsubst로 처리)
 ├── start.sh                        토큰 로드 + 컨테이너 기동
-└── e2e-verify.py                   AC-E2E-01..20 Playwright 검증 스크립트
+├── e2e-verify.js                   AC-E2E-01..20 Playwright 검증 (Node.js, 최신)
+├── e2e-verify-v2.js                v2 Playwright 스크립트 (Node.js)
+├── e2e-verify.py                   초기 Playwright 검증 (Python)
+├── e2e-verify-v2.py                v2 Playwright 스크립트 (Python)
+└── E2E-FAILURE-LOG.md              E2E 실패 이력 및 Anti-pattern 재발방지 문서
 ```
 
 ## 환경변수
@@ -60,12 +64,22 @@ proxy/
 
 ## E2E 검증
 
+AC-E2E-01..20 전 항목 통과 확인용. Playwright 필요.
+
+**Node.js (권장):**
 ```bash
 cd ~/workspace/plm-dashboard/proxy
-python3 e2e-verify.py
+npm install playwright  # 최초 1회
+node e2e-verify.js
 ```
 
-AC-E2E-01..20 전 항목 통과 확인용 (Playwright 필요).
+**Python:**
+```bash
+cd ~/workspace/plm-dashboard/proxy
+python3 e2e-verify-v2.py
+```
+
+E2E 실패 이력 및 Anti-pattern은 `E2E-FAILURE-LOG.md` 참조.
 
 ## 상태 확인
 

@@ -23,4 +23,5 @@ OP_AUTH_B64=$(printf "apikey:%s" "$OP_API_KEY" | base64 -w 0)
 cd "$(dirname "$0")"
 docker compose up -d "$@"
 echo "PLM Dashboard: http://localhost:8088/"
+echo "PLM Dashboard: http://plm-dash.work/"
 echo "API proxy:     http://localhost:8088/op/users/me"

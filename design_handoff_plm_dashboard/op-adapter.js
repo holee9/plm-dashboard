@@ -193,17 +193,20 @@
     });
 
     // Resolve user roles from memberships (first role title wins).
-    // /principals returns both User and Group entries — keep only individual users.
-    const usersOnly = users.filter((u) => u._type !== 'Group');
-    const usersMapped = usersOnly.map(mapUser);
+    // /principals returns both User and Group entries — map ALL of them so D.U
+    // lookup never returns undefined (WPs/projects may reference any principal).
+    // Groups and Observers are kept in USERS for rendering but flagged so that
+    // the assignee dropdown can filter them out (see board.js).
+    const usersMapped = users.map((u) => ({ ...mapUser(u), isGroup: u._type === 'Group' }));
     const userById = {}; usersMapped.forEach((u) => (userById[u.id] = u));
     memberships.forEach((m) => {
       const uid = refId(m, 'principal');
       const role = refTitle(m, 'roles') || (m._links.roles && m._links.roles[0] && m._links.roles[0].title);
       if (userById[uid] && role) userById[uid].role = role;
     });
-    // Observer role = view-only; exclude from assignee list.
-    const USERS = usersMapped.filter((u) => !/observer/i.test(u.role));
+    // Mark observers — excluded from assignee dropdowns but kept for D.U lookup.
+    usersMapped.forEach((u) => { if (/observer/i.test(u.role)) u.isObserver = true; });
+    const USERS = usersMapped;
 
     return {
       STATUSES: statuses.map(mapStatus),

@@ -20,7 +20,7 @@
     </select>`;
     const selUser = `<select class="board-select" data-board-user>
       <option value="all" ${fUser === 'all' ? 'selected' : ''}>All Members · 전체 담당자</option>
-      ${D.USERS.map((u) => `<option value="${u.id}" ${+fUser === u.id ? 'selected' : ''}>${u.name} · ${u.role}</option>`).join('')}
+      ${D.USERS.filter((u) => !u.isGroup && !u.isObserver).map((u) => `<option value="${u.id}" ${+fUser === u.id ? 'selected' : ''}>${u.name} · ${u.role}</option>`).join('')}
     </select>`;
 
     const filterBar = `<div style="display:flex;align-items:center;gap:10px;margin:var(--grid-1) 0">

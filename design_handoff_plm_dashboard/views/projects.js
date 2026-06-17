@@ -34,7 +34,7 @@
         </div>
         <div class="muted" style="margin-top:4px;font-size:13px">${p.nameKo} · <span class="mono">${p.identifier}</span></div>
         <div style="display:flex;gap:18px;margin-top:14px;flex-wrap:wrap">
-          <div><div class="kpi-label">LEAD</div><div style="display:flex;align-items:center;gap:7px;margin-top:5px">${UI.avatar(D.U[p.leadId])}<b style="font-size:13px">${D.U[p.leadId].name}</b></div></div>
+          <div><div class="kpi-label">LEAD</div><div style="display:flex;align-items:center;gap:7px;margin-top:5px">${UI.avatar(D.U[p.leadId])}<b style="font-size:13px">${D.U[p.leadId] ? D.U[p.leadId].name : '–'}</b></div></div>
           <div><div class="kpi-label">TIMELINE</div><div class="mono" style="margin-top:7px;font-size:13px">${UI.fmtDateY(p.startDate)} → ${UI.fmtDateY(p.dueDate)}</div></div>
           <div><div class="kpi-label">SPRINT</div><div class="mono" style="margin-top:7px;font-size:13px">${curV ? curV.name : '–'}</div></div>
           <div><div class="kpi-label">TEAM</div><div style="margin-top:5px">${UI.avatarStack(p.memberIds, 6)}</div></div>
@@ -77,7 +77,7 @@
 
     /* team within project */
     const teamRows = p.memberIds.map((id) => {
-      const u = D.U[id];
+      const u = D.U[id] || { id, name: `#${id}`, initials: '?', role: '', color: '#8B93A7' };
       const owned = wps.filter((w) => w.assigneeId === id);
       const open = owned.filter(D.isOpen);
       const spent = Math.round(owned.reduce((a, w) => a + w.spentHours, 0));

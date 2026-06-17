@@ -3,455 +3,720 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PLM Dashboard — 프로젝트 기록 (Project Journal)</title>
-<meta name="description" content="PLM Dashboard 실 OpenProject 연동 프로젝트의 초기부터 완성까지 전 과정 기록 · 세미나/내부 전파/레퍼런스/포스트모텀용">
+<title>AI 협업 개발 방법론 — MoAI-ADK 프로젝트 운영 플레이북</title>
+<meta name="description" content="AI 에이전트 협업 개발에서 반복되는 5가지 고통을 구조로 해결하는 방법론. 헌장 SSOT, SPEC-First DDD, 이슈 기반 이력 관리, E2E 완료 게이트 — 다른 프로젝트에 바로 적용 가능한 플레이북.">
 <style>
-  :root{
-    --bg:#0f1420; --bg2:#161d2e; --card:#1b2436; --card2:#212c42;
-    --ink:#e8edf6; --muted:#9aa7bd; --line:#2c3a55;
-    --accent:#5b8def; --accent2:#7c5cff; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
-    --code:#0b0f18; --chip:#26324b;
-    --maxw:980px;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0; background:linear-gradient(180deg,#0f1420,#0c1019 60%); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-    line-height:1.7; font-size:16px;
-  }
-  a{color:var(--accent); text-decoration:none} a:hover{text-decoration:underline}
-  code,.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; font-size:.88em}
-  code{background:var(--code); padding:.12em .42em; border-radius:5px; border:1px solid var(--line); color:#cfe0ff}
-  /* progress bar */
-  #prog{position:fixed; top:0; left:0; height:3px; width:0; background:linear-gradient(90deg,var(--accent),var(--accent2)); z-index:50}
-  /* layout */
-  .wrap{display:grid; grid-template-columns:248px 1fr; max-width:1320px; margin:0 auto; gap:0}
-  nav{position:sticky; top:0; align-self:start; height:100vh; overflow:auto; padding:22px 16px; border-right:1px solid var(--line); background:rgba(13,18,28,.6)}
-  nav .brand{font-weight:800; font-size:15px; letter-spacing:.3px; margin-bottom:2px}
-  nav .sub{color:var(--muted); font-size:11.5px; margin-bottom:16px}
-  nav a{display:block; color:var(--muted); font-size:13px; padding:5px 10px; border-radius:7px; border-left:2px solid transparent}
-  nav a:hover{color:var(--ink); background:var(--card); text-decoration:none}
-  nav a.active{color:#fff; background:var(--card2); border-left-color:var(--accent)}
-  main{padding:46px 38px 120px; max-width:var(--maxw); min-width:0}
-  header.cover{padding:8px 0 30px; border-bottom:1px solid var(--line); margin-bottom:14px}
-  h1{font-size:30px; line-height:1.25; margin:.1em 0 .35em}
-  .lede{color:var(--muted); font-size:15px; max-width:62ch}
-  h2{font-size:22px; margin:46px 0 6px; padding-top:10px; scroll-margin-top:14px}
-  h2 .num{color:var(--accent); font-weight:700; margin-right:.4em}
-  h3{font-size:16.5px; margin:26px 0 6px; color:#dfe7f5}
-  section{border-top:1px solid transparent}
-  p{margin:.55em 0}
-  ul,ol{margin:.5em 0 .6em; padding-left:1.3em} li{margin:.22em 0}
-  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-  @media(max-width:820px){ .wrap{grid-template-columns:1fr} nav{display:none} .grid2{grid-template-columns:1fr} main{padding:28px 18px 90px} }
-  /* chips / badges */
-  .chips{display:flex; flex-wrap:wrap; gap:7px; margin:14px 0}
-  .chip{background:var(--chip); border:1px solid var(--line); color:#cdd9ef; font-size:12px; padding:3px 10px; border-radius:999px}
-  .badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle}
-  .b-done{background:rgba(52,211,153,.16); color:var(--ok); border:1px solid rgba(52,211,153,.4)}
-  .b-prog{background:rgba(251,191,36,.15); color:var(--warn); border:1px solid rgba(251,191,36,.4)}
-  .b-todo{background:rgba(154,167,189,.12); color:var(--muted); border:1px solid var(--line)}
-  .b-hard{background:rgba(248,113,113,.15); color:var(--bad); border:1px solid rgba(248,113,113,.4)}
-  /* cards */
-  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:14px 0}
-  .card.tight{padding:12px 16px}
-  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0}
-  @media(max-width:820px){ .kpis{grid-template-columns:repeat(2,1fr)} }
-  .kpi{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px}
-  .kpi .v{font-size:24px; font-weight:800; color:#fff}
-  .kpi .l{font-size:12px; color:var(--muted); margin-top:2px}
-  /* table */
-  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px}
-  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
-  th{color:#cdd9ef; font-size:12.5px; text-transform:uppercase; letter-spacing:.4px; background:var(--bg2)}
-  tr:hover td{background:rgba(255,255,255,.015)}
-  /* timeline */
-  .tl{position:relative; margin:18px 0 6px; padding-left:26px}
-  .tl::before{content:""; position:absolute; left:7px; top:4px; bottom:4px; width:2px; background:var(--line)}
-  .tl .ev{position:relative; margin:0 0 18px}
-  .tl .ev::before{content:""; position:absolute; left:-23px; top:5px; width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px rgba(91,141,239,.18)}
-  .tl .ev.done::before{background:var(--ok); box-shadow:0 0 0 4px rgba(52,211,153,.16)}
-  .tl .ev .d{font-size:12px; color:var(--muted); font-family:monospace}
-  .tl .ev .t{font-weight:700; margin:1px 0 2px}
-  /* flow diagram */
-  .flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:16px 0; font-size:13px}
-  .flow .node{flex:1 1 120px; min-width:110px; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; text-align:center}
-  .flow .node b{display:block; color:#fff; font-size:13.5px} .flow .node span{color:var(--muted); font-size:11.5px}
-  .flow .arr{display:flex; align-items:center; color:var(--accent); font-size:20px; font-weight:700}
-  @media(max-width:820px){ .flow{flex-direction:column} .flow .arr{transform:rotate(90deg); justify-content:center} }
-  /* callouts */
-  .note{border-left:3px solid var(--accent); background:var(--bg2); border-radius:0 8px 8px 0; padding:10px 14px; margin:14px 0}
-  .note.hard{border-left-color:var(--bad)} .note.tip{border-left-color:var(--ok)} .note.warn{border-left-color:var(--warn)}
-  .note .h{font-weight:700; font-size:13px; letter-spacing:.3px; margin-bottom:2px}
-  .note.hard .h{color:var(--bad)} .note.tip .h{color:var(--ok)} .note.warn .h{color:var(--warn)} .note .h{color:var(--accent)}
-  details{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 14px; margin:10px 0}
-  details summary{cursor:pointer; font-weight:600; padding:6px 0}
-  details[open] summary{border-bottom:1px solid var(--line); margin-bottom:8px}
-  .fill{color:var(--muted); font-style:italic} /* placeholder text for to-be-filled */
-  .ph{border:1px dashed var(--line); border-radius:8px; padding:10px 14px; color:var(--muted); background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,255,255,.012) 10px,rgba(255,255,255,.012) 20px)}
-  footer{color:var(--muted); font-size:13px; border-top:1px solid var(--line); margin-top:50px; padding-top:18px}
-  .pill{font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:1px 7px; margin-left:6px}
-  hr.s{border:none; border-top:1px solid var(--line); margin:30px 0}
+:root{
+  --bg:#0d1117; --bg2:#161b22; --card:#1c2333; --card2:#21262d;
+  --ink:#e6edf3; --muted:#8b949e; --line:#30363d;
+  --blue:#58a6ff; --purple:#bc8cff; --green:#3fb950; --yellow:#d29922; --red:#f85149;
+  --orange:#ffa657;
+  --maxw:960px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.75;font-size:16px}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:.875em;background:#161b22;padding:.15em .45em;border-radius:6px;border:1px solid var(--line);color:#79c0ff}
+/* reading bar */
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--blue),var(--purple));z-index:100}
+/* layout */
+.shell{display:grid;grid-template-columns:240px 1fr;max-width:1280px;margin:0 auto}
+nav{position:sticky;top:0;height:100vh;overflow-y:auto;padding:24px 14px;border-right:1px solid var(--line);background:#0d1117}
+nav .brand{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+nav .sub{font-size:11px;color:var(--muted);margin-bottom:18px}
+nav a{display:block;font-size:12.5px;color:var(--muted);padding:5px 10px;border-radius:6px;border-left:2px solid transparent}
+nav a:hover{color:var(--ink);background:var(--card);text-decoration:none}
+nav a.on{color:#fff;background:var(--card2);border-left-color:var(--blue)}
+nav .sec{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:#484f58;margin:14px 0 4px 10px}
+main{padding:52px 44px 140px;max-width:var(--maxw)}
+@media(max-width:800px){.shell{grid-template-columns:1fr}nav{display:none}main{padding:28px 20px 100px}}
+/* cover */
+.cover{padding:6px 0 36px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.cover .eyebrow{font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+.cover h1{font-size:32px;line-height:1.2;margin-bottom:14px}
+.cover h1 em{font-style:normal;color:var(--blue)}
+.cover .lede{font-size:16px;color:var(--muted);max-width:58ch;line-height:1.65}
+/* problem pain */
+.pain-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin:18px 0}
+.pain{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding:14px 16px}
+.pain .icon{font-size:20px;margin-bottom:6px}
+.pain .t{font-weight:700;font-size:14px;margin-bottom:4px}
+.pain .d{font-size:13px;color:var(--muted)}
+.solve{border-left-color:var(--green)!important}
+/* sections */
+h2{font-size:22px;margin:52px 0 8px;scroll-margin-top:16px}
+h2 .n{color:var(--blue);font-size:14px;font-weight:600;letter-spacing:.3px;margin-right:.5em}
+h3{font-size:16px;font-weight:700;margin:28px 0 8px;color:#e6edf3}
+h4{font-size:14px;font-weight:700;margin:18px 0 5px;color:var(--orange)}
+p{margin:.6em 0}
+ul,ol{padding-left:1.4em;margin:.5em 0}li{margin:.3em 0}
+/* phase steps */
+.phases{display:flex;flex-direction:column;gap:0;margin:18px 0}
+.phase{display:grid;grid-template-columns:52px 1fr;gap:0}
+.phase .num{display:flex;flex-direction:column;align-items:center}
+.phase .circle{width:40px;height:40px;border-radius:50%;background:var(--card2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--blue);flex-shrink:0}
+.phase .vline{flex:1;width:2px;background:var(--line);margin:4px auto 0}
+.phase:last-child .vline{display:none}
+.phase .body{padding:0 0 32px 16px}
+.phase .body .title{font-weight:700;font-size:16px;margin-bottom:6px}
+.phase .body .sub{font-size:13px;color:var(--muted);margin-bottom:10px}
+/* tables */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:#8b949e;font-size:12px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg2)}
+tr:hover td{background:rgba(255,255,255,.012)}
+/* callouts */
+.note{border-left:3px solid var(--blue);background:var(--bg2);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0}
+.note.hard{border-left-color:var(--red)}.note.tip{border-left-color:var(--green)}.note.warn{border-left-color:var(--yellow)}
+.note .ht{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
+.note.hard .ht{color:var(--red)}.note.tip .ht{color:var(--green)}.note.warn .ht{color:var(--yellow)}.note .ht{color:var(--blue)}
+/* template boxes */
+.tmpl{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:14px 0;font-size:13px;position:relative}
+.tmpl .tlabel{position:absolute;top:-10px;left:14px;background:#0d1117;padding:0 8px;font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.4px;text-transform:uppercase}
+.tmpl pre{white-space:pre-wrap;word-break:break-word;line-height:1.6;color:#cdd9ef;font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px}
+/* badges */
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.b-hard{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+.b-ok{background:rgba(63,185,80,.14);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.b-prog{background:rgba(210,153,34,.14);color:var(--yellow);border:1px solid rgba(210,153,34,.3)}
+.b-info{background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+/* comparison */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.cmp .side{border-radius:8px;padding:14px}
+.cmp .bad{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2)}
+.cmp .good{background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.2)}
+.cmp .side .lbl{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.bad .lbl{color:var(--red)}.good .lbl{color:var(--green)}
+@media(max-width:600px){.cmp{grid-template-columns:1fr}}
+/* flow */
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0;font-size:13px}
+.flow .node{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;text-align:center}
+.flow .node b{display:block;color:#fff;font-size:13px}
+.flow .node span{color:var(--muted);font-size:11px}
+.flow .arr{color:var(--blue);font-size:18px;font-weight:700;padding:0 2px}
+/* case block */
+.case{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin:14px 0}
+.case .cl{font-size:11px;color:var(--purple);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+/* divider */
+hr{border:none;border-top:1px solid var(--line);margin:36px 0}
+/* toc chip */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:3px 10px;border-radius:999px}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:60px;padding-top:18px}
 </style>
 </head>
 <body>
-<div id="prog"></div>
-<div class="wrap">
+<div id="bar"></div>
+<div class="shell">
 <nav>
-  <div class="brand">PLM Dashboard</div>
-  <div class="sub">프로젝트 기록 · Project Journal</div>
-  <a href="#summary">0. 한눈에</a>
-  <a href="#overview">1. 프로젝트 개요</a>
-  <a href="#timeline">2. 타임라인</a>
-  <a href="#env">3. 실 환경 · 검증 사실</a>
-  <a href="#method">4. 방법론 · 도구</a>
-  <a href="#gov">5. 거버넌스 · 헌장</a>
-  <a href="#spec">6. SPEC-OPINT-001</a>
-  <a href="#wbs">7. 작업 분해 (이슈)</a>
-  <a href="#arch">8. 아키텍처 · 데이터 계약</a>
-  <a href="#lessons">9. 교훈 · 의사결정</a>
-  <a href="#reuse">10. 재사용 패턴 · 템플릿</a>
-  <a href="#postmortem">11. 포스트모텀 (예정)</a>
-  <a href="#changelog">12. 문서 변경 이력</a>
-  <a href="#appendix">부록 · 참조</a>
+  <div class="brand">MoAI-ADK 방법론</div>
+  <div class="sub">AI 협업 개발 운영 플레이북</div>
+  <a href="#why">왜 이 방법론인가</a>
+  <a href="#overview">방법론 전체 구조</a>
+  <div class="sec">적용 단계</div>
+  <a href="#ph0">Phase 0 · 환경 검증</a>
+  <a href="#ph1">Phase 1 · 헌장 수립</a>
+  <a href="#ph2">Phase 2 · SPEC 작성</a>
+  <a href="#ph3">Phase 3 · 이슈 분해</a>
+  <a href="#ph4">Phase 4 · DDD 구현</a>
+  <a href="#ph5">Phase 5 · E2E 완료 게이트</a>
+  <div class="sec">레퍼런스</div>
+  <a href="#tools">도구 스택</a>
+  <a href="#templates">재사용 템플릿</a>
+  <a href="#antipatterns">안티패턴</a>
+  <a href="#case">적용 사례</a>
 </nav>
 <main>
 
-<header class="cover">
+<!-- COVER -->
+<div class="cover">
+  <div class="eyebrow">AI 협업 개발 방법론 · MoAI-ADK Playbook</div>
+  <h1>AI 에이전트와 함께 일하는 법 —<br><em>구조 없이는 반복되는 5가지 고통</em>을 해결하다</h1>
+  <p class="lede">이 문서는 AI 에이전트를 개발에 활용할 때 반복적으로 겪는 드리프트·이력 소실·완료 착각·재설명 반복 문제를 <strong>구조와 프로세스</strong>로 해결하는 방법론을 정리합니다. 특정 프로젝트의 기록이 아니라, <strong>어느 프로젝트에든 바로 적용 가능한 플레이북</strong>입니다.</p>
   <div class="chips">
-    <span class="chip">세미나용</span><span class="chip">내부 전파용</span>
-    <span class="chip">차기 프로젝트 레퍼런스</span><span class="chip">포스트모텀 기반</span>
+    <span class="chip">내부 전파용</span>
+    <span class="chip">팀 온보딩용</span>
+    <span class="chip">차기 프로젝트 레퍼런스</span>
+    <span class="chip">포스트모텀 기반</span>
   </div>
-  <h1>PLM Dashboard — 프로젝트 기록<br>실 OpenProject 연동 여정</h1>
-  <p class="lede">초기 셋업부터 완성까지 전 과정을 한 문서에 기록합니다. 의사결정의 <b>이유</b>와
-  거버넌스 구조, 재사용 가능한 패턴을 함께 남겨 차기 프로젝트의 레퍼런스이자 완료 후 포스트모텀의
-  토대로 활용합니다. <b>모든 사실은 저장소(git 이력·이슈·SPEC·메모리)에서 검증된 값</b>입니다.</p>
-  <table style="margin-top:18px">
-    <tr><th style="width:140px">저장소</th><td><code>holee9/plm-dashboard</code></td>
-        <th style="width:120px">작성자</th><td>drake.lee</td></tr>
-    <tr><th>프로젝트 시작</th><td>2026-06-16</td><th>최초 작성</th><td>2026-06-17</td></tr>
-    <tr><th>현재 단계</th><td>계획 확정 · 작업 이슈 등록 완료 (구현 착수 전)</td>
-        <th>문서 버전</th><td>v0.1 (living)</td></tr>
-  </table>
-  <div class="note tip"><div class="h">이 문서의 사용법</div>
-  본 문서는 <b>살아있는 기록(living document)</b>입니다. 구현이 진행되면 §2 타임라인과 §7 작업 분해의
-  상태가 갱신되고, 완료 시 §11 포스트모텀이 채워집니다. 인터넷·서버 없이 단일 파일로 열립니다(세미나 친화).</div>
-</header>
-
-<!-- 0 -->
-<section id="summary"><h2><span class="num">0</span>한눈에 (Executive Summary)</h2>
-<p>PLM Dashboard는 실제 구축된 OpenProject 인스턴스(<code>plm.abyz-lab.work</code>)의 work package
-데이터를 <b>6개 운영 관점 뷰</b>(전사 건강도·자원 부하·위험)로 재구성하는 <b>의존성 0의 바닐라 JS
-no-build SPA</b>입니다. 현재 대시보드는 목업(<code>window.DB</code>)으로 동작하며, 이를 실 API로 교체하는
-것이 핵심 과제(<b>SPEC-OPINT-001</b>)입니다.</p>
-<div class="kpis">
-  <div class="kpi"><div class="v">6</div><div class="l">운영 관점 뷰</div></div>
-  <div class="kpi"><div class="v">20</div><div class="l">EARS 요구사항 (R1–R20)</div></div>
-  <div class="kpi"><div class="v">7</div><div class="l">추적 이슈 (#1 헌장 + #2–#7)</div></div>
-  <div class="kpi"><div class="v">20</div><div class="l">E2E 실증 항목 [HARD]</div></div>
 </div>
-<p>이번 단계까지의 성과는 <b>"코드 한 줄 전에 거버넌스부터"</b>입니다 — 실 환경 검증, EARS 사양 확정,
-GitHub 이슈 기반 이력 관리, 그리고 범위 이탈을 막는 <b>헌장(Charter) SSOT 구조</b>를 먼저 구축했습니다.</p>
-</section>
 
-<!-- 1 -->
-<section id="overview"><h2><span class="num">1</span>프로젝트 개요</h2>
-<h3>왜 만드는가</h3>
-<p>PLM/프로젝트 조직은 다수의 활성 프로젝트와 개발 인원을 동시에 운영하며 진척·지연·인원 과부하를
-빠르게 파악해야 합니다. OpenProject 기본 화면만으로는 <b>프로젝트 횡단 관점</b>(전사 건강도, 자원 부하,
-위험 알림)을 얻기 어렵습니다. PLM Dashboard는 API v3 데이터를 정규화해 의사결정 신호(정상/주의/위험)를
-즉시 제공합니다.</p>
-<table>
-  <tr><th>대상 규모</th><td>활성 프로젝트 약 12개, 개발자 15명, work package 약 250건 (목표 운영 규모)</td></tr>
-  <tr><th>데이터 원천</th><td>실제 구축된 OpenProject 인스턴스 (목업은 개발/디자인 단계의 대체재)</td></tr>
-  <tr><th>대상 사용자</th><td>PLM/프로젝트 관리자, 팀 리드, 개발 조직 운영 담당</td></tr>
-</table>
-<h3>6개 뷰</h3>
-<table>
-  <tr><th>뷰</th><th>파일</th><th>핵심 내용</th></tr>
-  <tr><td><b>Overview</b></td><td><code>views/overview.js</code></td><td>종합 판정, 건강도 분포, 지연 건수, 가동률, 추세</td></tr>
-  <tr><td><b>Projects</b></td><td><code>views/projects.js</code></td><td>프로젝트별 건강도 카드 — 진행률·번다운·팀·WP 테이블</td></tr>
-  <tr><td><b>Resources</b></td><td><code>views/resources.js</code></td><td>개발자별 부하 %, 잔여 시간, 백로그, 지연 WP</td></tr>
-  <tr><td><b>Board</b></td><td><code>views/board.js</code></td><td>상태별 칸반(동적 statuses), 프로젝트/담당자 필터</td></tr>
-  <tr><td><b>Timeline</b></td><td><code>views/timeline.js</code></td><td>간트 + 스프린트 번다운, 마일스톤, 기간 선택</td></tr>
-  <tr><td><b>Risks</b></td><td><code>views/risks.js</code></td><td>마감 초과·임박, 인원 과부하, 공수 초과 집계</td></tr>
-</table>
-</section>
+<!-- 1. WHY -->
+<section id="why">
+<h2><span class="n">01</span>왜 이 방법론인가 — 해결하는 고통</h2>
+<p>AI 에이전트를 도입한 팀이 공통적으로 겪는 문제들입니다. 단순히 "AI를 쓰는 것"만으로는 해결되지 않고, <strong>구조</strong>가 있어야 비로소 사라집니다.</p>
 
-<!-- 2 -->
-<section id="timeline"><h2><span class="num">2</span>타임라인 — 초기부터 현재까지</h2>
-<p>git 커밋 이력과 세션 작업을 시간순으로 기록합니다. <span class="badge b-done">완료</span>는 커밋/이슈로
-확정된 사건입니다.</p>
-<div class="tl">
-  <div class="ev done"><div class="d">2026-06-16 13:38 · cc93e1e</div><div class="t">Initial commit</div>
-    저장소 초기화.</div>
-  <div class="ev done"><div class="d">2026-06-16 15:48 · 6169d36</div><div class="t">PLM 대시보드 소스 및 프로젝트 설정 초기화 <span class="pill">87 files · +8045</span></div>
-    바닐라 JS SPA 본체(6개 뷰, <code>data.js</code>, <code>op-adapter.js</code> 스켈레톤), 디자인 핸드오프,
-    MoAI-ADK 설정(<code>.moai</code>, 에이전트·스킬·룰) 일괄 도입.</div>
-  <div class="ev done"><div class="d">2026-06-16 (검증 라운드)</div><div class="t">실 OpenProject 환경 점검 · 인증 라운드트립 검증</div>
-    컨테이너·포트·토큰 위치 확인, <code>/api/v3/users/me → name=abyz-lab, 200</code>. 실 데이터 규모 집계
-    (projects 11 · work_packages 58 · users 19 · statuses 13 · types 11 · priorities 4 · versions 0).
-    함정 5 도출(<code>OpenProject 연동 점검.html</code>).</div>
-  <div class="ev done"><div class="d">2026-06-17 06:56 · ba0c20e</div><div class="t">README 상세 작성 및 프로젝트 문서 추가 <span class="pill">+463</span></div>
-    데이터 계약(SSOT) 중심의 README, 6개 뷰·기술 스택·실연동 절차 문서화.</div>
-  <div class="ev done"><div class="d">2026-06-17 09:26 · 5332f30</div><div class="t">GitHub 이슈 기반 작업 이력 관리 룰 추가</div>
-    <code>.claude/rules/moai/workflow/issue-tracking.md</code> + CLAUDE.md §14. 모든 작업을 이슈로
-    추적하는 HARD 룰 확립.</div>
-  <div class="ev done"><div class="d">2026-06-17 09:28 · e71dd3b</div><div class="t">필수 룰 파일 추적(gitignore 예외)</div></div>
-  <div class="ev done"><div class="d">2026-06-17 (계획 확정)</div><div class="t">SPEC-OPINT-001 작성 — 실 OpenProject 연동 사양</div>
-    EARS 요구사항 R1–R20, 인수 기준 + E2E 실증 체크리스트 20항목, 추적성 표 확정.</div>
-  <div class="ev done"><div class="d">2026-06-17 (본 세션)</div><div class="t">작업 이슈 등록 + 헌장 SSOT 구조 구축</div>
-    SPEC을 7개 단위로 분해해 이슈 #1–#7 등록. <b>#1을 프로젝트 헌장(SSOT)</b>으로 승격하고
-    CLAUDE.md §15·메모리에 "작업 전 #1을 읽고 따르라" 포인터 추가.</div>
-  <div class="ev"><div class="d">다음</div><div class="t">구현 착수 <span class="badge b-prog">예정</span></div>
-    #2 프록시 → #3 어댑터 → #4 계약 → #5 견고성 → (#6 선택) → #7 E2E 게이트.</div>
+<div class="pain-grid">
+  <div class="pain">
+    <div class="icon">🔀</div>
+    <div class="t">드리프트 — 범위 이탈</div>
+    <div class="d">에이전트가 매 세션 컨텍스트를 잃고, 요청과 무관한 작업을 하거나 명시적으로 금지한 영역을 건드린다.</div>
+  </div>
+  <div class="pain">
+    <div class="icon">🔁</div>
+    <div class="t">재설명 반복</div>
+    <div class="d">새 세션·새 에이전트를 시작할 때마다 같은 배경, 같은 제약, 같은 목적을 처음부터 설명해야 한다.</div>
+  </div>
+  <div class="pain">
+    <div class="icon">💨</div>
+    <div class="t">이력 소실</div>
+    <div class="d">무엇을 결정했고 왜 결정했는지, 어디까지 진행됐는지가 대화 스크롤 뒤로 사라진다. 재구성이 불가능하다.</div>
+  </div>
+  <div class="pain">
+    <div class="icon">🎭</div>
+    <div class="t">완료 착각</div>
+    <div class="d">목업 통과, 단위 테스트 통과, 코드 작성 완료를 "완료"로 착각한다. 실 환경에서 터진다.</div>
+  </div>
+  <div class="pain">
+    <div class="icon">🧭</div>
+    <div class="t">방향 상실</div>
+    <div class="d">에이전트가 무엇을 만들어야 하는지, 어디까지가 허용 범위인지 알지 못한 채 실행한다.</div>
+  </div>
+</div>
+
+<div class="note tip">
+  <div class="ht">이 방법론의 핵심 주장</div>
+  위 고통은 AI의 한계가 아니라 <strong>구조의 부재</strong>에서 옵니다. 올바른 구조를 세우면 AI 에이전트는 일관된 방향으로 반복 없이 작동합니다.
 </div>
 </section>
 
-<!-- 3 -->
-<section id="env"><h2><span class="num">3</span>실 환경 · 검증된 사실 <span class="badge b-done">2026-06-16 검증</span></h2>
-<p>아래는 점검 완료된 확정 사실이며 SPEC의 전제입니다. <b>이 프로젝트의 연동 대상은 목업이 아니라
-실제 구동 중인 인스턴스</b>입니다.</p>
-<table>
-  <tr><th>항목</th><th>값</th></tr>
-  <tr><td>OpenProject 컨테이너</td><td>내부 Docker 컨테이너 (<code>openproject/openproject:17</code>)</td></tr>
-  <tr><td>공개 URL</td><td><code>https://plm.abyz-lab.work</code> (보안 터널 경유)</td></tr>
-  <tr><td>직접 호출 제약</td><td>내부 포트 직접 호출 시 HTTP 400 (Host 헤더 불일치) → 프록시 경유 필요</td></tr>
-  <tr><td>기존 공개 프록시</td><td>내부 nginx 프록시 — 중계 + 칸반 sub_filter 주입 전용, <b>인증 헤더 미주입</b></td></tr>
-  <tr><td>로컬 API base</td><td>내부 API 프록시 경로 (올바른 Host 주입됨)</td></tr>
-  <tr><td>인증 방식</td><td><code>Authorization: Basic base64(apikey:&lt;TOKEN&gt;)</code></td></tr>
-  <tr><td>토큰 위치</td><td>서버측 환경변수 <code>OP_API_KEY</code> (값·경로 비공개) — <b>문서·코드에 기재 금지</b></td></tr>
-  <tr><td>토큰 검증</td><td><code>/api/v3/users/me → name=abyz-lab, HTTP 200</code></td></tr>
-</table>
-<div class="kpis">
-  <div class="kpi"><div class="v">11</div><div class="l">projects</div></div>
-  <div class="kpi"><div class="v">58</div><div class="l">work_packages</div></div>
-  <div class="kpi"><div class="v">19</div><div class="l">users</div></div>
-  <div class="kpi"><div class="v">0</div><div class="l">versions (graceful 필요)</div></div>
-</div>
-<p class="fill">statuses 13 · types 11 · priorities 4 (인스턴스 설정 — 하드코딩 금지, 동적 fetch 대상)</p>
-<div class="note hard"><div class="h">[HARD] 보안 전제</div>
-어떤 검증 단계에서도 토큰 값을 문서·로그·콘솔에 출력하지 않습니다. 토큰은 서버측 환경변수
-<code>OP_API_KEY</code> 위치로만 참조합니다(경로 비공개).</div>
-</section>
+<!-- 2. OVERVIEW -->
+<section id="overview">
+<h2><span class="n">02</span>방법론 전체 구조</h2>
+<p>5가지 고통에 대응하는 5가지 구조 요소입니다. 각각이 독립적으로도 효과가 있지만, 함께 쓸 때 시너지가 납니다.</p>
 
-<!-- 4 -->
-<section id="method"><h2><span class="num">4</span>방법론 · 도구</h2>
-<h3>MoAI-ADK · SPEC-First DDD</h3>
-<p>개발은 <b>SPEC → Run → Sync</b> 3단계 워크플로와 <b>DDD(ANALYZE-PRESERVE-IMPROVE)</b> 사이클을 따릅니다.
-오케스트레이터(MoAI)가 전문 에이전트에게 작업을 위임하는 구조입니다.</p>
+<table>
+  <tr><th>고통</th><th>구조 요소</th><th>한 문장 설명</th></tr>
+  <tr><td>드리프트·방향 상실</td><td><strong>헌장 SSOT</strong></td><td>목적·범위 IN/OUT·금지사항의 단일 출처(이슈 #1)를 두고, 에이전트는 매 작업 전 이를 읽고 따른다</td></tr>
+  <tr><td>재설명 반복</td><td><strong>얇은 포인터 자동 주입</strong></td><td>프로젝트 instruction 파일에 "헌장을 읽어라"는 포인터만 자동 로드 — 내용은 헌장에서 단일 관리</td></tr>
+  <tr><td>이력 소실</td><td><strong>이슈 기반 이력 관리</strong></td><td>착수 전 이슈 등록 → 진행 중 코멘트 → 발견 작업 신규 이슈 — 이슈 타임라인만으로 재구성 가능</td></tr>
+  <tr><td>완료 착각</td><td><strong>E2E 완료 게이트</strong></td><td>실 환경 end-to-end 실증 통과로만 완료 인정. 목업·단위 테스트 통과는 완료가 아님</td></tr>
+  <tr><td>방향 상실</td><td><strong>SPEC-First DDD</strong></td><td>코드 전에 EARS 형식 사양 확정 → DDD(Analyze-Preserve-Improve) 사이클로 구현</td></tr>
+</table>
+
+<h3>전체 흐름</h3>
 <div class="flow">
-  <div class="node"><b>Plan</b><span>SPEC 작성 (EARS)</span></div><div class="arr">→</div>
-  <div class="node"><b>Run</b><span>DDD 구현</span></div><div class="arr">→</div>
-  <div class="node"><b>Sync</b><span>문서·PR</span></div>
+  <div class="node"><b>Phase 0</b><span>환경 검증</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 1</b><span>헌장 수립</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 2</b><span>SPEC 작성</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 3</b><span>이슈 분해</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 4</b><span>DDD 구현</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 5</b><span>E2E 게이트</span></div>
 </div>
-<h3>TRUST 5 품질 게이트</h3>
-<table>
-  <tr><th>T</th><td><b>Testable</b> — 85%+ 커버리지, 특성 테스트</td><th>R</th><td><b>Readable</b> — 명확한 네이밍</td></tr>
-  <tr><th>U</th><td><b>Understandable</b> — 비즈니스 로직 명료</td><th>S</th><td><b>Secured</b> — OWASP, 입력 검증, 토큰 비노출</td></tr>
-  <tr><th>T</th><td colspan="3"><b>Trackable</b> — 구조적 로그, 이슈 참조, LSP 진단(errors/type/lint 0)</td></tr>
-</table>
-<h3>이 프로젝트 전용으로 구축한 에이전트·스킬</h3>
-<table>
-  <tr><th>유형</th><th>이름</th><th>역할</th></tr>
-  <tr><td>에이전트</td><td><code>plm-integrator</code></td><td>OpenProject API v3 연동 — <code>op-adapter.js</code> 완성, 프록시 설정, 목업→실 API 교체</td></tr>
-  <tr><td>에이전트</td><td><code>plm-validator</code></td><td>데이터 계약 교차 검증 — README §5 기준 드리프트 감지(읽기 전용)</td></tr>
-  <tr><td>스킬</td><td><code>plm-dashboard</code></td><td>PLM 대시보드 전 개발 작업 오케스트레이션</td></tr>
-  <tr><td>스킬</td><td><code>plm-integration</code></td><td>HAL+JSON 파싱·ISO8601 기간·페이지네이션·프록시 패턴 가이드</td></tr>
-  <tr><td>스킬</td><td><code>plm-validation</code></td><td>데이터 계약 교차 검증·selector 시그니처 확인 가이드</td></tr>
-</table>
+<p>Phase 0~3은 <strong>코드보다 먼저</strong> 완료됩니다. "거버넌스 먼저, 코드 나중"이 이 방법론의 핵심 원칙입니다.</p>
 </section>
 
-<!-- 5 -->
-<section id="gov"><h2><span class="num">5</span>거버넌스 — 이력 관리 + 헌장 SSOT <span class="badge b-done">핵심 산출</span></h2>
-<p>이 프로젝트의 차별점은 <b>코드보다 거버넌스를 먼저 세운 것</b>입니다. 두 축으로 구성됩니다.</p>
-<h3>축 1 — GitHub 이슈 기반 이력 관리 (HARD 룰)</h3>
+<hr>
+
+<!-- PHASE 0 -->
+<section id="ph0">
+<h2><span class="n">03</span>Phase 0 · 환경 검증 — 사실 기반 출발</h2>
+<h4>목적</h4>
+<p>연동 대상·제약·토큰·데이터 규모 등 <strong>전제 사실을 직접 확인</strong>하고 기록합니다. 추정으로 시작하면 이후 모든 설계가 흔들립니다.</p>
+
+<h4>체크리스트</h4>
+<ul>
+  <li>연동 대상 시스템이 실제로 접근 가능한가? (curl, 인증 라운드트립)</li>
+  <li>인증 방식·토큰 위치·권한 범위가 명확한가?</li>
+  <li>직접 호출 제약(CORS, Host 헤더, 방화벽)이 있는가?</li>
+  <li>실 데이터 규모(레코드 수, 페이지네이션 범위)가 파악됐는가?</li>
+  <li>기존 인프라 중 <strong>절대 건드리면 안 되는</strong> 구성요소가 있는가?</li>
+</ul>
+
+<h4>산출물</h4>
+<p>SPEC의 §2 Environment — 확정된 사실만 기재하고 가정(Assumption)과 명확히 분리합니다.</p>
+
+<div class="note warn">
+  <div class="ht">흔한 실수</div>
+  "아마 될 것"으로 사양을 작성하면 구현 중간에 전제가 틀렸음을 발견하고 처음부터 다시 합니다. 환경 검증은 아무리 번거로워도 생략하지 않습니다.
+</div>
+
+<div class="case">
+  <div class="cl">PLM Dashboard 적용 사례</div>
+  OpenProject 컨테이너·포트·기존 프록시 구성을 확인하고, <code>/api/v3/users/me</code> 인증 라운드트립까지 검증한 뒤 SPEC 작성을 시작했습니다. 그 결과 "기존 프록시는 인증 헤더를 주입하지 않아 대시보드에 쓸 수 없다"는 사실을 사전에 파악해 별도 프록시 신설을 SPEC에 반영했습니다.
+</div>
+</section>
+
+<!-- PHASE 1 -->
+<section id="ph1">
+<h2><span class="n">04</span>Phase 1 · 헌장 수립 — 드리프트 방지 구조</h2>
+<h4>목적</h4>
+<p>프로젝트의 <strong>목적·목표·범위·금지사항·완료 정의·작업 프로토콜</strong>을 단일 출처에 기록하고, 에이전트가 매 작업 전 자동으로 이를 읽도록 연결합니다.</p>
+
+<h4>헌장 SSOT 구조</h4>
+<p>핵심 아이디어: <strong>지침의 단일 출처(이슈 #1)와 자동 주입되는 얇은 포인터</strong>를 분리합니다.</p>
+
+<div class="cmp">
+  <div class="side bad">
+    <div class="lbl">❌ 잘못된 방식</div>
+    <ul>
+      <li>CLAUDE.md에 모든 룰을 직접 씀</li>
+      <li>룰이 늘어날수록 파일이 비대해짐</li>
+      <li>여러 곳에 분산되어 최신본 불명확</li>
+      <li>에이전트가 어느 것을 따라야 할지 혼란</li>
+    </ul>
+  </div>
+  <div class="side good">
+    <div class="lbl">✅ 올바른 방식</div>
+    <ul>
+      <li>이슈 #1에 헌장 전체 작성 (SSOT)</li>
+      <li>CLAUDE.md에는 "작업 전 #1을 읽어라"만</li>
+      <li>룰 추가 시 #1만 수정 — 다른 곳 불변</li>
+      <li>에이전트는 매 작업 전 #1을 읽고 따름</li>
+    </ul>
+  </div>
+</div>
+
+<h4>헌장에 반드시 포함할 6가지 항목</h4>
+<table>
+  <tr><th>#</th><th>항목</th><th>왜 필요한가</th></tr>
+  <tr><td>1</td><td><strong>목적·목표·지향점</strong></td><td>에이전트가 무엇을 만들어야 하는지 알게 한다</td></tr>
+  <tr><td>2</td><td><strong>범위 경계 IN/OUT</strong></td><td>해도 되는 것과 절대 건드리면 안 되는 것을 명시한다</td></tr>
+  <tr><td>3</td><td><strong>HARD 금지사항</strong></td><td>위반 시 작업 무효임을 명시해 경계를 강제한다</td></tr>
+  <tr><td>4</td><td><strong>작업 프로토콜</strong></td><td>착수 전/진행 중/완료 시 해야 할 행동을 정의한다</td></tr>
+  <tr><td>5</td><td><strong>작업 분해 & 실행 순서</strong></td><td>에이전트가 다음 단계를 스스로 파악하게 한다</td></tr>
+  <tr><td>6</td><td><strong>완료 정의 & 세션 핸드오프</strong></td><td>종료 시 핸드오프 코멘트를 남겨 다음 세션이 이어받게 한다</td></tr>
+</table>
+
+<h4>CLAUDE.md에 추가할 포인터 패턴</h4>
+<div class="tmpl">
+  <div class="tlabel">CLAUDE.md 추가 섹션</div>
+  <pre>## Project Charter (Single Source of Truth = Issue #1)
+
+The living project charter lives in GitHub issue #1, NOT here.
+This keeps this file lean while the charter evolves in one place.
+
+### HARD Rules
+
+- [HARD] Read the Charter Before Any Work: Run
+  `gh issue view 1 --repo {owner}/{repo}` before starting any task.
+  WHY: Prevents scope drift and repeated re-explanation across sessions.
+
+- [HARD] Charter Wins on Conflict: If a request crosses a scope boundary
+  in #1, stop and confirm with the user instead of proceeding.
+
+- [HARD] Hand Off via Issue: Before ending work, leave a status comment
+  (current state / remaining work / next entry point) on the active issue.</pre>
+</div>
+
+<div class="note hard">
+  <div class="ht">HARD 룰</div>
+  <strong>경계가 모호할 때는 진행하지 말고 사용자에게 확인합니다.</strong> 에이전트가 "아마 괜찮겠지"로 진행하는 것이 드리프트의 시작입니다.
+</div>
+</section>
+
+<!-- PHASE 2 -->
+<section id="ph2">
+<h2><span class="n">05</span>Phase 2 · SPEC 작성 — 코드 전에 사양 확정</h2>
+<h4>목적</h4>
+<p>구현 전에 <strong>무엇을 만들지</strong>를 명확히 합니다. EARS(Easy Approach to Requirements Syntax) 형식으로 작성하면 모호함이 없고 인수 기준으로 자동 변환됩니다.</p>
+
+<h4>EARS 요구사항 형식</h4>
+<table>
+  <tr><th>유형</th><th>템플릿</th><th>사용 상황</th></tr>
+  <tr><td>Ubiquitous</td><td>시스템은 항상 &lt;행동&gt; 해야 한다</td><td>예외 없는 항상 참인 요구사항</td></tr>
+  <tr><td>Event-driven</td><td>WHEN &lt;이벤트&gt;, THEN 시스템은 &lt;응답&gt; 해야 한다</td><td>특정 사건에 반응하는 요구사항</td></tr>
+  <tr><td>State-driven</td><td>WHILE &lt;상태&gt;, 시스템은 &lt;행동&gt; 해야 한다</td><td>특정 상태에서만 적용되는 요구사항</td></tr>
+  <tr><td>Unwanted</td><td>IF &lt;조건&gt;, THEN 시스템은 &lt;금지 행동&gt; 하지 않아야 한다</td><td>발생하면 안 되는 상황</td></tr>
+  <tr><td>Optional</td><td>WHERE &lt;조건&gt;, 시스템은 &lt;행동&gt; 할 수 있다</td><td>구현 시에만 검증하는 선택 기능</td></tr>
+</table>
+
+<h4>SPEC 문서 구조</h4>
 <ol>
-  <li>작업 착수 전 <code>gh issue create</code>로 이슈 등록 (목표·범위·수용 기준)</li>
-  <li>진행/결정/결과를 <code>gh issue comment</code>로 타임라인에 기록</li>
-  <li>발견된 추가 작업은 별도 이슈로 등록하고 원 이슈에 링크</li>
+  <li><strong>Overview</strong> — 한 단락 목적, 핵심 데이터 흐름</li>
+  <li><strong>Environment</strong> — Phase 0에서 검증된 사실만 (가정과 분리)</li>
+  <li><strong>Assumptions</strong> — 가정 목록, 신뢰도, 잘못됐을 때 리스크</li>
+  <li><strong>Requirements (EARS)</strong> — R1~RN, 그룹화해서 관리</li>
+  <li><strong>Specifications</strong> — 키 파일, 핵심 라인, 기술 스택</li>
+  <li><strong>Traceability</strong> — 요구사항 ID ↔ 인수 기준 ↔ 파일 매핑</li>
 </ol>
-<p class="fill">근거: 이슈 타임라인만으로 작업 이력을 재구성할 수 있어야 한다.</p>
 
-<h3>축 2 — 헌장(Charter) SSOT 구조 <span class="badge b-done">드리프트 방지</span></h3>
-<p>에이전트가 매 세션 범위를 이탈하거나 방향을 못 잡는 문제를 구조로 해결했습니다.
-<b>지침의 단일 출처는 이슈 #1</b>이고, 자동 로드되는 곳에는 "#1을 읽고 따르라"는 <b>얇은 포인터만</b> 둡니다.</p>
-<div class="flow" style="align-items:center">
-  <div class="node" style="flex:1 1 220px; background:#22305a"><b>이슈 #1 — 프로젝트 헌장 (SSOT)</b>
-    <span>목적·목표·지향점 / 범위 IN·OUT / HARD 금지 / 작업 프로토콜 / 세션 핸드오프</span></div>
+<h4>SPEC과 함께 작성: 인수 기준(acceptance.md)</h4>
+<p>SPEC의 각 요구사항에 대해 <strong>"어떻게 검증하는가"</strong>를 함께 작성합니다. E2E 체크리스트가 됩니다.</p>
+<div class="tmpl">
+  <div class="tlabel">acceptance.md 패턴</div>
+  <pre>### AC-XXX-01: [인수 항목 제목]
+- Given: [전제 상태]
+- When:  [행동]
+- Then:  [기대 결과]
+- 검증:  [실제 확인 방법 — curl 명령, 브라우저 콘솔 등]</pre>
 </div>
+
+<div class="note">
+  <div class="ht">토큰 예산 관리</div>
+  SPEC 작성 완료 후 <code>/clear</code>로 컨텍스트를 초기화합니다. 구현 단계에 30K 대신 180K 토큰을 온전히 쓸 수 있습니다.
+</div>
+</section>
+
+<!-- PHASE 3 -->
+<section id="ph3">
+<h2><span class="n">06</span>Phase 3 · 이슈 분해 — 이력이 남는 작업 단위</h2>
+<h4>목적</h4>
+<p>SPEC의 요구사항을 <strong>추적 가능한 작업 단위(이슈)</strong>로 분해합니다. 이슈 타임라인만으로 전체 진행 이력을 재구성할 수 있어야 합니다.</p>
+
+<h4>이슈 구조: 에픽 + 작업 이슈</h4>
 <div class="flow">
-  <div class="node"><b>CLAUDE.md §15</b><span>자동 주입 → 서브에이전트 강제. "작업 전 #1 읽어라"</span></div>
-  <div class="node"><b>메모리 레지스트리</b><span>새 세션 자동 상기. "gh issue view 1로 헌장 숙지"</span></div>
+  <div class="node" style="min-width:160px"><b>#1 에픽 = 헌장</b><span>전체 추적 + 헌장 SSOT</span></div>
+  <div class="arr">→</div>
+  <div class="node"><b>#2 작업A</b><span>R1..R7</span></div>
+  <div class="arr">→</div>
+  <div class="node"><b>#3 작업B</b><span>R8..R11</span></div>
+  <div class="arr">→</div>
+  <div class="node"><b>#N E2E</b><span>완료 게이트</span></div>
 </div>
-<div class="note tip"><div class="h">왜 이 구조인가</div>
-지침을 CLAUDE.md·메모리에 직접 쌓으면 비대해져 또 다른 문제를 낳습니다. 헌장을 #1에 두고 포인터만
-자동 로드하면, <b>지침이 늘어도 CLAUDE.md·메모리는 그대로</b>이고 항상 최신 헌장을 가리킵니다. CLAUDE.md
-§15는 자동 주입되므로 위임받은 서브에이전트도 "경계를 넘으면 멈추고 확인"을 강제로 받습니다.</div>
-</section>
 
-<!-- 6 -->
-<section id="spec"><h2><span class="num">6</span>SPEC-OPINT-001 — 실 OpenProject 연동</h2>
-<p>현재 목업 <code>window.DB</code>로 동작하는 대시보드를 실 API 데이터로 교체합니다. 핵심 데이터 흐름:</p>
-<div class="flow">
-  <div class="node"><b>OpenProject</b><span>HAL+JSON</span></div><div class="arr">→</div>
-  <div class="node"><b>same-origin proxy</b><span>/op · 토큰 주입</span></div><div class="arr">→</div>
-  <div class="node"><b>OPAdapter</b><span>buildLiveDataset()</span></div><div class="arr">→</div>
-  <div class="node"><b>window.DB</b><span>flat shape</span></div><div class="arr">→</div>
-  <div class="node"><b>6 views</b><span>무수정</span></div>
+<h4>3가지 HARD 이력 관리 룰</h4>
+<table>
+  <tr><th>룰</th><th>행동</th><th>이유</th></tr>
+  <tr><td><span class="badge b-hard">HARD 1</span></td><td>착수 전 이슈 생성</td><td>모든 계획은 이슈로 시작. 이슈 없이 작업 시작 금지</td></tr>
+  <tr><td><span class="badge b-hard">HARD 2</span></td><td>진행 중 코멘트</td><td>의미 있는 결정·결과·블로커를 타임라인에 기록</td></tr>
+  <tr><td><span class="badge b-hard">HARD 3</span></td><td>발견 작업 = 신규 이슈</td><td>추가 작업은 메모가 아니라 이슈로 등록, 원 이슈에 링크</td></tr>
+</table>
+
+<h4>작업 이슈 본문 템플릿</h4>
+<div class="tmpl">
+  <div class="tlabel">이슈 본문 템플릿</div>
+  <pre>상위 추적: #1 (에픽)
+요구사항: [R-ID 범위] / 인수: [AC-ID 범위]
+
+### 목표
+[한 단락 — 이 이슈가 완료되면 무엇이 달라지는가]
+
+### 범위 (Scope)
+[해야 할 것 / 해서는 안 되는 것 명시]
+
+### 계획 (Steps)
+1. [첫 번째 단계]
+2. [두 번째 단계]
+
+### 인수 기준
+- [ ] AC-XXX-01: [기준]
+- [ ] AC-XXX-02: [기준]
+
+> [HARD] [보안·완료 조건 등 핵심 주의사항]</pre>
 </div>
-<h3>EARS 요구사항 (R1–R20) 요약</h3>
+
+<h4>에이전트에게 이슈를 넘기는 방법</h4>
+<p>서브에이전트를 위임할 때 반드시 <strong>활성 이슈 번호와 #1 헌장</strong>을 함께 전달합니다.</p>
+<div class="tmpl">
+  <div class="tlabel">에이전트 위임 프롬프트 패턴</div>
+  <pre>Before you start: run `gh issue view 1 --repo {owner}/{repo}` and read the charter.
+Then read the active task issue #N for scope and acceptance criteria.
+When done, comment your results on issue #N.
+
+Active issue: #N — [이슈 제목]
+Key files: [관련 파일 목록]</pre>
+</div>
+</section>
+
+<!-- PHASE 4 -->
+<section id="ph4">
+<h2><span class="n">07</span>Phase 4 · DDD 구현 — 동작 보존 우선</h2>
+<h4>목적</h4>
+<p>기존 코드를 깨지 않으면서 SPEC 요구사항을 구현합니다. <strong>Analyze → Preserve → Improve</strong> 사이클을 반복합니다.</p>
+
+<h4>ANALYZE-PRESERVE-IMPROVE 사이클</h4>
+<div class="phases">
+  <div class="phase">
+    <div class="num"><div class="circle">A</div><div class="vline"></div></div>
+    <div class="body">
+      <div class="title">ANALYZE — 현재 동작 파악</div>
+      <div class="sub">기존 코드 읽기 → 의존성 파악 → 도메인 경계 매핑</div>
+      <p>수정하기 전에 <em>지금 무슨 일이 일어나고 있는지</em>를 완전히 이해합니다. 추정으로 진행하지 않습니다.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num"><div class="circle">P</div><div class="vline"></div></div>
+    <div class="body">
+      <div class="title">PRESERVE — 현재 동작 고정</div>
+      <div class="sub">특성 테스트(Characterization Test) 작성 → 현재 동작 스냅샷 → 테스트 통과 확인</div>
+      <p>변경 전 동작을 테스트로 잠갑니다. 이 테스트가 이후 변경에서 회귀를 잡아줍니다.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="num"><div class="circle">I</div></div>
+    <div class="body">
+      <div class="title">IMPROVE — 점진적 개선</div>
+      <div class="sub">작은 단위로 변경 → 변경마다 테스트 실행 → 통과 확인 후 다음 단계</div>
+      <p>한 번에 크게 바꾸지 않습니다. 각 변경마다 특성 테스트가 통과해야 다음으로 넘어갑니다.</p>
+    </div>
+  </div>
+</div>
+
+<h4>TRUST 5 품질 게이트</h4>
+<p>구현 결과물은 5가지 기준을 통과해야 합니다.</p>
 <table>
-  <tr><th>그룹</th><th>요구사항</th><th>요지</th></tr>
-  <tr><td>프록시</td><td>R1–R7</td><td>동일 출처 서빙, <code>/op</code>→내부 API 포워딩, 서버측 토큰 주입, 토큰 비노출, 기존 프록시 불변, HAL 무변형</td></tr>
-  <tr><td>어댑터</td><td>R8–R11</td><td><code>USE_LIVE_API</code> 전환, 동적 fetch(하드코딩 금지), <code>fetchAll</code> 페이지네이션, 정규화 계약(duration/refId/percentDone/spentHours/closedAt/capacity)</td></tr>
-  <tr><td>견고성</td><td>R12, R16</td><td>versions=0·필드 누락 graceful, API 오류 시 사용자 피드백</td></tr>
-  <tr><td>데이터 계약</td><td>R13–R15</td><td>셀렉터 시그니처 보존, 파생 Date·memberIds 하이드레이션, 6뷰 렌더·콘솔 에러 0</td></tr>
-  <tr><td>선택</td><td>R17, R18</td><td>journals 기반 정확 closedAt, capacity 오버라이드 (구현 시에만)</td></tr>
-  <tr><td>완료 정의</td><td>R19, R20 <span class="badge b-hard">HARD</span></td><td>실 환경 E2E 실증 통과로만 완료 인정 (목업/단위 불충분)</td></tr>
+  <tr><th>기준</th><th>의미</th><th>체크 방법</th></tr>
+  <tr><td><strong>T</strong>estable</td><td>테스트 가능한 구조, 85%+ 커버리지</td><td>커버리지 리포트</td></tr>
+  <tr><td><strong>R</strong>eadable</td><td>명확한 네이밍, 린트 통과</td><td>LSP lint errors = 0</td></tr>
+  <tr><td><strong>U</strong>nderstandable</td><td>비즈니스 로직 명료, 문서화</td><td>코드 리뷰</td></tr>
+  <tr><td><strong>S</strong>ecured</td><td>OWASP 준수, 시크릿 비노출</td><td>보안 스캔, grep 검증</td></tr>
+  <tr><td><strong>T</strong>rackable</td><td>구조적 로그, 이슈 번호 참조</td><td>커밋 메시지, 이슈 링크</td></tr>
+</table>
+
+<div class="note">
+  <div class="ht">LSP 품질 게이트 수치</div>
+  구현 완료 기준: <code>errors = 0</code>, <code>type errors = 0</code>, <code>lint errors = 0</code>. 수치가 0이 아니면 완료로 인정하지 않습니다.
+</div>
+</section>
+
+<!-- PHASE 5 -->
+<section id="ph5">
+<h2><span class="n">08</span>Phase 5 · E2E 완료 게이트 — 실 환경만 인정</h2>
+<h4>목적</h4>
+<p>모든 구현이 완료된 뒤, <strong>실제 환경에서 end-to-end로 동작함을 검증</strong>합니다. 이 게이트를 통과해야만 SPEC이 완료로 인정됩니다.</p>
+
+<div class="note hard">
+  <div class="ht">HARD 완료 정의</div>
+  목업 통과, 단위 테스트 통과, 코드 작성 완료는 <strong>완료가 아닙니다</strong>. 실 환경 E2E 실증이 통과해야만 완료입니다. 이 규칙을 타협하는 순간 실 환경 배포 후 장애가 납니다.
+</div>
+
+<h4>E2E 체크리스트 구성 원칙</h4>
+<ul>
+  <li>인수 기준(acceptance.md)의 각 항목을 실 환경 대상으로 수행</li>
+  <li>각 항목은 "<strong>구체적인 검증 명령</strong> → 기대 결과"로 작성</li>
+  <li>모든 항목에 체크박스, 이슈에서 추적</li>
+  <li>선택 기능은 구현 시에만 검증 (필수 항목에서 제외)</li>
+</ul>
+
+<h4>세션 핸드오프 패턴 (완료·중단 시)</h4>
+<div class="tmpl">
+  <div class="tlabel">이슈 코멘트 — 핸드오프</div>
+  <pre>**현재 상태**: [완료된 것]
+**남은 작업**: [아직 안 된 것]
+**다음 착수점**: [다음 세션이 시작할 지점, 파일·줄번호 포함]
+**블로커**: [있다면 무엇인지]
+**참고 커밋**: [관련 커밋 해시]</pre>
+</div>
+<p>새 세션이 시작되면: <code>gh issue view [N] --repo {owner}/{repo}</code>로 마지막 코멘트를 읽어 직전 맥락을 복원합니다.</p>
+</section>
+
+<hr>
+
+<!-- TOOLS -->
+<section id="tools">
+<h2><span class="n">09</span>도구 스택</h2>
+<table>
+  <tr><th>도구</th><th>역할</th><th>핵심 명령</th></tr>
+  <tr><td><strong>Claude Code</strong></td><td>AI 협업 CLI — 오케스트레이션, 코드 편집, 에이전트 위임</td><td><code>claude</code></td></tr>
+  <tr><td><strong>MoAI-ADK</strong></td><td>에이전트 위임 프레임워크 — SPEC/DDD/Docs 파이프라인</td><td><code>/moai plan</code> · <code>/moai run</code> · <code>/moai sync</code></td></tr>
+  <tr><td><strong>GitHub CLI</strong></td><td>이슈 생성·코멘트·라벨 — 이력 관리의 실행 도구</td><td><code>gh issue create/comment/view</code></td></tr>
+  <tr><td><strong>git</strong></td><td>커밋마다 이슈 번호 참조 (<code>#N</code>)</td><td><code>git log --oneline</code></td></tr>
+</table>
+
+<h4>전용 에이전트 구성 (프로젝트별 커스터마이징)</h4>
+<p>각 프로젝트의 도메인 지식을 <strong>전용 에이전트</strong>에 담으면, 새 세션마다 배경 설명 없이 바로 작업할 수 있습니다.</p>
+<table>
+  <tr><th>에이전트 유형</th><th>담을 내용</th><th>예시</th></tr>
+  <tr><td>통합 에이전트</td><td>외부 API 파싱 패턴, 프록시 설정 방법</td><td><code>plm-integrator</code></td></tr>
+  <tr><td>검증 에이전트</td><td>데이터 계약 기준, 드리프트 감지 규칙</td><td><code>plm-validator</code></td></tr>
+  <tr><td>오케스트레이터 스킬</td><td>프로젝트 전체 작업 조율 패턴</td><td><code>plm-dashboard</code> 스킬</td></tr>
 </table>
 </section>
 
-<!-- 7 -->
-<section id="wbs"><h2><span class="num">7</span>작업 분해 — 이슈 #1–#7</h2>
-<table>
-  <tr><th>#</th><th>제목</th><th>요구사항</th><th>상태</th></tr>
-  <tr><td>#1</td><td><b>프로젝트 헌장 (SSOT)</b> — 에픽/추적</td><td>전체</td><td><span class="badge b-prog">상시</span></td></tr>
-  <tr><td>#2</td><td>동일 출처 인증 프록시</td><td>R1–R7</td><td><span class="badge b-todo">예정</span></td></tr>
-  <tr><td>#3</td><td>op-adapter 실 API fetch·정규화</td><td>R8–R11</td><td><span class="badge b-todo">예정</span></td></tr>
-  <tr><td>#4</td><td>데이터 계약 보존·파생 필드 하이드레이션</td><td>R13–R15</td><td><span class="badge b-todo">예정</span></td></tr>
-  <tr><td>#5</td><td>견고성·API 오류 피드백</td><td>R12, R16</td><td><span class="badge b-todo">예정</span></td></tr>
-  <tr><td>#6</td><td>선택 기능 (journals/capacity)</td><td>R17, R18</td><td><span class="badge b-todo">선택</span></td></tr>
-  <tr><td>#7</td><td>E2E 실 환경 실증 게이트 <span class="badge b-hard">HARD</span></td><td>R19, R20</td><td><span class="badge b-todo">최종 게이트</span></td></tr>
-</table>
-<p><b>실행 순서:</b> #2 → #3 → #4 → #5 → (#6 선택) → <b>#7 최종 실증 게이트</b></p>
+<!-- TEMPLATES -->
+<section id="templates">
+<h2><span class="n">10</span>재사용 템플릿 — 다음 프로젝트에 바로 쓰기</h2>
+
+<h3>템플릿 A — 헌장(이슈 #1) 본문</h3>
+<div class="tmpl">
+  <div class="tlabel">이슈 #1 본문</div>
+  <pre># 프로젝트 헌장 (Project Charter) — 단일 출처(SSOT)
+
+> [HARD] 새 세션 시작·작업 착수 전에 이 이슈를 먼저 읽고 그대로 따른다.
+
+## 1. 목적 · 목표 · 지향점
+- 목적: [한 문장]
+- 목표: [SPEC ID + 핵심 달성 내용]
+- 지향점: [품질·방식·우선순위]
+
+## 2. 범위 경계 (IN / OUT)
+**IN (해도 되는 것)**: [목록]
+**OUT (절대 금지 — 위반 시 작업 무효)**: [목록]
+
+## 3. HARD 금지사항
+- [금지 1]: [이유]
+- [금지 2]: [이유]
+
+## 4. 작업 프로토콜
+1. 착수 전: 해당 이슈에 계획 코멘트
+2. 진행 중: 결정·결과·블로커를 타임라인에 기록
+3. 발견 작업: 신규 이슈 등록 후 #1에 링크
+
+## 5. 작업 분해 & 실행 순서
+- [ ] #2 [작업A] (R1..R7)
+- [ ] #3 [작업B] (R8..R11)
+- [ ] #N E2E 완료 게이트 [HARD]
+
+순서: #2 → #3 → ... → #N
+
+## 6. 완료 정의 & 세션 핸드오프
+- 완료: #N E2E 체크리스트 전부 통과 [HARD]
+- 중단 시: 활성 이슈에 핸드오프 코멘트 (상태/남은 일/다음 착수점)
+- 새 세션: `gh issue list` → 진행 중 이슈 마지막 코멘트로 맥락 복원</pre>
+</div>
+
+<h3>템플릿 B — SPEC 요구사항 그룹</h3>
+<div class="tmpl">
+  <div class="tlabel">spec.md 요구사항 섹션</div>
+  <pre>### [그룹명] (예: 인증 프록시)
+
+- **[PROJ]-R1** (Ubiquitous): 시스템은 항상 [행동] 해야 한다.
+
+- **[PROJ]-R2** (Event-driven): WHEN [이벤트]가 발생하면
+  THEN 시스템은 [응답] 해야 한다.
+
+- **[PROJ]-R3** (Unwanted): IF [금지 조건]이라면
+  THEN 시스템은 [금지 행동]을 하지 않아야 한다.
+
+### 완료 정의
+
+- **[PROJ]-RN** (Unwanted) [HARD]: IF 실 환경 E2E 실증이 통과하지
+  않았다면 THEN 본 SPEC은 완료로 간주되지 않아야 한다.</pre>
+</div>
+
+<h3>템플릿 C — 데이터 계약 SSOT 패턴</h3>
+<p>외부 시스템과 연동 시, <strong>평탄화(flat) 형태와 셀렉터 시그니처</strong>를 한 곳에 명시하면 구현과 검증의 기준이 됩니다.</p>
+<div class="tmpl">
+  <div class="tlabel">README 데이터 계약 섹션</div>
+  <pre>## 데이터 계약 (SSOT) ★ 교차검증의 기준점
+
+이 섹션이 변경되면 드리프트로 간주합니다.
+
+### [엔티티명] (평탄 형태)
+| 필드 | 타입 | 비고 |
+|---|---|---|
+| id | number | |
+| [필드] | [타입] | ⚠ [외부 API와 다른 점] |
+
+### Selectors (시그니처 유지 — 리팩토링 금지)
+`fn1(args)` · `fn2(args, opts)` · `fn3()`</pre>
+</div>
 </section>
 
-<!-- 8 -->
-<section id="arch"><h2><span class="num">8</span>아키텍처 · 데이터 계약</h2>
-<h3>통합 seam — <code>op-adapter.js</code></h3>
-<p>OpenProject와 대화하는 <b>유일한 파일</b>입니다. HAL+JSON을 <code>data.js</code>가 만드는 것과
-<b>동일한 평탄(flat) 형태</b>로 정규화하므로 뷰는 변경되지 않습니다. 현재 <code>USE_LIVE_API=false</code>
-스켈레톤 상태이며, 프록시 기동 + 플래그 전환으로 활성화됩니다.</p>
-<h3>WorkPackage 평탄 형태 (계약 발췌)</h3>
+<!-- ANTI-PATTERNS -->
+<section id="antipatterns">
+<h2><span class="n">11</span>안티패턴 — 하지 말 것</h2>
 <table>
-  <tr><th>필드</th><th>타입</th><th>주의</th></tr>
-  <tr><td><code>id, subject</code></td><td>number, string</td><td></td></tr>
-  <tr><td><code>projectId/typeId/statusId/priorityId</code></td><td>number</td><td>참조 ID (HAL <code>_links</code> 말미 id)</td></tr>
-  <tr><td><code>assigneeId/authorId/versionId</code></td><td>number\|null</td><td>미할당 시 null</td></tr>
-  <tr><td><code>estimatedHours/spentHours</code></td><td>number(시간)</td><td>⚠ OP는 <code>"PT40H"</code> 기간 문자열 — 파싱 필수</td></tr>
-  <tr><td><code>percentDone</code></td><td>number 0–100</td><td>⚠ OP 필드명은 <code>percentageDone</code></td></tr>
-  <tr><td><code>closedAt</code></td><td>string\|null</td><td>⚠ OP 기본 필드 없음 — isClosed 시 updatedAt 근사</td></tr>
+  <tr><th>안티패턴</th><th>증상</th><th>올바른 방법</th></tr>
+  <tr>
+    <td><strong>지침 분산</strong></td>
+    <td>룰을 CLAUDE.md·메모리·이슈·README에 나눠 씀. 어느 것이 최신인지 모름</td>
+    <td>헌장은 이슈 #1 하나. 나머지는 "#1을 읽어라" 포인터만</td>
+  </tr>
+  <tr>
+    <td><strong>목업 완료 선언</strong></td>
+    <td>"목업에서 잘 되니까 완료". 실 환경 배포 후 터짐</td>
+    <td>E2E 실증 체크리스트 전부 통과해야 완료</td>
+  </tr>
+  <tr>
+    <td><strong>구현 먼저</strong></td>
+    <td>SPEC 없이 코드부터. 중간에 요구사항이 바뀌면 처음부터 다시</td>
+    <td>Phase 0~3(환경검증·헌장·SPEC·이슈 분해) 완료 후 코드 시작</td>
+  </tr>
+  <tr>
+    <td><strong>대화 속 결정</strong></td>
+    <td>중요한 결정을 대화에서만 하고 이슈에 남기지 않음. 사라짐</td>
+    <td>결정은 반드시 이슈 코멘트로 기록</td>
+  </tr>
+  <tr>
+    <td><strong>컨텍스트 폭탄</strong></td>
+    name="한 세션에서 모든 것을 다 하려 함. 토큰 소진 후 컨텍스트 오염"</td>
+    <td>Phase 단위로 <code>/clear</code>, SPEC 완료 후 <code>/clear</code></td>
+  </tr>
+  <tr>
+    <td><strong>에이전트 방임</strong></td>
+    <td>에이전트에게 헌장·이슈 번호 없이 "그냥 해줘" 위임. 드리프트 발생</td>
+    <td>위임 시 #1 헌장 + 활성 이슈 번호 반드시 전달</td>
+  </tr>
 </table>
-<h3>셀렉터 (시그니처 유지 — 리팩토링 금지)</h3>
-<p class="mono" style="color:var(--muted); font-size:13px">kpis(wps) · statusDistribution(wps) · openCloseTrend(wps,weeks) · backlogTrend(wps,weeks) ·
-userUtilization() · projectHealth() · burndown(version) · activityBreakdown(entries) · isOpen/isOverdue/dueWithin</p>
 </section>
 
-<!-- 9 -->
-<section id="lessons"><h2><span class="num">9</span>교훈 · 의사결정 로그</h2>
-<h3>반드시 처리할 함정 5 (점검 리포트)</h3>
+<!-- CASE STUDY -->
+<section id="case">
+<h2><span class="n">12</span>적용 사례 — PLM Dashboard</h2>
+<p>이 방법론이 실제로 적용된 프로젝트입니다. 각 Phase별로 어떻게 진행됐는지 확인하세요.</p>
+
+<div class="case">
+  <div class="cl">프로젝트 개요</div>
+  <p>OpenProject 인스턴스의 work package 데이터를 실시간 집계하는 6개 뷰 바닐라 JS SPA. 목업 데이터를 실 API로 교체하는 것이 핵심 과제(SPEC-OPINT-001).</p>
+</div>
+
+<h4>Phase 0 결과</h4>
+<p>컨테이너·포트·인증 방식을 직접 확인. <code>/api/v3/users/me → HTTP 200</code> 라운드트립 검증. 발견: <em>기존 프록시는 인증 헤더를 주입하지 않아 대시보드에 쓸 수 없음 → 별도 프록시 신설 필요</em>. 이 사실이 SPEC R6의 근거가 됨.</p>
+
+<h4>SPEC-OPINT-001 구조</h4>
+<table>
+  <tr><th>그룹</th><th>ID</th><th>핵심 요구사항</th></tr>
+  <tr><td>프록시</td><td>R1–R7</td><td>동일 출처 서빙, 서버측 토큰 주입, 기존 프록시 불변, HAL 무변형</td></tr>
+  <tr><td>어댑터</td><td>R8–R11</td><td>동적 fetch, 페이지네이션, ISO8601 시간 파싱, HAL id 해석</td></tr>
+  <tr><td>데이터 계약</td><td>R13–R15</td><td>셀렉터 시그니처 보존, 파생 Date 필드 하이드레이션, 6뷰 콘솔 에러 0</td></tr>
+  <tr><td>견고성</td><td>R12, R16</td><td>빈 컬렉션 graceful, API 오류 피드백</td></tr>
+  <tr><td>완료 정의</td><td>R19–R20 <span class="badge b-hard">HARD</span></td><td>실 환경 E2E 20개 항목 전부 통과</td></tr>
+</table>
+
+<h4>거버넌스 구조</h4>
+<ul>
+  <li><strong>이슈 #1</strong>: 프로젝트 헌장 SSOT (목적·범위 IN/OUT·HARD 금지·프로토콜·핸드오프)</li>
+  <li><strong>이슈 #2–#6</strong>: 요구사항 그룹별 작업 이슈</li>
+  <li><strong>이슈 #7</strong>: E2E 완료 게이트 (20개 체크리스트)</li>
+  <li><strong>CLAUDE.md §15</strong>: "작업 전 #1 읽어라" 포인터 (자동 주입)</li>
+</ul>
+
+<h4>발견한 핵심 함정 5가지 (차기 프로젝트 참고)</h4>
 <table>
   <tr><th>#</th><th>함정</th><th>대응</th></tr>
   <tr><td>1</td><td>CORS · API 키 노출 <span class="badge b-hard">치명</span></td><td>same-origin 프록시 필수, 서버측 토큰 주입</td></tr>
-  <tr><td>2</td><td>시간 = ISO8601 기간 문자열 <span class="badge b-hard">치명</span></td><td><code>"PT40H"→40</code> <code>durationToHours()</code> 파싱</td></tr>
-  <tr><td>3</td><td>spentTime/closedAt 신뢰 곤란</td><td>time_entries 합산 / updatedAt 근사</td></tr>
-  <tr><td>4</td><td>가동률·가용량 OP에 원천 없음</td><td>기본 40h/주 + 관리자 설정</td></tr>
-  <tr><td>5</td><td>상태·유형 인스턴스별 상이 + 페이지네이션</td><td>동적 fetch + offset 순회</td></tr>
+  <tr><td>2</td><td>외부 API 시간 = ISO8601 기간 문자열 <span class="badge b-hard">치명</span></td><td><code>"PT40H"→40</code> 파싱 필수 (숫자로 착각하면 런타임 오류)</td></tr>
+  <tr><td>3</td><td>spentTime / closedAt 신뢰 곤란</td><td>time_entries 합산 / updatedAt 근사 정책 명시</td></tr>
+  <tr><td>4</td><td>가동률·가용량 원천 없음</td><td>기본값 + 관리자 오버라이드 패턴</td></tr>
+  <tr><td>5</td><td>상태·유형이 인스턴스마다 다름</td><td>하드코딩 금지, 동적 fetch + 페이지네이션</td></tr>
 </table>
-<h3>핵심 의사결정 (Decision Log)</h3>
-<table>
-  <tr><th>결정</th><th>이유</th></tr>
-  <tr><td>의존성 0 · no-build 바닐라 JS 유지</td><td>운영 단순성, 데이터 계층만 교체하면 라이브 전환되는 구조</td></tr>
-  <tr><td>데이터 계약(SSOT) 중심 설계</td><td>디자인↔코드 드리프트를 단일 기준으로 감지·차단</td></tr>
-  <tr><td>완료 정의 = 실 E2E 실증만 인정</td><td>목업/단위 통과가 실 환경에서 깨지는 것을 방지 (사용자 명시 강화 룰)</td></tr>
-  <tr><td>전용 프록시 신설(기존 프록시 불변)</td><td>기존 프록시는 인증 미주입 + 칸반 전용 — 영향 격리</td></tr>
-  <tr><td>헌장 SSOT + 얇은 포인터</td><td>범위 이탈 방지와 CLAUDE.md/메모리 비대화 방지를 동시 달성</td></tr>
-</table>
+
+<p>→ 라이브 진행 기록: <a href="https://github.com/holee9/plm-dashboard/issues" target="_blank">holee9/plm-dashboard Issues</a></p>
 </section>
 
-<!-- 10 -->
-<section id="reuse"><h2><span class="num">10</span>재사용 가능한 패턴 · 템플릿 (차기 프로젝트용)</h2>
-<details><summary>패턴 A — 헌장(Charter) SSOT + 얇은 포인터</summary>
-<p>지침의 단일 출처를 추적 이슈 #1에 두고, 자동 로드되는 설정(프로젝트 instruction 파일·메모리)에는
-"작업 전 #1을 읽고 따르라 / 경계를 넘으면 멈추고 확인하라 / 종료 전 핸드오프 코멘트를 남겨라"는
-HARD 포인터만 둡니다. 지침 변경은 #1에서만. → 드리프트 방지 + 설정 비대화 방지.</p></details>
-<details><summary>패턴 B — 데이터 계약 SSOT로 디자인↔코드 교차검증</summary>
-<p>평탄 데이터 형태와 셀렉터 시그니처를 한 문서(§5)에 못박고, 어댑터가 이 계약으로 정규화합니다.
-필드명 변경/형태 위반을 드리프트로 정의하고 검증 에이전트가 감지합니다.</p></details>
-<details><summary>패턴 C — 통합 seam 단일 파일</summary>
-<p>외부 시스템과 대화하는 코드를 단일 파일(<code>op-adapter.js</code>)에 격리하고 플래그(<code>USE_LIVE_API</code>)로
-목업↔실 API를 전환합니다. 뷰·셀렉터는 무수정.</p></details>
-<details><summary>템플릿 — 작업 이슈 본문</summary>
-<p>상위 추적 링크 / 요구사항·인수 매핑 / 목표 / 범위(Scope) / 계획(Steps) / 인수 기준(체크박스) /
-HARD 주의. 본 프로젝트 #2–#7이 그대로 예시입니다.</p></details>
-</section>
+<hr>
 
-<!-- 11 -->
-<section id="postmortem"><h2><span class="num">11</span>포스트모텀 <span class="badge b-todo">완료 후 작성 예정</span></h2>
-<p>프로젝트 완료(#7 E2E 게이트 통과) 후 아래를 채웁니다. 지금은 골격만 제시합니다.</p>
-<h3>성과 지표 (Metrics)</h3>
+<section>
+<h2>포스트모텀 프레임워크</h2>
+<p>프로젝트 완료 후 KPT(Keep-Problem-Try) 회고를 수행합니다. 이슈 타임라인 코멘트가 원자료입니다.</p>
 <table>
-  <tr><th>지표</th><th>목표</th><th>실측</th></tr>
-  <tr><td>E2E 실증 항목 통과</td><td>20/20</td><td class="fill">— 완료 후 기입 —</td></tr>
-  <tr><td>6개 뷰 콘솔 에러</td><td>0</td><td class="fill">—</td></tr>
-  <tr><td>LSP 게이트 (errors/type/lint)</td><td>0/0/0</td><td class="fill">—</td></tr>
-  <tr><td>계획→완료 소요</td><td class="fill">—</td><td class="fill">—</td></tr>
+  <tr><th>항목</th><th>수집 방법</th></tr>
+  <tr><td><strong>Keep</strong> — 잘된 것</td><td>이슈에서 "예상보다 잘 됐다"는 코멘트 수집</td></tr>
+  <tr><td><strong>Problem</strong> — 막힌 것</td><td>이슈에서 "블로커"·"예상 밖 발견" 코멘트 수집</td></tr>
+  <tr><td><strong>Try</strong> — 다음에 시도</td><td>Problem에서 파생된 개선 아이디어</td></tr>
 </table>
-<h3>KPT 회고</h3>
-<div class="grid2">
-  <div class="ph"><b>Keep</b> — 잘된 것<br><span class="fill">완료 후 기입</span></div>
-  <div class="ph"><b>Problem</b> — 문제/막힌 것<br><span class="fill">완료 후 기입</span></div>
+<div class="note tip">
+  <div class="ht">이력 관리의 복리 효과</div>
+  이슈 기반 이력 관리가 잘 된 프로젝트는 포스트모텀이 쉽습니다. "언제 무엇이 막혔고 어떻게 해결했는지"가 이미 타임라인에 있기 때문입니다. 이력 관리 = 포스트모텀 준비입니다.
 </div>
-<div class="ph" style="margin-top:12px"><b>Try</b> — 다음에 시도할 것<br><span class="fill">완료 후 기입</span></div>
-<div class="note"><div class="h">작성 가이드</div>
-각 이슈(#2–#7) 타임라인 코멘트가 1차 원자료입니다. 완료 시 이슈별 "현재 상태/막힌 점/결정"을 모아
-Keep/Problem/Try로 정리하고, 함정 5 대비 실제로 부딪힌 함정을 §9에 추가합니다.</div>
 </section>
 
-<!-- 12 -->
-<section id="changelog"><h2><span class="num">12</span>이 문서의 변경 이력</h2>
-<table>
-  <tr><th>버전</th><th>날짜</th><th>내용</th></tr>
-  <tr><td>v0.1</td><td>2026-06-17</td><td>최초 작성 — 초기 셋업~헌장 SSOT 구축까지 기록. §11 포스트모텀 골격 포함.</td></tr>
-  <tr><td class="fill">v0.2~</td><td class="fill">—</td><td class="fill">구현 진행에 따라 §2 타임라인·§7 상태 갱신 (예정)</td></tr>
-</table>
-</section>
-
-<!-- appendix -->
-<section id="appendix"><h2>부록 · 참조</h2>
-<table>
-  <tr><th>SPEC</th><td><code>.moai/specs/SPEC-OPINT-001/spec.md</code>, <code>acceptance.md</code></td></tr>
-  <tr><th>헌장·룰</th><td>이슈 #1, <code>CLAUDE.md §14·§15</code>, <code>.claude/rules/moai/workflow/issue-tracking.md</code></td></tr>
-  <tr><th>데이터 계약</th><td><code>design_handoff_plm_dashboard/README.md §5</code>, <code>data.js</code></td></tr>
-  <tr><th>통합 seam</th><td><code>design_handoff_plm_dashboard/op-adapter.js</code></td></tr>
-  <tr><th>점검 리포트</th><td><code>design_handoff_plm_dashboard/OpenProject 연동 점검.html</code></td></tr>
-  <tr><th>이슈 보드</th><td><code>gh issue list --repo holee9/plm-dashboard</code></td></tr>
-</table>
 <footer>
-  PLM Dashboard 프로젝트 기록 · 작성 drake.lee · 최초 2026-06-17 · 살아있는 문서(living document)<br>
-  본 문서의 모든 사실은 저장소 git 이력·이슈·SPEC·메모리에서 검증된 값입니다. 토큰 등 시크릿 값은 일절 포함하지 않습니다.
+  AI 협업 개발 방법론 — MoAI-ADK 프로젝트 운영 플레이북<br>
+  작성: drake.lee · 최초 2026-06-17 · 기반 프로젝트: PLM Dashboard (holee9/plm-dashboard)<br>
+  이 문서는 특정 프로젝트의 기록이 아니라 방법론 그 자체를 정리한 것입니다. 어느 프로젝트에나 적용 가능합니다.
 </footer>
-</section>
-
 </main>
 </div>
 <script>
-  // reading progress
-  var prog=document.getElementById('prog');
-  // TOC active highlighting
-  var links=[].slice.call(document.querySelectorAll('nav a'));
-  var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
-  function onScroll(){
-    var st=document.documentElement.scrollTop||document.body.scrollTop;
-    var h=document.documentElement.scrollHeight-document.documentElement.clientHeight;
-    prog.style.width=(h>0?(st/h*100):0)+'%';
-    var idx=0;
-    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].getBoundingClientRect().top<=120) idx=i; }
-    links.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
-  }
-  document.addEventListener('scroll',onScroll,{passive:true}); window.addEventListener('resize',onScroll); onScroll();
+var bar=document.getElementById('bar');
+var links=[].slice.call(document.querySelectorAll('nav a'));
+var ids=links.map(function(a){return a.getAttribute('href').slice(1)});
+var secs=ids.map(function(id){return document.getElementById(id)});
+function tick(){
+  var st=document.documentElement.scrollTop||document.body.scrollTop;
+  var h=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+  bar.style.width=(h>0?Math.round(st/h*100):0)+'%';
+  var cur=0;
+  for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<=80)cur=i;}
+  links.forEach(function(a,i){a.classList.toggle('on',i===cur);});
+}
+document.addEventListener('scroll',tick,{passive:true});
+window.addEventListener('resize',tick);
+tick();
 </script>
 </body>
 </html>

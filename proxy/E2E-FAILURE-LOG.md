@@ -86,6 +86,67 @@ WP/프로젝트는 그 ID를 여전히 assigneeId/leadId로 참조 → undefined
 
 ---
 
+### [2026-06-17] userUtilization()에서 그룹·Observer 미필터
+
+**문제:** `data.js`의 `userUtilization()`이 `USERS.map()` — 필터 없이 전체 순회.  
+그룹(팀/파트)과 Observer 계정이 Resources 뷰 가동률 차트·테이블에 노출됨.
+
+**근본 원인:** `op-adapter.js`에서 USERS 배열에 `isGroup`/`isObserver` 플래그를 부여했으나,  
+`data.js`의 `userUtilization()` 함수가 해당 플래그를 확인하지 않고 전체를 처리했음.
+
+**수정 내용 (커밋 2668be5):**
+- `data.js`: `userUtilization()` → `USERS.filter(!isGroup && !isObserver).map()`
+- `resources.js`: MEMBERS KPI 카운트 동일 필터 적용
+
+**Anti-pattern:**
+> ❌ WRONG: 플래그를 op-adapter에만 부여하고 selector 함수에서 미필터  
+> ✅ CORRECT: 사용자 목록을 소비하는 모든 함수(드롭다운 + selector)에 일관 필터 적용
+
+---
+
+### [2026-06-17] form-reporter 봇 계정 — 프로젝트로 잘못 처리
+
+**문제:** form-reporter가 담당자 목록에 노출됨.  
+초기 수정 시 프로젝트 필터로 잘못 처리(op-adapter PROJECTS 필터에 추가).
+
+**근본 원인:** form-reporter는 OP의 자동화 봇 계정(principal)이며,  
+프로젝트가 아닌 USERS 목록에 포함됨.
+
+**수정 내용 (커밋 5b66e2d):**
+- `op-adapter.js`: 잘못된 PROJECTS 필터 제거, `isBot` 플래그 추가 (name/login regex: `/form.?reporter/i`)
+- `data.js`, `board.js`, `overview.js`, `resources.js`: `!u.isBot` 필터 전체 적용
+
+**Anti-pattern:**
+> ❌ WRONG: 봇/서비스 계정을 프로젝트로 착각해 PROJECTS 필터에 추가  
+> ✅ CORRECT: OP principals 목록에서 봇 계정에 `isBot` 플래그 부여 후 USERS 필터 적용
+
+---
+
+### [2026-06-17] WP ID displayId 미적용 — 글로벌 시퀀스 ID 노출
+
+**문제:** WP ID가 "BH-1" 대신 "#540" 형태(글로벌 DB 시퀀스)로 표시됨.
+
+**근본 원인:** OP API v3는 WP에 `displayId: "BH-1"` 필드를 별도 제공하나,  
+`op-adapter.js`의 `mapWorkPackage()`에서 `displayId` 필드를 매핑하지 않음.  
+`UI.wpLink(id)`가 numeric id만 받아 `#540` 형태로 렌더링.
+
+**확인 방법:**
+```bash
+curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep displayId
+# → "displayId": "BH-1"
+```
+
+**수정 내용 (커밋 9c6a740):**
+- `op-adapter.js`: `mapWorkPackage`에 `displayId: wp.displayId || String(wp.id)` 추가
+- `ui.js`: `wpLink(wp)` — WP 객체 받아 `wp.displayId` 라벨 사용, URL은 numeric id
+- 모든 뷰: `UI.wpLink(w.id)` → `UI.wpLink(w)` 전달
+
+**Anti-pattern:**
+> ❌ WRONG: OP numeric id를 직접 표시 ID로 사용  
+> ✅ CORRECT: `displayId` 필드를 UI 라벨로, numeric `id`를 URL 경로로 분리 사용
+
+---
+
 ## 재발 방지 체크리스트 (E2E 실증 전 필수 확인)
 
 - [ ] E2E 검증은 의미 있는 DOM 선택자를 사용하는가? (`html.length` 금지)
@@ -94,3 +155,7 @@ WP/프로젝트는 그 ID를 여전히 assigneeId/leadId로 참조 → undefined
 - [ ] `renderContent`류 최상위 렌더 함수에 try-catch가 있는가?
 - [ ] lookup map(D.U, D.P 등)에서 가져온 값의 `.property` 접근 전 null 체크를 하는가?
 - [ ] 컬렉션 필터링 시 lookup map도 함께 영향 받는지 확인했는가?
+- [ ] userUtilization() 등 USERS를 소비하는 모든 selector에 isGroup/isObserver/isBot 필터가 적용되어 있는가?
+- [ ] OP principals 중 봇/서비스 계정(form-reporter 등)에 isBot 플래그가 부여되어 있는가?
+- [ ] WP 표시 ID는 displayId를 사용하는가? (numeric id 직접 노출 금지)
+- [ ] 과제 선택(hiddenProjects)이 모든 뷰(Overview/Board/Timeline/Projects)에 연동되어 있는가?

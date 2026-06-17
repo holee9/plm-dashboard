@@ -365,7 +365,7 @@
   function userUtilization() {
     const HORIZON = 21;
     const horizonEnd = addDays(TODAY, HORIZON);
-    return USERS.filter((u) => !u.isGroup && !u.isObserver).map((u) => {
+    return USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).map((u) => {
       const assigned = WORK_PACKAGES.filter((wp) => wp.assigneeId === u.id);
       const open = assigned.filter(isOpen);
       const imminent = open.filter((wp) => wp._due <= horizonEnd); // incl. overdue

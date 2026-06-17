@@ -204,8 +204,11 @@
       const role = refTitle(m, 'roles') || (m._links.roles && m._links.roles[0] && m._links.roles[0].title);
       if (userById[uid] && role) userById[uid].role = role;
     });
-    // Mark observers — excluded from assignee dropdowns but kept for D.U lookup.
-    usersMapped.forEach((u) => { if (/observer/i.test(u.role)) u.isObserver = true; });
+    // Mark observers and bots — excluded from assignee dropdowns but kept for D.U lookup.
+    usersMapped.forEach((u) => {
+      if (/observer/i.test(u.role)) u.isObserver = true;
+      if (/form.?reporter/i.test(u.name) || /form.?reporter/i.test(u.login)) u.isBot = true;
+    });
     const USERS = usersMapped;
 
     return {
@@ -214,10 +217,9 @@
       PRIORITIES: priorities.map(mapPriority),
       ACTIVITIES: activities.map(mapActivity),
       USERS,
-      // Hard-exclude internal/admin projects — never enter DB.
+      // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
-        .filter((p) => !/form.?reporter/i.test(p.identifier || p.name))
         .map((p) => ({ id: p.id, name: p.name, identifier: p.identifier })),
       VERSIONS: versions.map(mapVersion),
       WORK_PACKAGES,

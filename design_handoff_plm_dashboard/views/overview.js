@@ -158,7 +158,7 @@
     });
 
     return `
-      <div class="section-row"><h2>Operations Overview</h2><span class="muted mono" style="font-size:11px">${D.PROJECTS.length} projects · ${D.USERS.filter((u) => !u.isGroup && !u.isObserver).length} members</span></div>
+      <div class="section-row"><h2>Operations Overview</h2><span class="muted mono" style="font-size:11px">${D.PROJECTS.length} projects · ${D.USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).length} members</span></div>
       ${projFilterBar}
       ${headline}
       ${kpiStrip}

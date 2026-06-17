@@ -73,8 +73,13 @@
     </div>`;
   }
 
+  const OP_BASE = 'https://plm.abyz-lab.work';
+  function wpLink(id) {
+    return `<a class="wp-id" href="${OP_BASE}/work_packages/${id}" target="_blank" rel="noopener">#${id}</a>`;
+  }
+
   window.UI = {
     HEALTH, HEALTH_EN, avatar, avatarStack, statusChip, healthChip, typeTag, priorityDot,
-    progressBar, fmtDate, fmtDateY, daysFromToday, dueLabel, panel, kpi,
+    progressBar, fmtDate, fmtDateY, daysFromToday, dueLabel, panel, kpi, wpLink,
   };
 })();

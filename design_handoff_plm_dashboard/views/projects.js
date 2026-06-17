@@ -121,7 +121,7 @@
       tools: `<button class="mini-btn" data-nav="board">보드 →</button>`,
       body: `<table class="tbl"><thead><tr><th>ID</th><th>Subject</th><th>Type</th><th>Status</th><th>Assignee</th><th>Due</th><th class="num">%</th></tr></thead>
         <tbody>${recent.map((w) => { const due = UI.dueLabel(w.dueDate); return `<tr>
-          <td class="mono" style="color:var(--text-faint)">#${w.id}</td>
+          <td>${UI.wpLink(w.id)}</td>
           <td class="strong clamp">${UI.priorityDot(w.priorityId)} ${w.subject}</td>
           <td>${UI.typeTag(w.typeId)}</td>
           <td>${UI.statusChip(w.statusId)}</td>

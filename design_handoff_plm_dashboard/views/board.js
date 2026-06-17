@@ -42,7 +42,7 @@
         const due = UI.dueLabel(w.dueDate);
         const overdue = D.isOverdue(w);
         return `<div class="card ${overdue ? 'overdue' : ''}">
-          <div class="card-top">${UI.priorityDot(w.priorityId)}<span class="card-id">#${w.id}</span>
+          <div class="card-top">${UI.priorityDot(w.priorityId)}${UI.wpLink(w.id)}
             <span class="tag" style="margin-left:auto">${D.T[w.typeId].glyph} ${D.T[w.typeId].name}</span></div>
           <div class="card-subject">${w.subject}</div>
           <div class="card-foot">

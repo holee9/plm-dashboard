@@ -51,11 +51,14 @@
   /* ---------- state ---------- */
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
-    resSort: 'load', tlProject: 'all' };
+    resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false };
   let state = Object.assign({}, DEFAULTS);
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
   const save = () => { try { localStorage.setItem('plm_state', JSON.stringify(state)); } catch (e) {} };
+  // Expose save() so views can persist state mutations (e.g. auto-seed hiddenProjects).
+  window.App = window.App || {};
+  window.App.save = save;
 
   /* ---------- chrome (theme/density/style/accent) ---------- */
   function applyChrome() {
@@ -134,6 +137,24 @@
     if (t.closest('[data-nav]')) { go(t.closest('[data-nav]').dataset.nav); return; }
     const npRow = t.closest('[data-nav-project]');
     if (npRow) { state.projectTab = +npRow.dataset.navProject; state.view = 'projects'; save(); renderShell(); return; }
+    const hideProj = t.closest('[data-hide-project]');
+    if (hideProj) {
+      const id = +hideProj.dataset.hideProject;
+      const hp = new Set(state.hiddenProjects || []);
+      hp.add(id);
+      state.hiddenProjects = [...hp];
+      if (state.projectTab === id) {
+        const vis = (window.DB ? window.DB.PROJECTS : []).filter((p) => !hp.has(p.id));
+        state.projectTab = vis.length ? vis[0].id : null;
+      }
+      save(); renderContent(); return;
+    }
+    const showProj = t.closest('[data-show-project]');
+    if (showProj) {
+      const id = +showProj.dataset.showProject;
+      state.hiddenProjects = (state.hiddenProjects || []).filter((x) => x !== id);
+      save(); renderContent(); return;
+    }
     const ptab = t.closest('[data-project-tab]');
     if (ptab) { state.projectTab = +ptab.dataset.projectTab; save(); renderContent(); return; }
     const rsort = t.closest('[data-res-sort]');

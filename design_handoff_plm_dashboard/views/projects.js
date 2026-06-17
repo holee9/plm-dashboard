@@ -7,8 +7,34 @@
 
   Views.projects = function (state) {
     const D = window.DB, UI = window.UI, C = window.Charts;
-    // state.projectTab may hold a stale ID from a previous OP instance; fall back to first real project.
-    const pid = (state.projectTab && D.P[state.projectTab]) ? state.projectTab : D.PROJECTS[0].id;
+
+    // Auto-seed: hide "DR 사업본부 주관 미팅" type projects on first visit.
+    if (!state.hiddenProjectsSeeded) {
+      const hp = new Set(state.hiddenProjects || []);
+      D.PROJECTS.forEach((p) => {
+        if (/DR.*사업본부|사업본부.*미팅/i.test(p.name)) hp.add(p.id);
+      });
+      state.hiddenProjects = [...hp];
+      state.hiddenProjectsSeeded = true;
+      if (window.App && window.App.save) window.App.save();
+    }
+
+    const hp = new Set(state.hiddenProjects || []);
+    const visibleProjects = D.PROJECTS.filter((p) => !hp.has(p.id));
+    const hiddenList = D.PROJECTS.filter((p) => hp.has(p.id));
+
+    // All hidden — show restore UI.
+    if (visibleProjects.length === 0) {
+      return `<div class="section-row"><h2>Projects · 과제별 현황</h2></div>
+        <div class="panel" style="margin-top:var(--grid-1)"><div class="panel-body">
+          <div class="empty" style="margin-bottom:12px">모든 과제가 숨겨져 있습니다.</div>
+          <div class="hidden-proj-strip">${hiddenList.map((p) => `<button class="hidden-proj-chip" data-show-project="${p.id}">${p.name} <b>+</b></button>`).join('')}</div>
+        </div></div>`;
+    }
+
+    // state.projectTab may hold a stale/hidden ID — fall back to first visible project.
+    const pid = (state.projectTab && D.P[state.projectTab] && !hp.has(state.projectTab))
+      ? state.projectTab : visibleProjects[0].id;
     const p = D.P[pid];
     const wps = D.WORK_PACKAGES.filter((w) => w.projectId === pid);
     const k = D.kpis(wps);
@@ -17,14 +43,22 @@
     const versions = D.versionsByProject(pid);
     const curV = D.currentVersion(pid);
 
-    /* subtabs */
-    const subtabs = `<div class="subtabs">${D.PROJECTS.map((pp) => {
-      const wc = D.WORK_PACKAGES.filter((w) => w.projectId === pp.id);
-      const od = wc.filter(D.isOverdue).length;
-      return `<button class="subtab ${pp.id === pid ? 'on' : ''}" data-project-tab="${pp.id}">
-        <i class="dot" style="background:var(--c-${pp.health === 'on_track' ? 'green' : pp.health === 'at_risk' ? 'amber' : 'red'})"></i>
-        ${pp.name}${od ? `<span class="nav-badge alert">${od}</span>` : ''}</button>`;
-    }).join('')}</div>`;
+    /* subtabs + hidden chip strip */
+    const subtabs = `<div class="subtabs">
+      ${visibleProjects.map((pp) => {
+        const wc = D.WORK_PACKAGES.filter((w) => w.projectId === pp.id);
+        const od = wc.filter(D.isOverdue).length;
+        return `<button class="subtab ${pp.id === pid ? 'on' : ''}" data-project-tab="${pp.id}">
+          <i class="dot" style="background:var(--c-${pp.health === 'on_track' ? 'green' : pp.health === 'at_risk' ? 'amber' : 'red'})"></i>
+          ${pp.name}${od ? `<span class="nav-badge alert">${od}</span>` : ''}
+          <span class="subtab-hide" data-hide-project="${pp.id}" title="이 과제 숨김">×</span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${hiddenList.length ? `<div class="hidden-proj-strip">
+      <span class="muted" style="font-size:11px;flex-shrink:0">숨김:</span>
+      ${hiddenList.map((p) => `<button class="hidden-proj-chip" data-show-project="${p.id}">${p.name}</button>`).join('')}
+    </div>` : ''}`;
 
     /* header */
     const header = `<div class="panel" style="margin-top:var(--grid-1)"><div class="panel-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">

@@ -12,6 +12,50 @@
 
 ---
 
+## 빠른 접속 (운영 중)
+
+대시보드 서버는 **raspi5p** (`192.168.100.50`)에서 상시 운영 중입니다.
+
+### URL
+
+```
+http://plm-dash.work/
+```
+
+### 접속 전 1회 설정 — PC의 hosts 파일에 한 줄 추가
+
+접속하는 PC가 연결된 망에 따라 아래 중 해당 줄을 추가합니다.
+
+| 접속 망 | 추가할 내용 |
+|---------|-----------|
+| 사무실 2.5G (`192.168.100.x`) | `192.168.100.50  plm-dash.work` |
+| 사무실 유선 (`10.20.6.x`) | `10.20.6.187  plm-dash.work` |
+| Tailscale (원격) | `100.110.194.101  plm-dash.work` |
+
+**Windows** — 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
+```
+C:\Windows\System32\drivers\etc\hosts
+```
+
+**Mac / Linux:**
+```bash
+sudo nano /etc/hosts
+```
+
+저장 후 브라우저에서 `http://plm-dash.work/` 접속.
+
+> hosts 파일은 1회만 설정하면 이후 자동으로 동작합니다.
+
+### 프록시 재기동 (서버 재부팅 후)
+
+```bash
+# raspi5p에서 실행
+cd ~/workspace/plm-dashboard/proxy
+bash start.sh
+```
+
+---
+
 ## 1. 개요
 
 PLM/프로젝트 조직은 다수의 활성 프로젝트와 개발 인원을 동시에 운영하면서, 각 프로젝트의
@@ -119,40 +163,63 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 
 ---
 
-## 6. 실행 방법 (no-build)
+## 6. 실행 방법
 
-빌드가 없으므로 정적 서버로 바로 띄웁니다.
+### 운영 환경 (현재 기동 중)
+
+raspi5p에서 nginx Docker 프록시가 상시 실행 중입니다. 상단 **빠른 접속** 섹션을 참조하세요.
+
+```
+proxy/
+├── docker-compose.yml          nginx:alpine 서비스 정의 (network_mode: host)
+├── nginx/default.conf.template 포트 80/8088, /op/ → OP API v3 프록시
+└── start.sh                    토큰 로드 + 컨테이너 기동 스크립트
+```
+
+프록시 구조:
+
+```
+브라우저 → http://plm-dash.work/          → nginx:80  → 정적 파일 서빙
+브라우저 → http://plm-dash.work/op/*      → nginx:80  → plm.abyz-lab.work/api/v3/*
+                                                          (Authorization 헤더 서버 측 주입)
+```
+
+API 키는 `~/.hermes/.env`의 `OP_API_KEY`에만 존재하며 브라우저에 노출되지 않습니다.
+
+### 로컬 개발 / 목업 모드
+
+빌드 없이 정적 서버로 실행합니다.
 
 ```bash
 cd design_handoff_plm_dashboard
 python3 -m http.server 8080
-# 브라우저에서 http://localhost:8080/PLM%20Dashboard.html 열기
+# http://localhost:8080/PLM%20Dashboard.html
 ```
 
-기본은 목업 데이터(`data.js`)로 동작합니다. 실 API 연동은 §7 참조.
+`op-adapter.js`의 `USE_LIVE_API`를 `false`로 변경하면 목업 데이터로 동작합니다.
 
 ---
 
-## 7. OpenProject 실연동 절차 (권장 경로)
+## 7. OpenProject 실연동 구조
 
-이 대시보드는 데이터 계층만 목업 → 실 API로 교체하면 동작합니다. 상세 리포트는
-`design_handoff_plm_dashboard/OpenProject 연동 점검.html`. 요약:
+실 연동은 완료되어 운영 중입니다 (`USE_LIVE_API = true`). 구조 요약:
 
-1. **읽기 전용 API 키 발급** — 전용 계정, `My account → Access token`
-2. **리버스 프록시 1블록** — Nginx `/op → https://plm.abyz-lab.work/api/v3`,
-   `Authorization: Basic base64(apikey:TOKEN)` 주입. **브라우저에 키를 두지 말 것**(CORS+보안)
-3. **참조 데이터 동적 로딩** — statuses/types/priorities/activities fetch
-4. **WP·time_entries 수집 + 시간 파싱 검증** — `durationToHours()`, `fetchAll()` 페이지네이션
-5. **capacity 설정 입력 + closedAt 정책 결정**
-6. **스왑** — `data.js` 목업 생성부를 `OPAdapter.buildLiveDataset()`로 교체. 뷰는 무수정
+| 파일 | 역할 |
+|------|------|
+| `proxy/nginx/default.conf.template` | `/op/` 경로를 OP API v3로 중계, 토큰 주입 |
+| `design_handoff_plm_dashboard/op-adapter.js` | HAL+JSON → 평탄 형태 정규화 |
+| `design_handoff_plm_dashboard/data.js` | `reload()` 함수로 실 데이터 수신 후 in-place 갱신 |
 
-### ⚠ 반드시 처리할 함정 5
+**주요 처리 사항:**
 
-1. **CORS·API 키 노출**(치명) → 프록시 필수
-2. **시간 = ISO8601 기간 문자열**(치명) → `"PT40H"→40` 파싱 필수
-3. **spentTime/closedAt** 신뢰 어려움 → time_entries 합산 / updatedAt 근사
-4. **가동률/가용량** OP에 원천 없음 → 기본 40h/주 + 관리자 설정
-5. **상태·유형 인스턴스별 상이 + 페이지네이션** → 동적 fetch + offset 순회
+1. `/principals` 사용 (`/users`는 관리자 전용)
+2. ISO8601 기간 파싱 — `"PT40H" → 40`, `"PT5H30M" → 5.5` (`durationToHours()`)
+3. 페이지네이션 — `fetchAll()` offset 순회 (pageSize=200)
+4. 오류 허용 fetch — `fetchSafe()` (404/권한 오류 시 `[]` 반환)
+5. 파생 필드 — `_start/_due/_end` Date 객체, `memberIds`, `closedAt`(updatedAt 근사)
+6. BOARD_COLS — 실 OP 상태 이름에서 카테고리 추론 (`buildBoardColsFromStatuses()`)
+
+상세 API 분석: `design_handoff_plm_dashboard/OpenProject 연동 점검.html`
 
 ---
 
@@ -186,8 +253,9 @@ python3 -m http.server 8080
 |------|------|
 | `design_handoff_plm_dashboard/README.md` | 핸드오프 상세(아키텍처·데이터 계약·연동 절차 전문) |
 | `design_handoff_plm_dashboard/OpenProject 연동 점검.html` | API v3 교차검증 리포트(필드 매핑·함정·배포) |
+| `proxy/README.md` | 프록시 운영 가이드 (기동·토큰 관리·E2E 검증) |
 | `.moai/project/product.md` | 제품 개요 — 배경·사용자·기능 |
 | `.moai/project/tech.md` | 기술 스택 및 운영 |
 | `.moai/project/structure.md` | 디렉터리 및 구조 상세 |
 
-핵심 파일: **`data.js`(계약)** · **`op-adapter.js`(매핑)** · **`OpenProject 연동 점검.html`(연동 리포트)**
+핵심 파일: **`data.js`(계약)** · **`op-adapter.js`(매핑)** · **`proxy/start.sh`(기동)** · **`OpenProject 연동 점검.html`(연동 리포트)**

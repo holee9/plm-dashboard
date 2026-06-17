@@ -1,5 +1,8 @@
 # PLM Dashboard
 
+> 📊 **[프로젝트 기록 문서 (Project Journal) — 바로 보기 ↗](https://holee9.github.io/plm-dashboard/)**
+> · 초기부터 완성까지 전 과정 · 세미나/내부 전파/레퍼런스/포스트모텀용 (렌더링된 문서)
+
 > OpenProject 인스턴스(`plm.abyz-lab.work`)의 work package 데이터를 실시간 집계하여
 > **프로젝트 건강도 · 개발 자원 부하 · 위험 요소**를 한 화면에서 모니터링하는 운영 대시보드.
 

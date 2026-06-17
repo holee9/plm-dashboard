@@ -7,7 +7,8 @@
 
   Views.projects = function (state) {
     const D = window.DB, UI = window.UI, C = window.Charts;
-    const pid = state.projectTab || D.PROJECTS[0].id;
+    // state.projectTab may hold a stale ID from a previous OP instance; fall back to first real project.
+    const pid = (state.projectTab && D.P[state.projectTab]) ? state.projectTab : D.PROJECTS[0].id;
     const p = D.P[pid];
     const wps = D.WORK_PACKAGES.filter((w) => w.projectId === pid);
     const k = D.kpis(wps);

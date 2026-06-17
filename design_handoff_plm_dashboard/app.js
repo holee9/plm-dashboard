@@ -115,7 +115,12 @@
     const fn = window.Views[state.view];
     const el = document.getElementById('content');
     el.scrollTop = 0;
-    el.innerHTML = fn ? fn(state) : '<div class="empty">view not found</div>';
+    try {
+      el.innerHTML = fn ? fn(state) : '<div class="empty">view not found</div>';
+    } catch (err) {
+      console.error('[PLM] renderContent error:', err);
+      el.innerHTML = `<div class="empty">렌더링 오류: ${err.message}</div>`;
+    }
   }
 
   /* ---------- navigation ---------- */
@@ -138,7 +143,16 @@
     if (t.closest('[data-refresh]')) {
       const ic = t.closest('[data-refresh]').querySelector('svg');
       ic.style.transition = 'transform .6s'; ic.style.transform = 'rotate(360deg)';
-      setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = 'none'; renderShell(); }, 600);
+      setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = 'none'; }, 600);
+      // Re-fetch live data if adapter is available; otherwise just re-render.
+      if (window.OPAdapter && window.OPAdapter.USE_LIVE_API && window.DB && window.DB.reload) {
+        window.OPAdapter.buildLiveDataset().then(window.DB.reload).catch(function (err) {
+          console.error('[PLM] refresh fetch failed:', err);
+          renderShell();
+        });
+      } else {
+        renderShell();
+      }
       return;
     }
   });

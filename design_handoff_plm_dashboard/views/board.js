@@ -33,7 +33,8 @@
     const cols = D.BOARD_COLS.map((col) => {
       const items = wps.filter((w) => col.statusIds.includes(w.statusId))
         .sort((a, b) => a._due - b._due);
-      const headColor = D.S[col.statusIds[0]].color;
+      const headStatus = col.statusIds.length > 0 ? D.S[col.statusIds[0]] : null;
+      const headColor = headStatus ? headStatus.color : 'var(--text-faint)';
       const CAP = 30;
       const shown = items.slice(0, CAP);
       const cards = shown.map((w) => {

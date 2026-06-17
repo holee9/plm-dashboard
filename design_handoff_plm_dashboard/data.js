@@ -466,6 +466,7 @@
   function buildBoardColsFromStatuses(statuses) {
     const catMap = {};
     statuses.forEach((s) => { if (!catMap[s.cat]) catMap[s.cat] = []; catMap[s.cat].push(s.id); });
+    // Filter out columns whose category doesn't exist in this OP instance (empty statusIds).
     return [
       { key: 'new',        label: 'New',         statusIds: catMap.new        || [] },
       { key: 'inProgress', label: 'In Progress', statusIds: catMap.inProgress || [] },
@@ -473,7 +474,7 @@
       { key: 'testing',    label: 'Testing',     statusIds: catMap.testing    || [] },
       { key: 'onHold',     label: 'On Hold',     statusIds: catMap.onHold     || [] },
       { key: 'closed',     label: 'Done',        statusIds: catMap.closed     || [] },
-    ];
+    ].filter((col) => col.statusIds.length > 0);
   }
 
   function reload(ds) {

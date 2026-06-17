@@ -20,7 +20,7 @@
     const totalSpent = Math.round(util.reduce((a, u) => a + u.spent, 0));
 
     const kpiRow = `<div class="kpi-row" style="grid-template-columns:repeat(5,1fr)">
-      ${UI.kpi({ label: 'MEMBERS', value: D.USERS.length, foot: `<span class="muted">활성 인원</span>` })}
+      ${UI.kpi({ label: 'MEMBERS', value: D.USERS.filter((u) => !u.isGroup && !u.isObserver).length, foot: `<span class="muted">활성 인원</span>` })}
       ${UI.kpi({ label: 'AVG LOAD', value: avgLoad, unit: '%', tone: avgLoad > 100 ? 'red' : 'accent', foot: `<span class="muted">평균 가동률</span>` })}
       ${UI.kpi({ label: 'OVERLOADED', value: overloaded, tone: 'red', foot: `<span class="muted">100% 초과</span>` })}
       ${UI.kpi({ label: 'UNDERUTILIZED', value: under, tone: 'amber', foot: `<span class="muted">50% 미만</span>` })}

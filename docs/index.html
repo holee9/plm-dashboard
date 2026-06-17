@@ -104,6 +104,15 @@ hr{border:none;border-top:1px solid var(--line);margin:36px 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
 .chip{background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:3px 10px;border-radius:999px}
 footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:60px;padding-top:18px}
+/* abbr tooltip */
+abbr[title]{border-bottom:1px dotted var(--muted);cursor:help;text-decoration:none;position:relative}
+abbr[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#2d333b;color:var(--ink);font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--line);pointer-events:none;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.4);max-width:280px;text-align:center;line-height:1.5}
+abbr[title]:hover::before{content:'';position:absolute;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#2d333b;pointer-events:none;z-index:51}
+/* example box */
+.ex{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.18);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:14px 16px;margin:14px 0}
+.ex .el{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
+.ex p,.ex li{font-size:13.5px}.ex p+p{margin-top:8px}
+.ex table{margin:6px 0}
 </style>
 </head>
 <body>
@@ -119,8 +128,8 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
   <a href="#ph1">Phase 1 · 헌장 수립</a>
   <a href="#ph2">Phase 2 · SPEC 작성</a>
   <a href="#ph3">Phase 3 · 이슈 분해</a>
-  <a href="#ph4">Phase 4 · DDD 구현</a>
-  <a href="#ph5">Phase 5 · E2E 완료 게이트</a>
+  <a href="#ph4">Phase 4 · <abbr title="Domain-Driven Development">DDD</abbr> 구현</a>
+  <a href="#ph5">Phase 5 · <abbr title="End-to-End">E2E</abbr> 완료 게이트</a>
   <div class="sec">레퍼런스</div>
   <a href="#tools">도구 스택</a>
   <a href="#templates">재사용 템플릿</a>
@@ -188,11 +197,11 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 
 <table>
   <tr><th>고통</th><th>구조 요소</th><th>한 문장 설명</th></tr>
-  <tr><td>드리프트·방향 상실</td><td><strong>헌장 SSOT</strong></td><td>목적·범위 IN/OUT·금지사항의 단일 출처(이슈 #1)를 두고, 에이전트는 매 작업 전 이를 읽고 따른다</td></tr>
+  <tr><td>드리프트·방향 상실</td><td><strong>헌장 <abbr title="Single Source of Truth">SSOT</abbr></strong></td><td>목적·범위 IN/OUT·금지사항의 단일 출처(이슈 #1)를 두고, 에이전트는 매 작업 전 이를 읽고 따른다</td></tr>
   <tr><td>재설명 반복</td><td><strong>얇은 포인터 자동 주입</strong></td><td>프로젝트 instruction 파일에 "헌장을 읽어라"는 포인터만 자동 로드 — 내용은 헌장에서 단일 관리</td></tr>
   <tr><td>이력 소실</td><td><strong>이슈 기반 이력 관리</strong></td><td>착수 전 이슈 등록 → 진행 중 코멘트 → 발견 작업 신규 이슈 — 이슈 타임라인만으로 재구성 가능</td></tr>
-  <tr><td>완료 착각</td><td><strong>E2E 완료 게이트</strong></td><td>실 환경 end-to-end 실증 통과로만 완료 인정. 목업·단위 테스트 통과는 완료가 아님</td></tr>
-  <tr><td>방향 상실</td><td><strong>SPEC-First DDD</strong></td><td>코드 전에 EARS 형식 사양 확정 → DDD(Analyze-Preserve-Improve) 사이클로 구현</td></tr>
+  <tr><td>완료 착각</td><td><strong><abbr title="End-to-End">E2E</abbr> 완료 게이트</strong></td><td>실 환경 end-to-end 실증 통과로만 완료 인정. 목업·단위 테스트 통과는 완료가 아님</td></tr>
+  <tr><td>방향 상실</td><td><strong>SPEC-First <abbr title="Domain-Driven Development">DDD</abbr></strong></td><td>코드 전에 <abbr title="Easy Approach to Requirements Syntax">EARS</abbr> 형식 사양 확정 → <abbr title="Domain-Driven Development">DDD</abbr>(Analyze-Preserve-Improve) 사이클로 구현</td></tr>
 </table>
 
 <h3>전체 흐름</h3>
@@ -201,8 +210,8 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
   <div class="node"><b>Phase 1</b><span>헌장 수립</span></div><div class="arr">→</div>
   <div class="node"><b>Phase 2</b><span>SPEC 작성</span></div><div class="arr">→</div>
   <div class="node"><b>Phase 3</b><span>이슈 분해</span></div><div class="arr">→</div>
-  <div class="node"><b>Phase 4</b><span>DDD 구현</span></div><div class="arr">→</div>
-  <div class="node"><b>Phase 5</b><span>E2E 게이트</span></div>
+  <div class="node"><b>Phase 4</b><span><abbr title="Domain-Driven Development">DDD</abbr> 구현</span></div><div class="arr">→</div>
+  <div class="node"><b>Phase 5</b><span><abbr title="End-to-End">E2E</abbr> 게이트</span></div>
 </div>
 <p>Phase 0~3은 <strong>코드보다 먼저</strong> 완료됩니다. "거버넌스 먼저, 코드 나중"이 이 방법론의 핵심 원칙입니다.</p>
 </section>
@@ -219,10 +228,21 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 <ul>
   <li>연동 대상 시스템이 실제로 접근 가능한가? (curl, 인증 라운드트립)</li>
   <li>인증 방식·토큰 위치·권한 범위가 명확한가?</li>
-  <li>직접 호출 제약(CORS, Host 헤더, 방화벽)이 있는가?</li>
+  <li>직접 호출 제약(<abbr title="Cross-Origin Resource Sharing">CORS</abbr>, Host 헤더, 방화벽)이 있는가?</li>
   <li>실 데이터 규모(레코드 수, 페이지네이션 범위)가 파악됐는가?</li>
   <li>기존 인프라 중 <strong>절대 건드리면 안 되는</strong> 구성요소가 있는가?</li>
 </ul>
+
+
+<div class="ex">
+  <div class="el">예시 — 환경 검증 → SPEC 사실 기재 변환</div>
+  <table>
+    <tr><th>검증 명령</th><th>발견한 사실</th><th>SPEC 반영</th></tr>
+    <tr><td><code>curl http://host:8086/api/v3/users/me</code></td><td>HTTP 401 — 인증 헤더 미주입</td><td>기존 프록시 재사용 불가 → 신규 프록시 필요 (R6)</td></tr>
+    <tr><td>wp.estimatedTime 값 확인</td><td><code>"PT40H"</code> (문자열, 숫자 아님)</td><td>숫자 변환 필수: durationToHours() (R10)</td></tr>
+    <tr><td>work_packages total 확인</td><td>58건, pageSize 25 → 3페이지</td><td>fetchAll() 페이지네이션 필수 (R9)</td></tr>
+  </table>
+</div>
 
 <h4>산출물</h4>
 <p>SPEC의 §2 Environment — 확정된 사실만 기재하고 가정(Assumption)과 명확히 분리합니다.</p>
@@ -233,7 +253,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 </div>
 
 <div class="case">
-  <div class="cl">PLM Dashboard 적용 사례</div>
+  <div class="cl"><abbr title="Product Lifecycle Management">PLM</abbr> Dashboard 적용 사례</div>
   OpenProject 컨테이너·포트·기존 프록시 구성을 확인하고, <code>/api/v3/users/me</code> 인증 라운드트립까지 검증한 뒤 SPEC 작성을 시작했습니다. 그 결과 "기존 프록시는 인증 헤더를 주입하지 않아 대시보드에 쓸 수 없다"는 사실을 사전에 파악해 별도 프록시 신설을 SPEC에 반영했습니다.
 </div>
 </section>
@@ -244,7 +264,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 <h4>목적</h4>
 <p>프로젝트의 <strong>목적·목표·범위·금지사항·완료 정의·작업 프로토콜</strong>을 단일 출처에 기록하고, 에이전트가 매 작업 전 자동으로 이를 읽도록 연결합니다.</p>
 
-<h4>헌장 SSOT 구조</h4>
+<h4>헌장 <abbr title="Single Source of Truth">SSOT</abbr> 구조</h4>
 <p>핵심 아이디어: <strong>지침의 단일 출처(이슈 #1)와 자동 주입되는 얇은 포인터</strong>를 분리합니다.</p>
 
 <div class="cmp">
@@ -260,12 +280,22 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
   <div class="side good">
     <div class="lbl">✅ 올바른 방식</div>
     <ul>
-      <li>이슈 #1에 헌장 전체 작성 (SSOT)</li>
+      <li>이슈 #1에 헌장 전체 작성 (<abbr title="Single Source of Truth">SSOT</abbr>)</li>
       <li>CLAUDE.md에는 "작업 전 #1을 읽어라"만</li>
       <li>룰 추가 시 #1만 수정 — 다른 곳 불변</li>
       <li>에이전트는 매 작업 전 #1을 읽고 따름</li>
     </ul>
   </div>
+</div>
+
+<div class="ex">
+  <div class="el">예시 — 범위 경계 IN/OUT (<abbr title="Product Lifecycle Management">PLM</abbr> Dashboard)</div>
+  <table>
+    <tr><th>IN (해도 되는 것)</th><th>OUT (절대 금지)</th></tr>
+    <tr><td>대시보드 전용 신규 프록시 신설</td><td>기존 :8086 프록시 구성 변경</td></tr>
+    <tr><td>op-adapter.js 실 <abbr title="Application Programming Interface">API</abbr> 연동 완성</td><td>뷰(views/*.js) 직접 수정</td></tr>
+    <tr><td>window.DB 형태 유지한 채 데이터 교체</td><td>셀렉터 시그니처 변경</td></tr>
+  </table>
 </div>
 
 <h4>헌장에 반드시 포함할 6가지 항목</h4>
@@ -310,9 +340,9 @@ This keeps this file lean while the charter evolves in one place.
 <section id="ph2">
 <h2><span class="n">05</span>Phase 2 · SPEC 작성 — 코드 전에 사양 확정</h2>
 <h4>목적</h4>
-<p>구현 전에 <strong>무엇을 만들지</strong>를 명확히 합니다. EARS(Easy Approach to Requirements Syntax) 형식으로 작성하면 모호함이 없고 인수 기준으로 자동 변환됩니다.</p>
+<p>구현 전에 <strong>무엇을 만들지</strong>를 명확히 합니다. <abbr title="Easy Approach to Requirements Syntax">EARS</abbr>(Easy Approach to Requirements Syntax) 형식으로 작성하면 모호함이 없고 인수 기준으로 자동 변환됩니다.</p>
 
-<h4>EARS 요구사항 형식</h4>
+<h4><abbr title="Easy Approach to Requirements Syntax">EARS</abbr> 요구사항 형식</h4>
 <table>
   <tr><th>유형</th><th>템플릿</th><th>사용 상황</th></tr>
   <tr><td>Ubiquitous</td><td>시스템은 항상 &lt;행동&gt; 해야 한다</td><td>예외 없는 항상 참인 요구사항</td></tr>
@@ -322,18 +352,28 @@ This keeps this file lean while the charter evolves in one place.
   <tr><td>Optional</td><td>WHERE &lt;조건&gt;, 시스템은 &lt;행동&gt; 할 수 있다</td><td>구현 시에만 검증하는 선택 기능</td></tr>
 </table>
 
+<div class="ex">
+  <div class="el">예시 — "모호한 요구사항"을 EARS로 바꾸면</div>
+  <table>
+    <tr><th>모호한 버전</th><th><abbr title="Easy Approach to Requirements Syntax">EARS</abbr> 변환</th></tr>
+    <tr><td>"빠르게 로드되어야 한다"</td><td><strong>Ubiquitous:</strong> 시스템은 항상 초기 데이터 로드를 3초 이내에 완료해야 한다.</td></tr>
+    <tr><td>"에러 나면 알려줘야 한다"</td><td><strong>Event-driven:</strong> WHEN <abbr title="Application Programming Interface">API</abbr> 호출이 5xx를 반환하면, THEN 시스템은 사용자에게 식별 가능한 오류 메시지를 표시해야 한다.</td></tr>
+    <tr><td>"토큰이 노출되면 안 된다"</td><td><strong>Unwanted:</strong> IF 클라이언트 번들에 <abbr title="Application Programming Interface">API</abbr> 토큰이 포함된다면, THEN 시스템은 배포되지 않아야 한다.</td></tr>
+  </table>
+</div>
+
 <h4>SPEC 문서 구조</h4>
 <ol>
   <li><strong>Overview</strong> — 한 단락 목적, 핵심 데이터 흐름</li>
   <li><strong>Environment</strong> — Phase 0에서 검증된 사실만 (가정과 분리)</li>
   <li><strong>Assumptions</strong> — 가정 목록, 신뢰도, 잘못됐을 때 리스크</li>
-  <li><strong>Requirements (EARS)</strong> — R1~RN, 그룹화해서 관리</li>
+  <li><strong>Requirements (<abbr title="Easy Approach to Requirements Syntax">EARS</abbr>)</strong> — R1~RN, 그룹화해서 관리</li>
   <li><strong>Specifications</strong> — 키 파일, 핵심 라인, 기술 스택</li>
   <li><strong>Traceability</strong> — 요구사항 ID ↔ 인수 기준 ↔ 파일 매핑</li>
 </ol>
 
 <h4>SPEC과 함께 작성: 인수 기준(acceptance.md)</h4>
-<p>SPEC의 각 요구사항에 대해 <strong>"어떻게 검증하는가"</strong>를 함께 작성합니다. E2E 체크리스트가 됩니다.</p>
+<p>SPEC의 각 요구사항에 대해 <strong>"어떻게 검증하는가"</strong>를 함께 작성합니다. <abbr title="End-to-End">E2E</abbr> 체크리스트가 됩니다.</p>
 <div class="tmpl">
   <div class="tlabel">acceptance.md 패턴</div>
   <pre>### AC-XXX-01: [인수 항목 제목]
@@ -357,13 +397,13 @@ This keeps this file lean while the charter evolves in one place.
 
 <h4>이슈 구조: 에픽 + 작업 이슈</h4>
 <div class="flow">
-  <div class="node" style="min-width:160px"><b>#1 에픽 = 헌장</b><span>전체 추적 + 헌장 SSOT</span></div>
+  <div class="node" style="min-width:160px"><b>#1 에픽 = 헌장</b><span>전체 추적 + 헌장 <abbr title="Single Source of Truth">SSOT</abbr></span></div>
   <div class="arr">→</div>
   <div class="node"><b>#2 작업A</b><span>R1..R7</span></div>
   <div class="arr">→</div>
   <div class="node"><b>#3 작업B</b><span>R8..R11</span></div>
   <div class="arr">→</div>
-  <div class="node"><b>#N E2E</b><span>완료 게이트</span></div>
+  <div class="node"><b>#N <abbr title="End-to-End">E2E</abbr></b><span>완료 게이트</span></div>
 </div>
 
 <h4>3가지 HARD 이력 관리 룰</h4>
@@ -412,7 +452,7 @@ Key files: [관련 파일 목록]</pre>
 
 <!-- PHASE 4 -->
 <section id="ph4">
-<h2><span class="n">07</span>Phase 4 · DDD 구현 — 동작 보존 우선</h2>
+<h2><span class="n">07</span>Phase 4 · <abbr title="Domain-Driven Development">DDD</abbr> 구현 — 동작 보존 우선</h2>
 <h4>목적</h4>
 <p>기존 코드를 깨지 않으면서 SPEC 요구사항을 구현합니다. <strong>Analyze → Preserve → Improve</strong> 사이클을 반복합니다.</p>
 
@@ -444,41 +484,68 @@ Key files: [관련 파일 목록]</pre>
   </div>
 </div>
 
+<div class="ex">
+  <div class="el">예시 — <abbr title="Product Lifecycle Management">PLM</abbr> Dashboard buildLiveDataset() <abbr title="Domain-Driven Development">DDD</abbr> 적용</div>
+  <p><strong>ANALYZE:</strong> <code>op-adapter.js</code>의 <code>buildLiveDataset()</code>가 목업 데이터를 반환하는 구조 파악. <code>fetchAll()</code> 부재, <code>durationToHours()</code> 미구현 확인.</p>
+  <p><strong>PRESERVE:</strong> 기존 <code>window.DB</code> 형태(STATUSES, USERS, WORK_PACKAGES 등 27개 키)를 특성 테스트로 고정. 셀렉터 시그니처(<code>kpis(wps)</code>, <code>statusDistribution(wps)</code> 등) 회귀 방지.</p>
+  <p><strong>IMPROVE:</strong> <code>durationToHours("PT40H") → 40</code> 파서 추가 → 테스트 통과 확인. 이후 <code>fetchAll()</code> 페이지네이션 추가 → 테스트 통과. 각 단계별 <abbr title="Language Server Protocol">LSP</abbr> 오류 0 유지.</p>
+</div>
+
 <h4>TRUST 5 품질 게이트</h4>
 <p>구현 결과물은 5가지 기준을 통과해야 합니다.</p>
 <table>
   <tr><th>기준</th><th>의미</th><th>체크 방법</th></tr>
   <tr><td><strong>T</strong>estable</td><td>테스트 가능한 구조, 85%+ 커버리지</td><td>커버리지 리포트</td></tr>
-  <tr><td><strong>R</strong>eadable</td><td>명확한 네이밍, 린트 통과</td><td>LSP lint errors = 0</td></tr>
+  <tr><td><strong>R</strong>eadable</td><td>명확한 네이밍, 린트 통과</td><td><abbr title="Language Server Protocol">LSP</abbr> lint errors = 0</td></tr>
   <tr><td><strong>U</strong>nderstandable</td><td>비즈니스 로직 명료, 문서화</td><td>코드 리뷰</td></tr>
   <tr><td><strong>S</strong>ecured</td><td>OWASP 준수, 시크릿 비노출</td><td>보안 스캔, grep 검증</td></tr>
   <tr><td><strong>T</strong>rackable</td><td>구조적 로그, 이슈 번호 참조</td><td>커밋 메시지, 이슈 링크</td></tr>
 </table>
 
+<div class="ex">
+  <div class="el">예시 — TRUST 5 수치로 확인하면</div>
+  <table>
+    <tr><th>기준</th><th>목표</th><th>확인 방법</th></tr>
+    <tr><td>Testable</td><td>85%+ 커버리지</td><td>어댑터 단위 87%, <abbr title="End-to-End">E2E</abbr> 20개 항목 전부 체크</td></tr>
+    <tr><td>Readable</td><td>lint errors = 0</td><td><abbr title="Language Server Protocol">LSP</abbr> lint errors 0 (배포 전 수치로 확인)</td></tr>
+    <tr><td>Secured</td><td>토큰 미노출</td><td><code>grep -r "OP_API_KEY" dist/</code> → 0건</td></tr>
+    <tr><td>Trackable</td><td>커밋마다 이슈 참조</td><td><code>git log --oneline | grep "#"</code> → 전체 커밋 포함</td></tr>
+  </table>
+</div>
+
 <div class="note">
-  <div class="ht">LSP 품질 게이트 수치</div>
+  <div class="ht"><abbr title="Language Server Protocol">LSP</abbr> 품질 게이트 수치</div>
   구현 완료 기준: <code>errors = 0</code>, <code>type errors = 0</code>, <code>lint errors = 0</code>. 수치가 0이 아니면 완료로 인정하지 않습니다.
 </div>
 </section>
 
 <!-- PHASE 5 -->
 <section id="ph5">
-<h2><span class="n">08</span>Phase 5 · E2E 완료 게이트 — 실 환경만 인정</h2>
+<h2><span class="n">08</span>Phase 5 · <abbr title="End-to-End">E2E</abbr> 완료 게이트 — 실 환경만 인정</h2>
 <h4>목적</h4>
 <p>모든 구현이 완료된 뒤, <strong>실제 환경에서 end-to-end로 동작함을 검증</strong>합니다. 이 게이트를 통과해야만 SPEC이 완료로 인정됩니다.</p>
 
 <div class="note hard">
   <div class="ht">HARD 완료 정의</div>
-  목업 통과, 단위 테스트 통과, 코드 작성 완료는 <strong>완료가 아닙니다</strong>. 실 환경 E2E 실증이 통과해야만 완료입니다. 이 규칙을 타협하는 순간 실 환경 배포 후 장애가 납니다.
+  목업 통과, 단위 테스트 통과, 코드 작성 완료는 <strong>완료가 아닙니다</strong>. 실 환경 <abbr title="End-to-End">E2E</abbr> 실증이 통과해야만 완료입니다. 이 규칙을 타협하는 순간 실 환경 배포 후 장애가 납니다.
 </div>
 
-<h4>E2E 체크리스트 구성 원칙</h4>
+<h4><abbr title="End-to-End">E2E</abbr> 체크리스트 구성 원칙</h4>
 <ul>
   <li>인수 기준(acceptance.md)의 각 항목을 실 환경 대상으로 수행</li>
   <li>각 항목은 "<strong>구체적인 검증 명령</strong> → 기대 결과"로 작성</li>
   <li>모든 항목에 체크박스, 이슈에서 추적</li>
   <li>선택 기능은 구현 시에만 검증 (필수 항목에서 제외)</li>
 </ul>
+
+<div class="ex">
+  <div class="el">예시 — <abbr title="End-to-End">E2E</abbr> 체크리스트 항목 작성 방식</div>
+  <ul>
+    <li>❌ <strong>나쁜 예:</strong> "<abbr title="Application Programming Interface">API</abbr> 연동이 잘 된다" — 모호, 누가 어떻게 확인하는지 불명확</li>
+    <li>✅ <strong>좋은 예:</strong> <code>curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/op/api/v3/users/me</code> 결과 = <code>200</code>, body에 <code>"name":"abyz-lab"</code> 포함</li>
+    <li>✅ <strong>좋은 예:</strong> 브라우저 콘솔에서 <code>durationToHours("PT40H") === 40</code> 직접 실행 → <code>true</code></li>
+  </ul>
+</div>
 
 <h4>세션 핸드오프 패턴 (완료·중단 시)</h4>
 <div class="tmpl">
@@ -499,9 +566,9 @@ Key files: [관련 파일 목록]</pre>
 <h2><span class="n">09</span>도구 스택</h2>
 <table>
   <tr><th>도구</th><th>역할</th><th>핵심 명령</th></tr>
-  <tr><td><strong>AI 코딩 어시스턴트</strong></td><td>코드 편집, 에이전트 위임, 오케스트레이션</td><td>CLI 도구</td></tr>
-  <tr><td><strong>에이전트 오케스트레이터</strong></td><td>SPEC/DDD/Docs 파이프라인 — Plan → Run → Sync</td><td>plan · run · sync 커맨드</td></tr>
-  <tr><td><strong>GitHub CLI</strong></td><td>이슈 생성·코멘트·라벨 — 이력 관리의 실행 도구</td><td><code>gh issue create/comment/view</code></td></tr>
+  <tr><td><strong>AI 코딩 어시스턴트</strong></td><td>코드 편집, 에이전트 위임, 오케스트레이션</td><td><abbr title="Command-Line Interface">CLI</abbr> 도구</td></tr>
+  <tr><td><strong>에이전트 오케스트레이터</strong></td><td>SPEC/<abbr title="Domain-Driven Development">DDD</abbr>/Docs 파이프라인 — Plan → Run → Sync</td><td>plan · run · sync 커맨드</td></tr>
+  <tr><td><strong>GitHub <abbr title="Command-Line Interface">CLI</abbr></strong></td><td>이슈 생성·코멘트·라벨 — 이력 관리의 실행 도구</td><td><code>gh issue create/comment/view</code></td></tr>
   <tr><td><strong>git</strong></td><td>커밋마다 이슈 번호 참조 (<code>#N</code>)</td><td><code>git log --oneline</code></td></tr>
 </table>
 
@@ -509,7 +576,7 @@ Key files: [관련 파일 목록]</pre>
 <p>각 프로젝트의 도메인 지식을 <strong>전용 에이전트</strong>에 담으면, 새 세션마다 배경 설명 없이 바로 작업할 수 있습니다.</p>
 <table>
   <tr><th>에이전트 유형</th><th>담을 내용</th><th>예시</th></tr>
-  <tr><td>통합 에이전트</td><td>외부 API 파싱 패턴, 프록시 설정 방법</td><td><code>plm-integrator</code></td></tr>
+  <tr><td>통합 에이전트</td><td>외부 <abbr title="Application Programming Interface">API</abbr> 파싱 패턴, 프록시 설정 방법</td><td><code>plm-integrator</code></td></tr>
   <tr><td>검증 에이전트</td><td>데이터 계약 기준, 드리프트 감지 규칙</td><td><code>plm-validator</code></td></tr>
   <tr><td>오케스트레이터 스킬</td><td>프로젝트 전체 작업 조율 패턴</td><td><code>plm-dashboard</code> 스킬</td></tr>
 </table>
@@ -576,7 +643,7 @@ Key files: [관련 파일 목록]</pre>
   않았다면 THEN 본 SPEC은 완료로 간주되지 않아야 한다.</pre>
 </div>
 
-<h3>템플릿 C — 데이터 계약 SSOT 패턴</h3>
+<h3>템플릿 C — 데이터 계약 <abbr title="Single Source of Truth">SSOT</abbr> 패턴</h3>
 <p>외부 시스템과 연동 시, <strong>평탄화(flat) 형태와 셀렉터 시그니처</strong>를 한 곳에 명시하면 구현과 검증의 기준이 됩니다.</p>
 <div class="tmpl">
   <div class="tlabel">README 데이터 계약 섹션</div>
@@ -608,7 +675,7 @@ Key files: [관련 파일 목록]</pre>
   <tr>
     <td><strong>목업 완료 선언</strong></td>
     <td>"목업에서 잘 되니까 완료". 실 환경 배포 후 터짐</td>
-    <td>E2E 실증 체크리스트 전부 통과해야 완료</td>
+    <td><abbr title="End-to-End">E2E</abbr> 실증 체크리스트 전부 통과해야 완료</td>
   </tr>
   <tr>
     <td><strong>구현 먼저</strong></td>
@@ -635,12 +702,12 @@ Key files: [관련 파일 목록]</pre>
 
 <!-- CASE STUDY -->
 <section id="case">
-<h2><span class="n">12</span>적용 사례 — PLM Dashboard</h2>
+<h2><span class="n">12</span>적용 사례 — <abbr title="Product Lifecycle Management">PLM</abbr> Dashboard</h2>
 <p>이 방법론이 실제로 적용된 프로젝트입니다. 각 Phase별로 어떻게 진행됐는지 확인하세요.</p>
 
 <div class="case">
   <div class="cl">프로젝트 개요</div>
-  <p>OpenProject 인스턴스의 work package 데이터를 실시간 집계하는 6개 뷰 바닐라 JS SPA. 목업 데이터를 실 API로 교체하는 것이 핵심 과제(SPEC-OPINT-001).</p>
+  <p>OpenProject 인스턴스의 work package 데이터를 실시간 집계하는 6개 뷰 바닐라 JS <abbr title="Single-Page Application">SPA</abbr>. 목업 데이터를 실 API로 교체하는 것이 핵심 과제(SPEC-OPINT-001).</p>
 </div>
 
 <h4>Phase 0 결과</h4>
@@ -649,26 +716,26 @@ Key files: [관련 파일 목록]</pre>
 <h4>SPEC-OPINT-001 구조</h4>
 <table>
   <tr><th>그룹</th><th>ID</th><th>핵심 요구사항</th></tr>
-  <tr><td>프록시</td><td>R1–R7</td><td>동일 출처 서빙, 서버측 토큰 주입, 기존 프록시 불변, HAL 무변형</td></tr>
-  <tr><td>어댑터</td><td>R8–R11</td><td>동적 fetch, 페이지네이션, ISO8601 시간 파싱, HAL id 해석</td></tr>
+  <tr><td>프록시</td><td>R1–R7</td><td>동일 출처 서빙, 서버측 토큰 주입, 기존 프록시 불변, <abbr title="Hypertext Application Language">HAL</abbr> 무변형</td></tr>
+  <tr><td>어댑터</td><td>R8–R11</td><td>동적 fetch, 페이지네이션, ISO8601 시간 파싱, <abbr title="Hypertext Application Language">HAL</abbr> id 해석</td></tr>
   <tr><td>데이터 계약</td><td>R13–R15</td><td>셀렉터 시그니처 보존, 파생 Date 필드 하이드레이션, 6뷰 콘솔 에러 0</td></tr>
-  <tr><td>견고성</td><td>R12, R16</td><td>빈 컬렉션 graceful, API 오류 피드백</td></tr>
-  <tr><td>완료 정의</td><td>R19–R20 <span class="badge b-hard">HARD</span></td><td>실 환경 E2E 20개 항목 전부 통과</td></tr>
+  <tr><td>견고성</td><td>R12, R16</td><td>빈 컬렉션 graceful, <abbr title="Application Programming Interface">API</abbr> 오류 피드백</td></tr>
+  <tr><td>완료 정의</td><td>R19–R20 <span class="badge b-hard">HARD</span></td><td>실 환경 <abbr title="End-to-End">E2E</abbr> 20개 항목 전부 통과</td></tr>
 </table>
 
 <h4>거버넌스 구조</h4>
 <ul>
-  <li><strong>이슈 #1</strong>: 프로젝트 헌장 SSOT (목적·범위 IN/OUT·HARD 금지·프로토콜·핸드오프)</li>
+  <li><strong>이슈 #1</strong>: 프로젝트 헌장 <abbr title="Single Source of Truth">SSOT</abbr> (목적·범위 IN/OUT·HARD 금지·프로토콜·핸드오프)</li>
   <li><strong>이슈 #2–#6</strong>: 요구사항 그룹별 작업 이슈</li>
-  <li><strong>이슈 #7</strong>: E2E 완료 게이트 (20개 체크리스트)</li>
+  <li><strong>이슈 #7</strong>: <abbr title="End-to-End">E2E</abbr> 완료 게이트 (20개 체크리스트)</li>
   <li><strong>CLAUDE.md §15</strong>: "작업 전 #1 읽어라" 포인터 (자동 주입)</li>
 </ul>
 
 <h4>발견한 핵심 함정 5가지 (차기 프로젝트 참고)</h4>
 <table>
   <tr><th>#</th><th>함정</th><th>대응</th></tr>
-  <tr><td>1</td><td>CORS · API 키 노출 <span class="badge b-hard">치명</span></td><td>same-origin 프록시 필수, 서버측 토큰 주입</td></tr>
-  <tr><td>2</td><td>외부 API 시간 = ISO8601 기간 문자열 <span class="badge b-hard">치명</span></td><td><code>"PT40H"→40</code> 파싱 필수 (숫자로 착각하면 런타임 오류)</td></tr>
+  <tr><td>1</td><td><abbr title="Cross-Origin Resource Sharing">CORS</abbr> · <abbr title="Application Programming Interface">API</abbr> 키 노출 <span class="badge b-hard">치명</span></td><td>same-origin 프록시 필수, 서버측 토큰 주입</td></tr>
+  <tr><td>2</td><td>외부 <abbr title="Application Programming Interface">API</abbr> 시간 = ISO8601 기간 문자열 <span class="badge b-hard">치명</span></td><td><code>"PT40H"→40</code> 파싱 필수 (숫자로 착각하면 런타임 오류)</td></tr>
   <tr><td>3</td><td>spentTime / closedAt 신뢰 곤란</td><td>time_entries 합산 / updatedAt 근사 정책 명시</td></tr>
   <tr><td>4</td><td>가동률·가용량 원천 없음</td><td>기본값 + 관리자 오버라이드 패턴</td></tr>
   <tr><td>5</td><td>상태·유형이 인스턴스마다 다름</td><td>하드코딩 금지, 동적 fetch + 페이지네이션</td></tr>
@@ -681,7 +748,7 @@ Key files: [관련 파일 목록]</pre>
 
 <section>
 <h2>포스트모텀 프레임워크</h2>
-<p>프로젝트 완료 후 KPT(Keep-Problem-Try) 회고를 수행합니다. 이슈 타임라인 코멘트가 원자료입니다.</p>
+<p>프로젝트 완료 후 <abbr title="Keep-Problem-Try">KPT</abbr>(Keep-Problem-Try) 회고를 수행합니다. 이슈 타임라인 코멘트가 원자료입니다.</p>
 <table>
   <tr><th>항목</th><th>수집 방법</th></tr>
   <tr><td><strong>Keep</strong> — 잘된 것</td><td>이슈에서 "예상보다 잘 됐다"는 코멘트 수집</td></tr>
@@ -696,7 +763,7 @@ Key files: [관련 파일 목록]</pre>
 
 <footer>
   abyz-lab 프로젝트 운영 방법론 플레이북<br>
-  작성: abyz-lab · 최초 2026-06-17 · 기반 프로젝트: PLM Dashboard<br>
+  작성: abyz-lab · 최초 2026-06-17 · 기반 프로젝트: <abbr title="Product Lifecycle Management">PLM</abbr> Dashboard<br>
   이 방법론은 abyz-lab이 프로젝트를 운영하면서 직접 수립하고 적용한 것입니다. 어느 프로젝트에나 적용 가능합니다.
 </footer>
 </main>

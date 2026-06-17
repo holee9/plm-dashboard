@@ -214,9 +214,10 @@
       PRIORITIES: priorities.map(mapPriority),
       ACTIVITIES: activities.map(mapActivity),
       USERS,
-      // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
+      // Hard-exclude internal/admin projects — never enter DB.
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
+        .filter((p) => !/form.?reporter/i.test(p.identifier || p.name))
         .map((p) => ({ id: p.id, name: p.name, identifier: p.identifier })),
       VERSIONS: versions.map(mapVersion),
       WORK_PACKAGES,

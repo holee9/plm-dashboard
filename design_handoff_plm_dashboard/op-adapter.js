@@ -193,20 +193,24 @@
     });
 
     // Resolve user roles from memberships (first role title wins).
-    const usersMapped = users.map(mapUser);
+    // /principals returns both User and Group entries — keep only individual users.
+    const usersOnly = users.filter((u) => u._type !== 'Group');
+    const usersMapped = usersOnly.map(mapUser);
     const userById = {}; usersMapped.forEach((u) => (userById[u.id] = u));
     memberships.forEach((m) => {
       const uid = refId(m, 'principal');
       const role = refTitle(m, 'roles') || (m._links.roles && m._links.roles[0] && m._links.roles[0].title);
       if (userById[uid] && role) userById[uid].role = role;
     });
+    // Observer role = view-only; exclude from assignee list.
+    const USERS = usersMapped.filter((u) => !/observer/i.test(u.role));
 
     return {
       STATUSES: statuses.map(mapStatus),
       TYPES: types.map(mapType),
       PRIORITIES: priorities.map(mapPriority),
       ACTIVITIES: activities.map(mapActivity),
-      USERS: usersMapped,
+      USERS,
       PROJECTS: projects.map((p) => ({ id: p.id, name: p.name, identifier: p.identifier })),
       VERSIONS: versions.map(mapVersion),
       WORK_PACKAGES,

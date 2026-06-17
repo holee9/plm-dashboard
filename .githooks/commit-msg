@@ -1,0 +1,3 @@
+#!/bin/bash
+sed -i '/^Co-[Aa]uthored-[Bb]y:/d' "$1"
+sed -i '/^$/{ N; /^\n$/d; }' "$1"

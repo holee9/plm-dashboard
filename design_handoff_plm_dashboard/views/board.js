@@ -7,16 +7,17 @@
 
   Views.board = function (state) {
     const D = window.DB, UI = window.UI;
+    const hp = new Set(state.hiddenProjects || []);
     const fProj = state.boardProject || 'all';
     const fUser = state.boardUser || 'all';
 
-    let wps = D.WORK_PACKAGES;
+    let wps = D.WORK_PACKAGES.filter((w) => !hp.has(w.projectId));
     if (fProj !== 'all') wps = wps.filter((w) => w.projectId === +fProj);
     if (fUser !== 'all') wps = wps.filter((w) => w.assigneeId === +fUser);
 
     const selProj = `<select class="board-select" data-board-project>
       <option value="all" ${fProj === 'all' ? 'selected' : ''}>All Projects · 전체 과제</option>
-      ${D.PROJECTS.map((p) => `<option value="${p.id}" ${+fProj === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+      ${D.PROJECTS.filter((p) => !hp.has(p.id)).map((p) => `<option value="${p.id}" ${+fProj === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
     </select>`;
     const selUser = `<select class="board-select" data-board-user>
       <option value="all" ${fUser === 'all' ? 'selected' : ''}>All Members · 전체 담당자</option>

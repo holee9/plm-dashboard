@@ -8,17 +8,6 @@
   Views.projects = function (state) {
     const D = window.DB, UI = window.UI, C = window.Charts;
 
-    // Auto-seed: hide "DR 사업본부 주관 미팅" type projects on first visit.
-    if (!state.hiddenProjectsSeeded) {
-      const hp = new Set(state.hiddenProjects || []);
-      D.PROJECTS.forEach((p) => {
-        if (/DR.*사업본부|사업본부.*미팅/i.test(p.name)) hp.add(p.id);
-      });
-      state.hiddenProjects = [...hp];
-      state.hiddenProjectsSeeded = true;
-      if (window.App && window.App.save) window.App.save();
-    }
-
     const hp = new Set(state.hiddenProjects || []);
     const visibleProjects = D.PROJECTS.filter((p) => !hp.has(p.id));
     const hiddenList = D.PROJECTS.filter((p) => hp.has(p.id));

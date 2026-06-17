@@ -6,13 +6,25 @@
   'use strict';
   window.Views = window.Views || {};
 
-  Views.overview = function () {
+  Views.overview = function (state) {
     const D = window.DB, UI = window.UI, C = window.Charts;
-    const wps = D.WORK_PACKAGES;
+
+    // Project visibility filter — managed here and shared across all views via state.hiddenProjects.
+    const hp = new Set(state.hiddenProjects || []);
+    const projFilterBar = `<div class="proj-filter-bar">
+      <span class="muted" style="font-size:11px;flex-shrink:0">과제</span>
+      ${D.PROJECTS.map((p) => hp.has(p.id)
+        ? `<button class="proj-chip" data-show-project="${p.id}" title="클릭해서 표시">${p.name}</button>`
+        : `<button class="proj-chip active" data-hide-project="${p.id}" title="클릭해서 숨김">${p.name}</button>`
+      ).join('')}
+    </div>`;
+
+    const visibleWps = D.WORK_PACKAGES.filter((w) => !hp.has(w.projectId));
+    const wps = visibleWps;
     const k = D.kpis(wps);
     const trend = D.openCloseTrend(wps, 12);
     const dist = D.statusDistribution(wps).filter((d) => d.count > 0);
-    const health = D.projectHealth();
+    const health = D.projectHealth().filter((h) => !hp.has(h.project.id));
     const util = D.userUtilization();
 
     /* ---------- ① STATUS HEADLINE (hero / squint-test focal point) ---------- */
@@ -146,7 +158,8 @@
     });
 
     return `
-      <div class="section-row"><h2>Operations Overview</h2><span class="muted mono" style="font-size:11px">12 projects · 15 members</span></div>
+      <div class="section-row"><h2>Operations Overview</h2><span class="muted mono" style="font-size:11px">${D.PROJECTS.length} projects · ${D.USERS.filter((u) => !u.isGroup && !u.isObserver).length} members</span></div>
+      ${projFilterBar}
       ${headline}
       ${kpiStrip}
       <div class="tier"><span class="tier-name">핵심 현황</span><span class="tier-en">What needs attention</span><span class="rule"></span></div>

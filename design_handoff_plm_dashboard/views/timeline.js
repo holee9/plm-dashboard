@@ -8,12 +8,13 @@
 
   Views.timeline = function (state) {
     const D = window.DB, UI = window.UI;
+    const hp = new Set(state.hiddenProjects || []);
     const scope = state.tlProject || 'all';
 
     // build rows
     let rows, rangeStart, rangeEnd;
     if (scope === 'all') {
-      rows = D.PROJECTS.map((p) => {
+      rows = D.PROJECTS.filter((p) => !hp.has(p.id)).map((p) => {
         const wps = D.WORK_PACKAGES.filter((w) => w.projectId === p.id);
         const prog = wps.length ? Math.round(wps.reduce((a, w) => a + w.percentDone, 0) / wps.length) : 0;
         const ms = wps.filter((w) => w.typeId === 6).map((w) => ({ date: w._due, label: w.subject }));
@@ -81,7 +82,7 @@
 
     const scopeSel = `<select class="board-select" data-tl-project>
       <option value="all" ${scope === 'all' ? 'selected' : ''}>All Projects · 전체 과제</option>
-      ${D.PROJECTS.map((p) => `<option value="${p.id}" ${+scope === p.id ? 'selected' : ''}>${p.name} · WP</option>`).join('')}
+      ${D.PROJECTS.filter((p) => !hp.has(p.id)).map((p) => `<option value="${p.id}" ${+scope === p.id ? 'selected' : ''}>${p.name} · WP</option>`).join('')}
     </select>`;
 
     const gantt = UI.panel({

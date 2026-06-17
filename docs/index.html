@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 협업 개발 방법론 — MoAI-ADK 프로젝트 운영 플레이북</title>
-<meta name="description" content="AI 에이전트 협업 개발에서 반복되는 5가지 고통을 구조로 해결하는 방법론. 헌장 SSOT, SPEC-First DDD, 이슈 기반 이력 관리, E2E 완료 게이트 — 다른 프로젝트에 바로 적용 가능한 플레이북.">
+<title>abyz-lab 프로젝트 운영 방법론 플레이북</title>
+<meta name="description" content="헌장 SSOT, SPEC-First DDD, 이슈 기반 이력 관리, E2E 완료 게이트 — abyz-lab이 수립하고 적용한 프로젝트 운영 방법론. 어느 프로젝트에나 바로 적용 가능한 플레이북.">
 <style>
 :root{
   --bg:#0d1117; --bg2:#161b22; --card:#1c2333; --card2:#21262d;
@@ -110,8 +110,8 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 <div id="bar"></div>
 <div class="shell">
 <nav>
-  <div class="brand">MoAI-ADK 방법론</div>
-  <div class="sub">AI 협업 개발 운영 플레이북</div>
+  <div class="brand">abyz-lab 방법론</div>
+  <div class="sub">팀 협업 개발 운영 플레이북</div>
   <a href="#why">왜 이 방법론인가</a>
   <a href="#overview">방법론 전체 구조</a>
   <div class="sec">적용 단계</div>
@@ -131,9 +131,9 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 
 <!-- COVER -->
 <div class="cover">
-  <div class="eyebrow">AI 협업 개발 방법론 · MoAI-ADK Playbook</div>
-  <h1>AI 에이전트와 함께 일하는 법 —<br><em>구조 없이는 반복되는 5가지 고통</em>을 해결하다</h1>
-  <p class="lede">이 문서는 AI 에이전트를 개발에 활용할 때 반복적으로 겪는 드리프트·이력 소실·완료 착각·재설명 반복 문제를 <strong>구조와 프로세스</strong>로 해결하는 방법론을 정리합니다. 특정 프로젝트의 기록이 아니라, <strong>어느 프로젝트에든 바로 적용 가능한 플레이북</strong>입니다.</p>
+  <div class="eyebrow">abyz-lab 프로젝트 운영 방법론</div>
+  <h1>abyz-lab 프로젝트 운영 방법론 ——<br><em>반복되는 5가지 고통</em>을 구조로 해결하다</h1>
+  <p class="lede">이 문서는 에이전트를 개발에 활용할 때 반복적으로 겪는 드리프트·이력 소실·완료 착각·재설명 반복 문제를 <strong>구조와 프로세스</strong>로 해결하는 방법론을 정리합니다. 특정 프로젝트의 기록이 아니라, <strong>어느 프로젝트에든 바로 적용 가능한 플레이북</strong>입니다.</p>
   <div class="chips">
     <span class="chip">내부 전파용</span>
     <span class="chip">팀 온보딩용</span>
@@ -145,7 +145,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 <!-- 1. WHY -->
 <section id="why">
 <h2><span class="n">01</span>왜 이 방법론인가 — 해결하는 고통</h2>
-<p>AI 에이전트를 도입한 팀이 공통적으로 겪는 문제들입니다. 단순히 "AI를 쓰는 것"만으로는 해결되지 않고, <strong>구조</strong>가 있어야 비로소 사라집니다.</p>
+<p>프로젝트를 진행하면서 공통적으로 겪는 문제들입니다. 단순히 "AI를 쓰는 것"만으로는 해결되지 않고, <strong>구조</strong>가 있어야 비로소 사라집니다.</p>
 
 <div class="pain-grid">
   <div class="pain">
@@ -177,7 +177,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin
 
 <div class="note tip">
   <div class="ht">이 방법론의 핵심 주장</div>
-  위 고통은 AI의 한계가 아니라 <strong>구조의 부재</strong>에서 옵니다. 올바른 구조를 세우면 AI 에이전트는 일관된 방향으로 반복 없이 작동합니다.
+  위 고통은 도구의 문제가 아니라 <strong>구조의 부재</strong>에서 옵니다. 올바른 구조를 세우면 에이전트는 일관된 방향으로 반복 없이 작동합니다.
 </div>
 </section>
 
@@ -499,8 +499,8 @@ Key files: [관련 파일 목록]</pre>
 <h2><span class="n">09</span>도구 스택</h2>
 <table>
   <tr><th>도구</th><th>역할</th><th>핵심 명령</th></tr>
-  <tr><td><strong>Claude Code</strong></td><td>AI 협업 CLI — 오케스트레이션, 코드 편집, 에이전트 위임</td><td><code>claude</code></td></tr>
-  <tr><td><strong>MoAI-ADK</strong></td><td>에이전트 위임 프레임워크 — SPEC/DDD/Docs 파이프라인</td><td><code>/moai plan</code> · <code>/moai run</code> · <code>/moai sync</code></td></tr>
+  <tr><td><strong>AI 코딩 어시스턴트</strong></td><td>코드 편집, 에이전트 위임, 오케스트레이션</td><td>CLI 도구</td></tr>
+  <tr><td><strong>에이전트 오케스트레이터</strong></td><td>SPEC/DDD/Docs 파이프라인 — Plan → Run → Sync</td><td>plan · run · sync 커맨드</td></tr>
   <tr><td><strong>GitHub CLI</strong></td><td>이슈 생성·코멘트·라벨 — 이력 관리의 실행 도구</td><td><code>gh issue create/comment/view</code></td></tr>
   <tr><td><strong>git</strong></td><td>커밋마다 이슈 번호 참조 (<code>#N</code>)</td><td><code>git log --oneline</code></td></tr>
 </table>
@@ -622,8 +622,8 @@ Key files: [관련 파일 목록]</pre>
   </tr>
   <tr>
     <td><strong>컨텍스트 폭탄</strong></td>
-    name="한 세션에서 모든 것을 다 하려 함. 토큰 소진 후 컨텍스트 오염"</td>
-    <td>Phase 단위로 <code>/clear</code>, SPEC 완료 후 <code>/clear</code></td>
+    <td>한 세션에서 모든 것을 다 하려 함. 컨텍스트 소진 후 품질 저하</td>
+    <td>Phase 단위로 세션을 분리하고, SPEC 완료 후 컨텍스트 초기화</td>
   </tr>
   <tr>
     <td><strong>에이전트 방임</strong></td>
@@ -695,9 +695,9 @@ Key files: [관련 파일 목록]</pre>
 </section>
 
 <footer>
-  AI 협업 개발 방법론 — MoAI-ADK 프로젝트 운영 플레이북<br>
-  작성: drake.lee · 최초 2026-06-17 · 기반 프로젝트: PLM Dashboard (holee9/plm-dashboard)<br>
-  이 문서는 특정 프로젝트의 기록이 아니라 방법론 그 자체를 정리한 것입니다. 어느 프로젝트에나 적용 가능합니다.
+  abyz-lab 프로젝트 운영 방법론 플레이북<br>
+  작성: abyz-lab · 최초 2026-06-17 · 기반 프로젝트: PLM Dashboard<br>
+  이 방법론은 abyz-lab이 프로젝트를 운영하면서 직접 수립하고 적용한 것입니다. 어느 프로젝트에나 적용 가능합니다.
 </footer>
 </main>
 </div>

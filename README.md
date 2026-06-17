@@ -1,7 +1,7 @@
 # PLM Dashboard
 
-> 📘 **[AI 협업 개발 방법론 플레이북 — 바로 보기 ↗](https://holee9.github.io/plm-dashboard/)**
-> · 헌장 SSOT · SPEC-First DDD · 이슈 기반 이력 관리 · E2E 완료 게이트 — 이 프로젝트에 적용한 방법론을 정리한 내부 전파용 가이드
+> 📘 **[abyz-lab 프로젝트 운영 방법론 플레이북 — 바로 보기 ↗](https://holee9.github.io/plm-dashboard/)**
+> · 헌장 SSOT · SPEC-First DDD · 이슈 기반 이력 관리 · E2E 완료 게이트 — abyz-lab이 수립하고 적용한 프로젝트 운영 방법론
 
 > OpenProject 인스턴스(`plm.abyz-lab.work`)의 work package 데이터를 실시간 집계하여
 > **프로젝트 건강도 · 개발 자원 부하 · 위험 요소**를 한 화면에서 모니터링하는 운영 대시보드.

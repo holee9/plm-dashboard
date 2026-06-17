@@ -126,6 +126,7 @@
   function mapWorkPackage(wp) {
     return {
       id: wp.id,
+      displayId: wp.displayId || String(wp.id),  // e.g. "BH-1"; fallback to numeric id
       subject: wp.subject,
       projectId: refId(wp, 'project'),
       typeId: refId(wp, 'type'),

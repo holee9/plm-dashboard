@@ -28,7 +28,7 @@
     const wpRow = (w, extra) => {
       const due = UI.dueLabel(w.dueDate);
       return `<tr>
-        <td>${UI.wpLink(w.id)}</td>
+        <td>${UI.wpLink(w)}</td>
         <td class="strong clamp">${UI.priorityDot(w.priorityId)} ${w.subject}</td>
         <td class="muted" style="font-size:11.5px">${D.P[w.projectId].name}</td>
         <td>${UI.statusChip(w.statusId)}</td>
@@ -73,7 +73,7 @@
       title: 'Over Budget · 공수 초과', sub: `예상 대비 110%+ · ${overBudget.length}건`,
       body: `<table class="tbl"><thead><tr><th>ID</th><th>Subject</th><th>Owner</th><th class="num">Est</th><th class="num">Spent</th><th class="num">초과율</th></tr></thead>
         <tbody>${overBudget.slice(0, 10).map((w) => `<tr>
-          <td>${UI.wpLink(w.id)}</td>
+          <td>${UI.wpLink(w)}</td>
           <td class="strong clamp">${w.subject}</td>
           <td>${UI.avatar(D.U[w.assigneeId])}</td>
           <td class="num">${w.estimatedHours}h</td>

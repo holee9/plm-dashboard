@@ -103,7 +103,7 @@
           <div class="feed-ic" style="background:rgba(239,68,68,.14)"><i class="dot" style="background:var(--c-red)"></i></div>
           <div class="feed-main">
             <div class="feed-title">${wp.subject}</div>
-            <div class="feed-meta">${UI.wpLink(wp.id)}<span>${D.P[wp.projectId].name}</span>
+            <div class="feed-meta">${UI.wpLink(wp)}<span>${D.P[wp.projectId].name}</span>
               <span class="kpi-delta ${due.cls}">${due.txt}</span></div>
           </div>
           ${UI.avatar(D.U[wp.assigneeId])}

@@ -74,8 +74,10 @@
   }
 
   const OP_BASE = 'https://plm.abyz-lab.work';
-  function wpLink(id) {
-    return `<a class="wp-id" href="${OP_BASE}/work_packages/${id}" target="_blank" rel="noopener">#${id}</a>`;
+  function wpLink(wp) {
+    const id = typeof wp === 'object' ? wp.id : wp;
+    const label = typeof wp === 'object' ? (wp.displayId || String(wp.id)) : String(wp);
+    return `<a class="wp-id" href="${OP_BASE}/work_packages/${id}" target="_blank" rel="noopener">${label}</a>`;
   }
 
   window.UI = {

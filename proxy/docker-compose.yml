@@ -1,0 +1,11 @@
+services:
+  plm-proxy:
+    image: nginx:alpine
+    container_name: plm-dashboard-proxy
+    network_mode: host
+    environment:
+      - OP_AUTH_B64=${OP_AUTH_B64}
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ../design_handoff_plm_dashboard:/dashboard:ro
+    restart: unless-stopped

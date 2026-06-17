@@ -42,7 +42,7 @@
   const rf = (min, max) => min + rnd() * (max - min);
 
   // ---- time helpers ---------------------------------------------------------
-  const TODAY = new Date('2026-05-29T00:00:00');
+  let TODAY = new Date('2026-05-29T00:00:00');
   const DAY = 86400000;
   const addDays = (d, n) => new Date(d.getTime() + n * DAY);
   const iso = (d) => d.toISOString().slice(0, 10);
@@ -430,6 +430,75 @@
     return ACTIVITIES.map((a) => ({ activity: a, hours: Math.round(d[a.id]) }));
   }
 
+  // =====================  LIVE DATA HYDRATION + RELOAD  =======================
+  function hydrateWP(wp) {
+    const d = (s) => s ? new Date(s + 'T00:00:00') : null;
+    wp._start   = d(wp.startDate);
+    wp._due     = d(wp.dueDate);
+    wp._created = d(wp.createdAt);
+    wp._closed  = d(wp.closedAt);
+    return wp;
+  }
+
+  function hydrateTE(te) { te._on = te.spentOn ? new Date(te.spentOn + 'T00:00:00') : null; return te; }
+
+  function hydrateVersion(v) {
+    v._start = v.startDate ? new Date(v.startDate + 'T00:00:00') : null;
+    v._end   = v.dueDate   ? new Date(v.dueDate   + 'T00:00:00') : null;
+    return v;
+  }
+
+  function hydrateProject(p) {
+    const wps = WORK_PACKAGES.filter((wp) => wp.projectId === p.id);
+    const pvs = VERSIONS.filter((v) => v.projectId === p.id);
+    p.memberIds = [...new Set(wps.map((wp) => wp.assigneeId).filter(Boolean))];
+    if (!p.health) p.health  = 'normal';
+    if (!p.nameKo) p.nameKo  = p.name;
+    if (!p.leadId) p.leadId  = p.memberIds[0] || null;
+    const starts = [...pvs.map((v) => v._start), ...wps.map((wp) => wp._start)].filter(Boolean);
+    const ends   = [...pvs.map((v) => v._end),   ...wps.map((wp) => wp._due)].filter(Boolean);
+    p._start = starts.length ? new Date(Math.min(...starts.map((x) => x.getTime()))) : TODAY;
+    p._end   = ends.length   ? new Date(Math.max(...ends.map((x) => x.getTime())))   : addDays(TODAY, 30);
+    p.startDate = iso(p._start); p.dueDate = iso(p._end);
+    return p;
+  }
+
+  function buildBoardColsFromStatuses(statuses) {
+    const catMap = {};
+    statuses.forEach((s) => { if (!catMap[s.cat]) catMap[s.cat] = []; catMap[s.cat].push(s.id); });
+    return [
+      { key: 'new',        label: 'New',         statusIds: catMap.new        || [] },
+      { key: 'inProgress', label: 'In Progress', statusIds: catMap.inProgress || [] },
+      { key: 'review',     label: 'In Review',   statusIds: catMap.review     || [] },
+      { key: 'testing',    label: 'Testing',     statusIds: catMap.testing    || [] },
+      { key: 'onHold',     label: 'On Hold',     statusIds: catMap.onHold     || [] },
+      { key: 'closed',     label: 'Done',        statusIds: catMap.closed     || [] },
+    ];
+  }
+
+  function reload(ds) {
+    function replaceArr(t, s) { t.length = 0; s.forEach((x) => t.push(x)); }
+    function replaceObj(t, s) { Object.keys(t).forEach((k) => delete t[k]); Object.assign(t, s); }
+    TODAY = new Date();
+    ds.WORK_PACKAGES.forEach(hydrateWP);
+    ds.TIME_ENTRIES.forEach(hydrateTE);
+    ds.VERSIONS.forEach(hydrateVersion);
+    replaceArr(STATUSES, ds.STATUSES); replaceArr(TYPES, ds.TYPES);
+    replaceArr(PRIORITIES, ds.PRIORITIES); replaceArr(ACTIVITIES, ds.ACTIVITIES);
+    replaceArr(USERS, ds.USERS); replaceArr(PROJECTS, ds.PROJECTS);
+    replaceArr(VERSIONS, ds.VERSIONS);
+    replaceArr(WORK_PACKAGES, ds.WORK_PACKAGES); replaceArr(TIME_ENTRIES, ds.TIME_ENTRIES);
+    PROJECTS.forEach(hydrateProject);
+    replaceArr(BOARD_COLS, buildBoardColsFromStatuses(STATUSES));
+    replaceObj(U, byId(USERS)); replaceObj(P, byId(PROJECTS)); replaceObj(S, byId(STATUSES));
+    replaceObj(T, byId(TYPES)); replaceObj(PR, byId(PRIORITIES));
+    replaceObj(V, byId(VERSIONS)); replaceObj(A, byId(ACTIVITIES));
+    Object.assign(window.DB, { TODAY, STATUSES, BOARD_COLS, TYPES, PRIORITIES, ACTIVITIES,
+      USERS, PROJECTS, VERSIONS, WORK_PACKAGES, TIME_ENTRIES, U, P, S, T, PR, V, A });
+    window.DB._loading = false; window.DB._error = null;
+    if (window.App && window.App.refresh) window.App.refresh();
+  }
+
   // expose
   window.DB = {
     TODAY, iso, addDays, startOfWeek,
@@ -440,5 +509,18 @@
     isOpen, isOverdue, dueWithin,
     statusDistribution, kpis, openCloseTrend, backlogTrend,
     userUtilization, projectHealth, burndown, activityBreakdown,
+    reload,
   };
+
+  // =====================  LIVE API BOOT  =====================================
+  if (window.OPAdapter && window.OPAdapter.USE_LIVE_API) {
+    window.DB._loading = true;
+    window.DB._error = null;
+    window.OPAdapter.buildLiveDataset().then(reload).catch(function (err) {
+      console.error('[PLM] live fetch failed:', err);
+      window.DB._loading = false;
+      window.DB._error = err.message || String(err);
+      if (window.App && window.App.showError) window.App.showError(window.DB._error);
+    });
+  }
 })();

@@ -16,7 +16,7 @@
 (function () {
   'use strict';
 
-  const USE_LIVE_API = false;                 // ← keep false until the proxy is up
+  const USE_LIVE_API = true;                  // proxy is up at /op
   const BASE = '/op';                          // proxy path → plm.abyz-lab.work/api/v3
   // Direct browser → OpenProject is blocked by CORS and would leak the API key.
   // Run a tiny same-origin proxy that injects `Authorization: Basic base64(apikey:TOKEN)`
@@ -58,7 +58,7 @@
       url.searchParams.set('pageSize', pageSize);
       if (filters) url.searchParams.set('filters', JSON.stringify(filters));
       const res = await fetch(url, { headers: { Accept: 'application/hal+json' } });
-      if (!res.ok) throw new Error(`OP ${path} → HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`OP ${path} → HTTP ${res.status} ${res.statusText}`);
       const body = await res.json();
       const els = (body._embedded && body._embedded.elements) || [];
       out.push(...els);
@@ -66,6 +66,11 @@
       offset += 1;
     }
     return out;
+  }
+
+  // fetchSafe: returns [] instead of throwing on 404 or permission errors.
+  async function fetchSafe(path, filters) {
+    try { return await fetchAll(path, filters); } catch (e) { console.warn('[PLM]', e.message); return []; }
   }
 
   /* --------------------------------------------------------------- mappers */
@@ -98,11 +103,17 @@
   }
 
   function mapUser(u) {
+    // /principals returns only id, name, avatar — no firstName/lastName/email/login.
+    const name = u.name || `${u.firstName||''} ${u.lastName||''}`.trim() || 'Unknown';
+    const parts = name.trim().split(/\s+/);
+    const initials = parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : name.slice(0, 2).toUpperCase();
     return {
       id: u.id,
-      name: u.name || `${u.firstName} ${u.lastName}`.trim(),
-      initials: ((u.firstName || ' ')[0] + (u.lastName || ' ')[0]).trim(),
-      email: u.email, avatar: u.avatar, login: u.login,
+      name,
+      initials,
+      email: u.email || '', avatar: u.avatar || '', login: u.login || '',
       // GOTCHA #4 — role / title / weekly capacity DO NOT EXIST in OP core.
       //   role  → resolve from /api/v3/memberships roles (set below)
       //   title → not in API; leave blank or map from a custom field
@@ -155,16 +166,18 @@
 
   async function buildLiveDataset() {
     // Fetch reference data + transactional data in parallel.
+    // GOTCHA: /users requires admin — use /principals instead.
+    // GOTCHA: /time_entries/activities is 404 on some instances — fetchSafe returns [].
     const [statuses, types, priorities, activities, users, projects, versions, memberships] =
       await Promise.all([
         fetchAll('/statuses'), fetchAll('/types'), fetchAll('/priorities'),
-        fetchAll('/time_entries/activities'), fetchAll('/users'),
+        fetchSafe('/time_entries/activities'), fetchAll('/principals'),
         fetchAll('/projects'), fetchAll('/versions'), fetchAll('/memberships'),
       ]);
 
     // Open + closed WPs (default filter only returns open → pass empty array).
     const wpsRaw = await fetchAll('/work_packages', []);
-    const timeRaw = await fetchAll('/time_entries');
+    const timeRaw = await fetchSafe('/time_entries');
 
     const WORK_PACKAGES = wpsRaw.map(mapWorkPackage);
     const TIME_ENTRIES = timeRaw.map(mapTimeEntry);

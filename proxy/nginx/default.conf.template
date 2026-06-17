@@ -1,0 +1,28 @@
+server {
+    listen 8088;
+    server_name _;
+
+    # Serve dashboard static files
+    root /dashboard;
+    index "PLM Dashboard.html";
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Proxy /op/* -> OpenProject API v3
+    # Authorization header injected server-side; token never reaches the browser.
+    location /op/ {
+        proxy_pass         http://localhost:8086/api/v3/;
+        proxy_set_header   Authorization "Basic ${OP_AUTH_B64}";
+        proxy_set_header   Accept "application/hal+json";
+        proxy_set_header   Host "plm.abyz-lab.work";
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_hide_header  X-Powered-By;
+
+        # Strip Authorization from responses (defence-in-depth)
+        proxy_hide_header  Authorization;
+
+        add_header Cache-Control "no-store" always;
+    }
+}

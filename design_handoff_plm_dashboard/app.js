@@ -92,8 +92,8 @@
         </div>
         <nav class="nav">${nav}</nav>
         <div class="side-foot">
-          <span class="live-dot"></span>
-          <div class="side-foot-text"><b>Live · 연동 대기</b>OpenProject v3</div>
+          <span class="live-dot ${D._loading ? 'loading' : (D._error ? 'error' : '')}"></span>
+          <div class="side-foot-text"><b>${D._loading ? '연동 중…' : D._error ? '연동 오류' : 'Live · 연동 완료'}</b>OpenProject v3</div>
         </div>
       </aside>
       <div class="main">
@@ -178,6 +178,11 @@
     },
     get(key) { return state[key]; },
     getState() { return state; },
+    refresh() { renderShell(); },
+    showError(msg) {
+      const el = document.getElementById('content');
+      if (el) el.innerHTML = `<div class="empty" style="color:var(--red)">연동 오류: ${msg}</div>`;
+    },
   };
 
   /* ---------- boot ---------- */

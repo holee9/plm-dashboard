@@ -248,9 +248,9 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .proj-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text-faint); font-size: 11.5px; cursor: pointer; transition: all .12s; }
 .proj-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .proj-chip:hover { border-color: var(--accent); color: var(--text); }
-/* WP ID link */
-a.wp-id { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); text-decoration: none; white-space: nowrap; }
-a.wp-id:hover { text-decoration: underline; }
+/* WP ID badge */
+a.wp-id { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); border: 1px solid color-mix(in oklch, var(--accent), transparent 60%); font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; line-height: 1.6; }
+a.wp-id:hover { background: color-mix(in oklch, var(--accent), transparent 75%); text-decoration: none; }
 
 /* legend */
 .legend { display: flex; flex-wrap: wrap; gap: 10px 14px; }

@@ -936,6 +936,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>OP 잠금 계정 판별: <code>_links.showUser</code> 부재로 신뢰도 높게 감지</strong></td>
     <td>OP에서 계정을 영구잠금하면 <code>/principals</code> 응답에서 <code>_links.showUser</code>가 사라진다. 활성 사용자는 항상 이 링크를 가진다. E2E 검증(2026-06-18): jykim(#25) 잠금 → showUser 없음 확인. <code>mapUser()</code>에서 이 링크 유무로 <code>isLocked</code>를 설정하면 코드 변경 없이 잠금 처리된 퇴사자가 자동 제외된다 (#30).</td>
   </tr>
+  <tr>
+    <td>P19</td>
+    <td><strong>실 API 연동 후에도 샘플 데이터를 <code>USER_DEFS</code>/<code>PROJECT_DEFS</code>에 남겨두면 페이지 새로고침 시 목업이 순간 표시되는 플래시 발생</strong></td>
+    <td><code>USE_LIVE_API=true</code>로 전환한 뒤에도 <code>USER_DEFS</code>/<code>PROJECT_DEFS</code>에 샘플 데이터가 남아 있으면, 스크립트 로드 시점에 먼저 초기화되어 F5 새로고침 시 목업 화면이 잠깐 표시된다. 해결책: (1) 샘플 배열을 빈 배열 <code>[]</code>로 교체해 정적 데이터 자체를 제거하고, (2) <code>renderContent()</code>에 <code>if (D._loading) { … return; }</code> 가드를 추가해 OP 데이터가 도착하기 전에는 "로딩 중…" 메시지만 표시한다 (#31).</td>
+  </tr>
 </table>
 
 <div class="note tip">

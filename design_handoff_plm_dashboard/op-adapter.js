@@ -213,13 +213,43 @@
       if (st && st.isClosed) wp.closedAt = wp.updatedAt;   // proxy; see GOTCHA #5
     });
 
-    // Resolve user roles from memberships (first role title wins).
+    // Role mapping (per user requirement):
+    //   OP "프로젝트 관리자" → dashboard "PM"  (총괄/임원)
+    //   OP "PM"              → dashboard "PL"  (실무 PL)
+    //   everything else      → dashboard "Member"
+    // Observer / Form Reporter / guest → excluded via isObserver/isBot flags below.
+    const DASH_ROLE_ORDER = { PM: 2, PL: 1, Member: 0 };
+    function opRoleToDash(roleTitle) {
+      if (/프로젝트.?관리자/i.test(roleTitle)) return 'PM';
+      if (roleTitle === 'PM') return 'PL';
+      return 'Member';
+    }
+
+    // Build per-project memberRoles map from memberships.
+    // Higher-ranked roles win when the same uid appears with multiple roles in one project.
+    // @MX:ANCHOR: [AUTO] Core PM/PL role resolution — reads all memberships, produces projMemberRoles
+    // @MX:REASON: [AUTO] hydrateProject() relies on pre-populated memberRoles to skip its own (buggy) role derivation
+    const projMemberRoles = {};  // pid -> { uid -> dashRole }
+    memberships.forEach((m) => {
+      const pid = refId(m, 'project');
+      const uid = refId(m, 'principal');
+      if (!pid || !uid) return;
+      const roles = m._links.roles || [];
+      const dashRole = opRoleToDash(roles[0]?.title || '');
+      if (!projMemberRoles[pid]) projMemberRoles[pid] = {};
+      const prev = projMemberRoles[pid][uid];
+      if (!prev || DASH_ROLE_ORDER[dashRole] > DASH_ROLE_ORDER[prev]) {
+        projMemberRoles[pid][uid] = dashRole;
+      }
+    });
+
     // /principals returns both User and Group entries — map ALL of them so D.U
     // lookup never returns undefined (WPs/projects may reference any principal).
     // Groups and Observers are kept in USERS for rendering but flagged so that
     // the assignee dropdown can filter them out (see board.js).
     const usersMapped = users.map((u) => ({ ...mapUser(u), isGroup: u._type === 'Group' }));
     const userById = {}; usersMapped.forEach((u) => (userById[u.id] = u));
+    // Set global u.role from memberships for isObserver detection below (last membership wins).
     memberships.forEach((m) => {
       const uid = refId(m, 'principal');
       const role = refTitle(m, 'roles') || (m._links.roles && m._links.roles[0] && m._links.roles[0].title);
@@ -259,17 +289,26 @@
       // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          identifier: p.identifier,
-          // GOTCHA #11 — OP has no nameKo/health/leadId fields; hydrateProject fills these in.
-          nameKo: p.name,       // Korean name not in OP; use English name as fallback
-          health: null,         // no direct field; hydrateProject defaults to 'normal'
-          leadId: null,         // hydrateProject derives from memberIds[0]
-          startDate: null,      // hydrateProject computes from versions + WPs
-          dueDate: null,        // hydrateProject computes from versions + WPs
-        })),
+        .map((p) => {
+          const pRoles = projMemberRoles[p.id] || {};
+          // leadId priority: PM (프로젝트 관리자) first, then PL (OP PM), then null.
+          // hydrateProject falls back to memberIds[0] if still null.
+          const pmEntry = Object.entries(pRoles).find(([, r]) => r === 'PM');
+          const plEntry = Object.entries(pRoles).find(([, r]) => r === 'PL');
+          const leadId = pmEntry ? +pmEntry[0] : (plEntry ? +plEntry[0] : null);
+          return {
+            id: p.id,
+            name: p.name,
+            identifier: p.identifier,
+            // GOTCHA #11 — OP has no nameKo/health fields; hydrateProject fills these in.
+            nameKo: p.name,         // Korean name not in OP; use English name as fallback
+            health: null,           // no direct field; hydrateProject defaults to 'normal'
+            leadId,                 // derived from PM/PL membership role above
+            memberRoles: pRoles,    // pre-populated → hydrateProject skips its own (buggy) derivation
+            startDate: null,        // hydrateProject computes from versions + WPs
+            dueDate: null,          // hydrateProject computes from versions + WPs
+          };
+        }),
       VERSIONS: versions.map(mapVersion),
       WORK_PACKAGES,
       TIME_ENTRIES,

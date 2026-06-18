@@ -435,7 +435,7 @@
     const wps = WORK_PACKAGES.filter((wp) => wp.projectId === p.id);
     const pvs = VERSIONS.filter((v) => v.projectId === p.id);
     p.memberIds = [...new Set(wps.map((wp) => wp.assigneeId).filter(Boolean))];
-    if (!p.health) p.health  = 'normal';
+    if (!p.health) p.health  = 'on_track';
     if (!p.nameKo) p.nameKo  = p.name;
     if (!p.leadId) p.leadId  = p.memberIds[0] || null;
     if (!p.memberRoles) {

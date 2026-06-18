@@ -290,7 +290,16 @@
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
         .map((p) => {
-          const pRoles = projMemberRoles[p.id] || {};
+          const rawRoles = projMemberRoles[p.id] || {};
+          // abyz-lab (isBot) is a real PM only in 인프라 project.
+          // Exclude all isBot users from memberRoles in every other project so they
+          // don't appear in team panels or PM/PL badges where they don't belong.
+          const isInfra = /인프라/i.test(p.name);
+          const pRoles = isInfra
+            ? rawRoles
+            : Object.fromEntries(
+                Object.entries(rawRoles).filter(([uid]) => !userById[+uid]?.isBot)
+              );
           // leadId priority: PM (프로젝트 관리자) first, then PL (OP PM), then null.
           // hydrateProject falls back to memberIds[0] if still null.
           const pmEntry = Object.entries(pRoles).find(([, r]) => r === 'PM');

@@ -75,7 +75,7 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 
 | 뷰 | 파일 | 핵심 내용 |
 |----|------|-----------|
-| **Overview** | `views/overview.js` | 종합 판정(정상/주의/위험), 프로젝트 건강도 분포, 지연 건수, 팀 가동률, 추세 |
+| **Overview** | `views/overview.js` | 종합 판정(정상/주의/위험) · KPI 스트립(드래그 편집) · **핵심현황**: 과제현황(col-6·스크롤) + 주의항목(col-3·스크롤) + 금주WP(col-3·스크롤) · **추세·분배**: Throughput + 상태 분포 + 팀 가동률 + 활동별 공수 |
 | **Projects** | `views/projects.js` | 프로젝트별 건강도 카드(탭) — 진행률, 번다운, 팀 아바타, WP 테이블 |
 | **Resources** | `views/resources.js` | 개발자별 부하 — 부하 %, 단기 잔여 시간, 백로그, 담당 프로젝트, 지연 WP |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |

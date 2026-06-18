@@ -86,7 +86,7 @@
       title: 'Overdue · 마감 초과', sub: `${overdue.length}건 — 즉시 조치 필요`,
       tools: `<span class="badge" style="background:rgba(239,68,68,.16);color:#FCA5A5">${overdue.length} CRITICAL</span>`,
       body: `<table class="tbl"><thead><tr><th>ID</th><th>Subject</th><th>Project</th><th>Status</th><th>Owner</th><th class="num">Due</th><th class="num">초과</th></tr></thead>
-        <tbody>${overdue.map((w) => wpRow(w, (w) => `<td class="num mono" style="font-size:11px">${UI.fmtDate(w.dueDate)}</td><td class="num" style="color:var(--c-red)">${-UI.daysFromToday(w.dueDate)}d</td>`)).join('') || '<tr><td colspan="7"><div class="empty">없음 🎉</div></td></tr>'}</tbody></table>`,
+        <tbody>${overdue.map((w) => wpRow(w, (w) => `<td class="num mono" style="font-size:11px">${UI.fmtDate(w.dueDate)}</td><td class="num" style="color:var(--c-red)">${w.dueDate ? `${-UI.daysFromToday(w.dueDate)}d` : '–'}</td>`)).join('') || '<tr><td colspan="7"><div class="empty">없음 🎉</div></td></tr>'}</tbody></table>`,
       bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:340px;overflow-y:auto',
     });
 

@@ -38,14 +38,16 @@
   }
 
   // date helpers
-  const fmtDate = (s) => { const d = new Date(s + 'T00:00:00'); return `${d.getMonth() + 1}/${d.getDate()}`; };
-  const fmtDateY = (s) => { const d = new Date(s + 'T00:00:00'); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };
+  const fmtDate = (s) => { if (!s) return '–'; const d = new Date(s + 'T00:00:00'); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const fmtDateY = (s) => { if (!s) return '–'; const d = new Date(s + 'T00:00:00'); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };
   function daysFromToday(s) {
+    if (!s) return null;
     const d = new Date(s + 'T00:00:00');
     return Math.round((d - D.TODAY) / 86400000);
   }
   function dueLabel(s) {
     const n = daysFromToday(s);
+    if (n === null) return { txt: '–', cls: '' };
     if (n < 0) return { txt: `${-n}일 초과`, cls: 'down' };
     if (n === 0) return { txt: '오늘 마감', cls: 'warn' };
     if (n <= 3) return { txt: `D-${n}`, cls: 'warn' };

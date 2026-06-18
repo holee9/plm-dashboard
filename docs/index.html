@@ -135,6 +135,7 @@ abbr[title]:hover::before{content:'';position:absolute;bottom:calc(100% + 1px);l
   <a href="#templates">재사용 템플릿</a>
   <a href="#antipatterns">안티패턴</a>
   <a href="#case">적용 사례</a>
+  <a href="#lessons">레슨 &amp; 러닝</a>
 </nav>
 <main>
 
@@ -746,18 +747,140 @@ Key files: [관련 파일 목록]</pre>
 
 <hr>
 
-<section>
-<h2>포스트모텀 프레임워크</h2>
-<p>프로젝트 완료 후 <abbr title="Keep-Problem-Try">KPT</abbr>(Keep-Problem-Try) 회고를 수행합니다. 이슈 타임라인 코멘트가 원자료입니다.</p>
+<!-- LESSONS & LEARNINGS -->
+<section id="lessons">
+<h2><span class="n">13</span>레슨 &amp; 러닝 — PLM Dashboard 프로젝트</h2>
+<p>이 섹션은 <strong>이번 프로젝트를 직접 진행하면서 부딪힌 실제 사례</strong>를 KPT(Keep · Problem · Try) 형식으로 기록합니다. 방법론의 이론이 아니라, 현장에서 나온 raw 레슨입니다.</p>
+<p class="muted" style="font-size:0.88em">원자료: GitHub Issues #1~#19 타임라인 코멘트 + 커밋 히스토리 · 2026-06-18 기준</p>
+
+<h3>Keep — 잘된 것, 다음에도 반드시 유지</h3>
 <table>
-  <tr><th>항목</th><th>수집 방법</th></tr>
-  <tr><td><strong>Keep</strong> — 잘된 것</td><td>이슈에서 "예상보다 잘 됐다"는 코멘트 수집</td></tr>
-  <tr><td><strong>Problem</strong> — 막힌 것</td><td>이슈에서 "블로커"·"예상 밖 발견" 코멘트 수집</td></tr>
-  <tr><td><strong>Try</strong> — 다음에 시도</td><td>Problem에서 파생된 개선 아이디어</td></tr>
+  <tr><th>#</th><th>무엇이 잘 됐나</th><th>왜 효과적이었나</th></tr>
+  <tr>
+    <td>K1</td>
+    <td><strong>이슈 코멘트 이력 관리</strong></td>
+    <td>세션 컨텍스트가 소진되어 새 세션을 시작해도 이슈 타임라인만 보면 "어디까지 됐고 다음에 뭘 해야 하는지"를 5분 안에 복구할 수 있었다. 이력이 없었다면 매 세션마다 재설명에 시간을 썼을 것.</td>
+  </tr>
+  <tr>
+    <td>K2</td>
+    <td><strong>E2E 실증 필수 조건</strong></td>
+    <td>mock 테스트 통과만으로 완료 선언하지 않는 규칙 덕분에, 실 API 연동 후 터질 수 있었던 문제들을 E2E 단계에서 사전 차단했다. 특히 Observer 필터링·displayId·form-reporter 이슈는 mock에서는 보이지 않았다.</td>
+  </tr>
+  <tr>
+    <td>K3</td>
+    <td><strong>HARD 룰 명시 (헌장 §3)</strong></td>
+    <td>":8086 프록시 변경 금지", "AI 브랜딩 금지", "selector 시그니처 리팩토링 금지" 등을 헌장에 HARD 룰로 박아두자 에이전트가 자동으로 회피했다. 명시하지 않았다면 프록시 설정 변경이나 셀렉터 리팩토링이 슬그머니 들어왔을 것.</td>
+  </tr>
+  <tr>
+    <td>K4</td>
+    <td><strong>op-adapter 분리 레이어</strong></td>
+    <td>fetch·정규화 로직을 <code>op-adapter.js</code> 단일 파일에 격리하고 data.js와 인터페이스를 데이터 계약으로 고정했다. 덕분에 목업 → 실 API 전환이 app.js / views 수정 없이 op-adapter 수정만으로 완료됐다.</td>
+  </tr>
+  <tr>
+    <td>K5</td>
+    <td><strong>발견 즉시 별도 이슈 등록</strong></td>
+    <td>구현 중 발견된 버그·개선 사항을 현재 이슈에 묻지 않고 즉시 새 이슈로 올렸다. 덕분에 #10(Observer 제외), #11(필드 누락), #12~#13(과제 숨김 연동) 등이 "어디선가 언급됐는데 어디였지?"가 아니라 추적 가능한 상태로 관리됐다.</td>
+  </tr>
 </table>
+
+<h3>Problem — 막힌 것, 예상과 달랐던 것</h3>
+<table>
+  <tr><th>#</th><th>무엇이 막혔나</th><th>원인 / 교훈</th></tr>
+  <tr>
+    <td>P1</td>
+    <td><strong>OP API 시간 포맷 = ISO8601 기간 문자열</strong></td>
+    <td><code>estimatedTime: "PT40H"</code> — 숫자로 착각하면 모든 공수 계산이 0 또는 NaN이 된다. <code>durationToHours("PT40H") → 40</code> 파서가 필수임을 API 문서를 읽어도 모르고 실제 응답을 보고 나서야 알았다.</td>
+  </tr>
+  <tr>
+    <td>P2</td>
+    <td><strong><code>/users</code> 엔드포인트 admin 권한 필요</strong></td>
+    <td>OP의 <code>/api/v3/users</code>는 admin만 호출 가능. 일반 계정은 <code>/principals</code>(그룹·봇 포함)을 써야 한다. 이 차이를 모르면 사용자 목록 fetch가 403으로 침묵하며 실패한다.</td>
+  </tr>
+  <tr>
+    <td>P3</td>
+    <td><strong>버전 마감일 = <code>effectiveDate</code></strong></td>
+    <td>OP 버전 API 응답에서 마감일은 <code>dueDate</code>가 아니라 <code>effectiveDate</code>다. <code>dueDate</code>로 읽으면 항상 null. API 명세와 실제 필드명이 다른 경우.</td>
+  </tr>
+  <tr>
+    <td>P4</td>
+    <td><strong>Observer/그룹 필터링 — D.U 파괴 문제</strong></td>
+    <td>Observer와 그룹을 <code>USERS</code> 배열에서 아예 제거했다가, 해당 사용자가 WP assignee로 등록된 경우 <code>D.U[assigneeId]</code>가 <code>undefined</code>를 반환하며 아바타 렌더링이 전부 깨졌다. 해결: USERS에는 남기고 <code>isObserver</code>/<code>isGroup</code> 플래그로 드롭다운에서만 제외.</td>
+  </tr>
+  <tr>
+    <td>P5</td>
+    <td><strong>form-reporter 봇 계정</strong></td>
+    <td>OP 인스턴스에 자동화 봇(<code>form-reporter</code>)이 일반 사용자로 등록되어 있었다. 담당자 드롭다운에 "form-reporter"가 올라오는 것을 보고서야 발견. <code>isBot</code> 플래그 + 관련 프로젝트 hard 필터로 처리.</td>
+  </tr>
+  <tr>
+    <td>P6</td>
+    <td><strong>뷰 단위 필터링의 한계</strong></td>
+    <td>DR 사업본부 프로젝트를 <code>projects.js</code>에서만 필터링했더니 Overview·Board에서 여전히 노출됐다. 과제 숨김 기능도 <code>hiddenProjects</code>를 한 뷰에만 적용하면 다른 뷰에는 미반영. 교훈: <strong>전역 필터는 DB 진입 전에 적용해야 한다.</strong></td>
+  </tr>
+  <tr>
+    <td>P7</td>
+    <td><strong>WP ID = displayId ("BH-1"), 숫자 id 아님</strong></td>
+    <td>WP를 화면에 표시할 때 숫자 <code>id</code>가 아니라 <code>displayId</code>("BH-1", "BLU-3")를 써야 사용자가 OP에서 같은 번호로 찾을 수 있다. API 응답에 두 필드가 모두 있어 혼동하기 쉽다.</td>
+  </tr>
+  <tr>
+    <td>P8</td>
+    <td><strong>localStorage 키 오타 — 하이픈 vs 언더스코어</strong></td>
+    <td>E2E 테스트에서 <code>'plm-state'</code>(하이픈)로 읽었는데 앱은 <code>'plm_state'</code>(언더스코어)에 쓰고 있었다. 상태 저장이 됐는데 확인이 안 되는 황당한 상황. 코드에 있는 실제 키를 grep으로 먼저 확인했어야 했다.</td>
+  </tr>
+  <tr>
+    <td>P9</td>
+    <td><strong>DragEvent에 plain object를 DataTransfer로 넘기면 오류</strong></td>
+    <td>E2E에서 <code>new DragEvent('dragstart', { dataTransfer: {} })</code>를 시도하면 "Failed to convert value to 'DataTransfer'" 오류가 발생한다. <code>new DataTransfer()</code>로 실제 인스턴스를 생성해서 전달해야 한다.</td>
+  </tr>
+  <tr>
+    <td>P10</td>
+    <td><strong>renderContent() 후 DOM 스테일 참조</strong></td>
+    <td>편집 모드 버튼 클릭 → 전체 DOM 교체 → 이전에 <code>page.query_selector()</code>로 잡아둔 element 참조가 무효화된다. E2E에서 클릭 후 element를 재쿼리하지 않으면 <code>ElementHandle is detached</code> 오류.</td>
+  </tr>
+  <tr>
+    <td>P11</td>
+    <td><strong>live API 부팅 시 showError()가 콘텐츠를 덮어씀</strong></td>
+    <td><code>USE_LIVE_API=true</code> 환경에서 초기 fetch가 404로 실패하면 <code>showError()</code>가 <code>#content</code>를 에러 메시지로 교체한다. E2E 테스트가 로드 직후 Overview를 보려 해도 에러 화면만 보였다. 해결: <code>DB._loading</code>이 <code>false</code>가 될 때까지 대기 후 명시적 네비게이션.</td>
+  </tr>
+  <tr>
+    <td>P12</td>
+    <td><strong>op-adapter project 필드 미명시 → "undefined" 표시</strong></td>
+    <td><code>PROJECTS</code> 매핑에서 <code>nameKo</code>/<code>health</code> 등을 생략하면 <code>hydrateProject</code>가 fallback을 적용하긴 하지만, 명시적으로 <code>null</code>을 설정하지 않으면 Projects 뷰 헤더에 "undefined"가 렌더링되는 경우가 발생했다.</td>
+  </tr>
+</table>
+
+<h3>Try — 다음 프로젝트에서 달리 시도할 것</h3>
+<table>
+  <tr><th>#</th><th>무엇을 바꿀 것인가</th><th>기대 효과</th></tr>
+  <tr>
+    <td>T1</td>
+    <td><strong>GOTCHA 주석을 API 어댑터에 발견 즉시 달기</strong></td>
+    <td>P1~P3처럼 API 함정은 발견하는 즉시 코드에 <code>// GOTCHA:</code> 주석으로 박아두면, 다음 세션 에이전트가 같은 함정에 다시 빠지지 않는다. PLM에서는 좋은 패턴이 뒤늦게 정착됐다.</td>
+  </tr>
+  <tr>
+    <td>T2</td>
+    <td><strong>E2E 스크립트를 프로젝트 내부 <code>test/e2e/</code>에 커밋</strong></td>
+    <td>이번에는 <code>/tmp/</code>에 E2E 파일을 뒀다. 세션이 끊기면 사라질 위험이 있고, git으로 변경 이력도 추적이 안 된다. 처음부터 프로젝트 안에 두어야 한다.</td>
+  </tr>
+  <tr>
+    <td>T3</td>
+    <td><strong>데이터 계약 문서를 SPEC과 동시에 작성</strong></td>
+    <td>P12처럼 "어댑터가 어떤 필드를 어떤 값으로 내보내야 하는가"를 SPEC 단계에서 명시하면, 구현 시 누락 필드 문제가 아예 발생하지 않는다.</td>
+  </tr>
+  <tr>
+    <td>T4</td>
+    <td><strong>전역 필터 패턴을 헌장에 HARD 룰로 선등록</strong></td>
+    <td>P6처럼 "특정 패턴 프로젝트 제외"가 필요한 경우, 처음부터 헌장에 "DB 진입 전 <code>op-adapter.js</code>에서 필터"라고 명시하면 에이전트가 뷰 단위에서 처리하는 실수를 하지 않는다.</td>
+  </tr>
+  <tr>
+    <td>T5</td>
+    <td><strong>뷰 구현 전 hiddenProjects 적용 범위 체크리스트</strong></td>
+    <td>새 뷰를 추가할 때마다 "이 뷰에 hiddenProjects 필터가 필요한가?"를 체크하는 항목을 이슈 템플릿에 포함시키면 P6 같은 연동 누락을 막을 수 있다.</td>
+  </tr>
+</table>
+
 <div class="note tip">
-  <div class="ht">이력 관리의 복리 효과</div>
-  이슈 기반 이력 관리가 잘 된 프로젝트는 포스트모텀이 쉽습니다. "언제 무엇이 막혔고 어떻게 해결했는지"가 이미 타임라인에 있기 때문입니다. 이력 관리 = 포스트모텀 준비입니다.
+  <div class="ht">이 레슨 섹션의 활용 방법</div>
+  Problem 항목은 다음 프로젝트에서 같은 기술 스택(OpenProject API, Vanilla JS SPA)을 쓸 때 에이전트 프롬프트에 직접 붙여넣는 것을 권장합니다. "이전에 이런 함정이 있었으니 주의하라"는 컨텍스트 주입이 재발을 막는 가장 빠른 방법입니다.
 </div>
 </section>
 

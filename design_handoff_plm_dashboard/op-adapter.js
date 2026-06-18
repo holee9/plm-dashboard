@@ -103,8 +103,14 @@
   }
 
   function mapUser(u) {
+    // USER_MAP (user-map.js) 우선 조회 — OP 계정명·영문명을 표시 이름으로 정제.
+    const mapEntry = (window.USER_MAP || {})[u.id];
+    const override = mapEntry && typeof mapEntry === 'object' ? mapEntry : {};
+    const overrideName = typeof mapEntry === 'string' ? mapEntry : override.name;
+
     // /principals returns only id, name, avatar — no firstName/lastName/email/login.
-    const name = u.name || `${u.firstName||''} ${u.lastName||''}`.trim() || 'Unknown';
+    const rawName = u.name || `${u.firstName||''} ${u.lastName||''}`.trim() || 'Unknown';
+    const name = overrideName || rawName;
     const parts = name.trim().split(/\s+/);
     const initials = parts.length >= 2
       ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
@@ -118,7 +124,9 @@
       //   role  → resolve from /api/v3/memberships roles (set below)
       //   title → not in API; leave blank or map from a custom field
       //   capacityPerWeek → no source; default 40 and let admins override.
-      role: 'Member', title: '', capacityPerWeek: 40,
+      role: override.role || 'Member',
+      title: override.title || '',
+      capacityPerWeek: override.capacityPerWeek || 40,
       color: '#3B82F6',
     };
   }

@@ -911,6 +911,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>실 OP <code>/principals</code>가 모든 WP 담당자를 반환하지 않아 <code>#id</code> 노출</strong></td>
     <td><code>/principals</code>는 API 호출자의 권한 스코프 내 사용자만 반환한다. 서비스 계정·외부 협력사 계정·다른 스코프 사용자가 WP에 담당자로 지정돼 있으면 <code>D.U[assigneeId]</code>가 undefined → 뷰에 <code>#123</code> 표시. 해결책: op-adapter에서 WP 매핑 후 principals 미포함 담당자를 <code>_links.assignee.title</code> HAL 필드로 스텁 생성 보충 (#25).</td>
   </tr>
+  <tr>
+    <td>P16</td>
+    <td><strong>OP 계정명·영문명이 대시보드에 그대로 노출 — 정제 매핑 테이블 없이는 해결 불가</strong></td>
+    <td>OP <code>/principals</code>의 <code>name</code> 필드는 OP 관리자가 설정한 값(계정명 <code>drake.lee</code>, 영문명 <code>Drake Lee</code> 등)이다. 코드 레벨에서 자동 변환할 수 없으므로, 별도 <code>user-map.js</code>에 <code>{ [OP user ID]: '표시 이름' }</code> 테이블을 두고 <code>mapUser()</code>에서 OP 값보다 우선 적용해야 한다 (#26). 이 파일은 코드 배포와 분리된 운영 설정으로 관리한다.</td>
+  </tr>
+  <tr>
+    <td>K8</td>
+    <td><strong>외부 API 연동 시 표시 이름 정제 테이블을 코드와 분리하면 운영 유연성 확보</strong></td>
+    <td><code>user-map.js</code>처럼 매핑 테이블을 별도 파일로 두면, 개발자 개입 없이 운영팀이 이름을 직접 수정할 수 있다 (#26). 코드 재배포 없이 표시 이름을 바꿀 수 있는 구조가 실 운영에서 중요하다. 형식 A(문자열)와 형식 B(객체)를 모두 지원해 필요에 따라 이름만, 또는 직함·역할·capacity까지 오버라이드 가능하게 설계한다.</td>
+  </tr>
 </table>
 
 <div class="note tip">

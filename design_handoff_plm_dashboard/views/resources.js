@@ -128,8 +128,8 @@
       <div class="section-row"><h2>Resources · 개발자별 리소스</h2><span class="muted mono" style="font-size:11px">${activeMembers} members</span></div>
       ${kpiRow}
       <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-8">${loadPanel}</div>
-        <div class="col-4">${rolePanel}</div>
+        <div class="col-7">${loadPanel}</div>
+        <div class="col-5">${rolePanel}</div>
         <div class="col-12">${tablePanel}</div>
       </div>`;
   };

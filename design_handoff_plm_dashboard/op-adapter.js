@@ -99,7 +99,9 @@
       isClosed: !!s.isClosed,
       color: s.color || '#8B93A7',
       // GOTCHA — OP has NO "category" enum. We derive board buckets from name.
-      cat: s.isClosed ? 'closed'
+      // wont must be checked before generic isClosed to avoid merging into 'closed'.
+      cat: s.isClosed && /won.?t|reject/i.test(s.name) ? 'wont'
+        : s.isClosed ? 'closed'
         : /progress/i.test(s.name) ? 'inProgress'
         : /review/i.test(s.name) ? 'review'
         : /test/i.test(s.name) ? 'testing'

@@ -64,7 +64,8 @@
     { key: 'review',     label: 'In Review',   statusIds: [3] },
     { key: 'testing',    label: 'Testing',     statusIds: [4] },
     { key: 'onHold',     label: 'On Hold',     statusIds: [5] },
-    { key: 'closed',     label: 'Done',        statusIds: [6, 7] },
+    { key: 'wont',       label: "Won't",       statusIds: [7] },
+    { key: 'closed',     label: 'Done',        statusIds: [6] },
   ];
   const TYPES = [
     { id: 1, name: 'Epic',       glyph: '◆' },
@@ -467,6 +468,7 @@
       { key: 'review',     label: 'In Review',   statusIds: catMap.review     || [] },
       { key: 'testing',    label: 'Testing',     statusIds: catMap.testing    || [] },
       { key: 'onHold',     label: 'On Hold',     statusIds: catMap.onHold     || [] },
+      { key: 'wont',       label: "Won't",       statusIds: catMap.wont       || [] },
       { key: 'closed',     label: 'Done',        statusIds: catMap.closed     || [] },
     ].filter((col) => col.statusIds.length > 0);
   }

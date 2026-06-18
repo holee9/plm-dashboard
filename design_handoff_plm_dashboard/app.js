@@ -110,8 +110,8 @@
           <div class="view-title"><b>${cur.en} · ${cur.ko}</b><span>${SUBTITLE[state.view]}</span></div>
           <div class="topbar-spacer"></div>
           <button class="tb-chip" data-noop>${svg(IC.cal)}<span>Last 90d</span></button>
-          <button class="tb-chip" data-noop><span class="live-dot"></span>업데이트 <b>${hh}:${mm}</b></button>
-          <button class="tb-icon" data-refresh>${svg(IC.refresh)}</button>
+          <button class="tb-chip" data-noop data-tip="마지막으로 OpenProject 데이터를 성공적으로 수신한 시각입니다. 클릭 기능 없음 — 새로고침은 오른쪽 버튼을 사용하세요."><span class="live-dot"></span>업데이트 <b>${hh}:${mm}</b></button>
+          <button class="tb-icon" data-refresh data-tip="OpenProject에서 전체 데이터를 다시 조회합니다. 완료 후 모든 뷰가 최신 상태로 갱신됩니다.">${svg(IC.refresh)}</button>
           <button class="tb-icon" data-theme-toggle>${svg(state.theme === 'dark' ? IC.sun : IC.moon)}</button>
         </header>
         <div class="content" id="content"></div>
@@ -207,8 +207,11 @@
       setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = 'none'; }, 600);
       // Re-fetch live data if adapter is available; otherwise just re-render.
       if (window.OPAdapter && window.OPAdapter.USE_LIVE_API && window.DB && window.DB.reload) {
+        window.DB._loading = true;
+        renderContent();   // show "로딩 중…" immediately while fetch runs
         window.OPAdapter.buildLiveDataset().then(window.DB.reload).catch(function (err) {
           console.error('[PLM] refresh fetch failed:', err);
+          window.DB._loading = false;
           renderShell();
         });
       } else {

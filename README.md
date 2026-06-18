@@ -65,8 +65,8 @@ PLM/프로젝트 조직은 다수의 활성 프로젝트와 개발 인원을 동
 PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 관점 뷰**로 재구성하여,
 관리자가 의사결정에 필요한 신호(정상/주의/위험)를 즉시 얻도록 합니다.
 
-- **대상 규모:** 활성 프로젝트 약 12개, 개발자 15명, work package 약 250건
-- **데이터 원천:** 실제 구축된 OpenProject 인스턴스 (목업은 개발/디자인 단계의 대체재)
+- **대상 규모:** 활성 프로젝트 약 23개, 개발자 10명+, work package 다수
+- **데이터 원천:** 실제 구축된 OpenProject 인스턴스 (샘플 데이터 없음, 페이지 로드 시 OP API에서 직접 조회)
 - **대상 사용자:** PLM/프로젝트 관리자, 팀 리드, 개발 조직 운영 담당
 
 ---
@@ -218,6 +218,10 @@ python3 -m http.server 8080
 4. 오류 허용 fetch — `fetchSafe()` (404/권한 오류 시 `[]` 반환)
 5. 파생 필드 — `_start/_due/_end` Date 객체, `memberIds`, `closedAt`(updatedAt 근사)
 6. BOARD_COLS — 실 OP 상태 이름에서 카테고리 추론 (`buildBoardColsFromStatuses()`)
+7. **사용자 한국어 이름** — `/principals`는 계정명만 반환(`drake.lee` 등). `op-adapter.js` 상단 `NAME_TABLE`로 성+이름 매핑
+8. **퇴사자/잠금 계정 자동 제외** — 영구잠금 계정은 `_links.showUser` 부재로 감지(`isLocked`), `isBot=true`로 전환해 모든 뷰에서 자동 제외. 코드 변경 없이 OP 관리자 조작만으로 적용
+9. **샘플 데이터 없음** — `USER_DEFS`/`PROJECT_DEFS` 빈 배열. 페이지 로드 즉시 OP 조회, 로딩 중 "로딩 중…" 표시
+10. **🔄 새로고침 버튼** — 클릭 즉시 로딩 상태 전환 후 OP 전체 재조회. 업데이트 시각·새로고침 역할 차이는 버튼 툴팁으로 안내
 
 상세 API 분석: `design_handoff_plm_dashboard/OpenProject 연동 점검.html`
 

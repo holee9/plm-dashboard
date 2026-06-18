@@ -786,6 +786,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>패널 레이아웃을 데이터 볼륨 비례로 설계</strong></td>
     <td>과제현황(n행 테이블)과 피드(소량 항목)를 동일 col-4로 나눴더니 시각적 불균형이 생겼다 (#20). col-6(테이블) + col-3(피드) + col-3(피드)로 바꾸자 시각적 무게감이 데이터 밀도와 일치했다. 교훈: <strong>항목 수가 다른 패널을 동일 비율로 나누는 것은 "균형"이 아니라 "낭비"다.</strong> 각 패널의 예상 행 수를 먼저 추산한 뒤 비율을 결정하라.</td>
   </tr>
+  <tr>
+    <td>K7</td>
+    <td><strong>KPI 편집 기능은 <code>data-kpi-ns</code> 네임스페이스로 뷰별 분리</strong></td>
+    <td>Overview의 KPI 편집(드래그, 추가/제거)을 다른 뷰에도 동일하게 적용할 때, 상태 키(<code>state.kpiSections</code>)를 공유하면 한 뷰에서 KPI를 변경할 때 다른 뷰에도 영향을 준다 (#22). 해결책: 컨테이너에 <code>data-kpi-ns="proj"</code> attribute를 부여하고 이벤트 핸들러에서 <code>ns ? ns+"KpiSections" : "kpiSections"</code>로 분기하면 기존 Overview 코드를 건드리지 않고 뷰별 독립 상태를 관리할 수 있다.</td>
+  </tr>
 </table>
 
 <h3>Problem — 막힌 것, 예상과 달랐던 것</h3>
@@ -851,6 +856,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>op-adapter project 필드 미명시 → "undefined" 표시</strong></td>
     <td><code>PROJECTS</code> 매핑에서 <code>nameKo</code>/<code>health</code> 등을 생략하면 <code>hydrateProject</code>가 fallback을 적용하긴 하지만, 명시적으로 <code>null</code>을 설정하지 않으면 Projects 뷰 헤더에 "undefined"가 렌더링되는 경우가 발생했다.</td>
   </tr>
+  <tr>
+    <td>P13</td>
+    <td><strong>목업 데이터의 "전사 직함(role)"과 "프로젝트 내 역할(PM/PL)"이 동일 필드를 공유해 혼용됨</strong></td>
+    <td>data.js의 <code>user.role</code>은 전사 직무('PM', 'Backend', …)이고, OP 실 API에서는 멤버십 role('Project Manager', 'Developer', …)이 동일 필드에 들어온다 (#21). 결과적으로 "이 사람이 이 프로젝트의 PM인가?"를 <code>user.role === 'PM'</code>으로 판단하면 전사 직함 기준 판단이 된다. 해결책: <code>project.memberRoles[userId]</code> 필드를 별도로 계산해서 관리하라 — 목업에서는 PM 직함 보유자, 실 API에서는 'Project Manager' 멤버십 보유자로 분기.</td>
+  </tr>
 </table>
 
 <h3>Try — 다음 프로젝트에서 달리 시도할 것</h3>
@@ -885,6 +895,11 @@ Key files: [관련 파일 목록]</pre>
     <td>T6</td>
     <td><strong>피드 패널 항목 수 제한은 "스크롤"로 해결, slice 금지</strong></td>
     <td>주의항목·금주WP 피드가 max 4건으로 slice됐다 (#20). 사용자는 더 많은 항목이 있는지조차 알 수 없었다. 올바른 패턴: <code>max-height + overflow-y:auto</code>로 컨테이너를 고정하면 항목이 늘어도 레이아웃이 깨지지 않으면서 전체를 볼 수 있다. 다음 프로젝트에서 "일단 4개만"이 나오면 즉시 스크롤 패턴을 제안하라.</td>
+  </tr>
+  <tr>
+    <td>T7</td>
+    <td><strong>칸반/그리드 컬럼 표시/숨김은 <code>state.hiddenCols[]</code> 패턴으로 설계</strong></td>
+    <td>Board 뷰의 컬럼이 기능 추가 시 계속 늘어날 수 있다 (#24). 처음부터 <code>state.boardHiddenCols: []</code>를 예약해두고 렌더 시 <code>BOARD_COLS.filter(col => !hiddenCols.has(col.key))</code>로 필터링하면, 컬럼 수가 바뀌어도 코드 변경 없이 UX를 유연하게 유지할 수 있다. Overview의 hiddenProjects 패턴과 완전히 동일한 구조다 — 동일 패턴을 재사용하라.</td>
   </tr>
 </table>
 

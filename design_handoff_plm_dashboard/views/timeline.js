@@ -99,9 +99,9 @@
       bodyStyle: 'padding:0',
     });
 
-    // upcoming milestones across projects
+    // upcoming milestones across projects — all, scrollable
     const milestones = D.WORK_PACKAGES.filter((w) => w.typeId === 6 && D.isOpen(w))
-      .sort((a, b) => a._due - b._due).slice(0, 8);
+      .sort((a, b) => a._due - b._due);
     const msPanel = UI.panel({
       title: 'Upcoming Milestones · 마일스톤', sub: `${milestones.length} 예정`,
       body: `<div class="feed">${milestones.map((m) => { const due = UI.dueLabel(m.dueDate); return `<div class="feed-item">
@@ -109,9 +109,10 @@
         <div class="feed-main"><div class="feed-title">${m.subject}</div>
           <div class="feed-meta"><span>${D.P[m.projectId].name}</span><span class="mono">${UI.fmtDateY(m.dueDate)}</span></div></div>
         <span class="kpi-delta ${due.cls}">${due.txt}</span></div>`; }).join('') || '<div class="empty">예정 마일스톤 없음</div>'}</div>`,
+      bodyStyle: 'max-height:360px;overflow-y:auto',
     });
 
-    // sprint status
+    // sprint status — all, scrollable
     const activeSprints = D.PROJECTS.map((p) => ({ p, v: D.currentVersion(p.id) })).filter((x) => x.v && x.v.status === 'open');
     const sprintPanel = UI.panel({
       title: 'Active Sprints · 진행 스프린트', sub: `${activeSprints.length} open`,
@@ -120,15 +121,15 @@
           return `<tr><td class="strong">${p.name}</td><td class="mono">${v.name}</td><td class="mono muted" style="font-size:11px">${UI.fmtDate(v.startDate)}–${UI.fmtDate(v.dueDate)}</td>
           <td style="width:120px"><div style="display:flex;align-items:center;gap:8px">${UI.progressBar(prog)}<span class="mono" style="font-size:11px">${prog}%</span></div></td></tr>`; }).join('')}
       </tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:360px;overflow-y:auto',
     });
 
     return `
       <div class="section-row"><h2>Timeline · 일정/간트</h2><div class="spacer"></div>${scopeSel}</div>
       <div style="margin-top:var(--grid-1)">${gantt}</div>
       <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-6">${msPanel}</div>
-        <div class="col-6">${sprintPanel}</div>
+        <div class="col-5">${msPanel}</div>
+        <div class="col-7">${sprintPanel}</div>
       </div>`;
   };
 })();

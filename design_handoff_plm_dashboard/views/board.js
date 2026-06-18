@@ -10,6 +10,8 @@
     const hp = new Set(state.hiddenProjects || []);
     const fProj = state.boardProject || 'all';
     const fUser = state.boardUser || 'all';
+    const hiddenCols = new Set(state.boardHiddenCols || []);
+    const colEditMode = !!state.boardColEditMode;
 
     let wps = D.WORK_PACKAGES.filter((w) => !hp.has(w.projectId));
     if (fProj !== 'all') wps = wps.filter((w) => w.projectId === +fProj);
@@ -29,9 +31,25 @@
       <span class="muted mono" style="font-size:11.5px">${wps.length} work packages</span>
       <div class="spacer" style="flex:1"></div>
       <span class="legend"><span class="legend-item"><i class="dot" style="background:var(--c-red)"></i>마감 초과</span></span>
+      <button class="mini-btn${colEditMode ? ' on' : ''}" data-toggle-board-col-edit>${colEditMode ? '컬럼 편집 완료' : '컬럼 편집'}</button>
     </div>`;
 
-    const cols = D.BOARD_COLS.map((col) => {
+    /* column toggle bar — shown only in edit mode */
+    const colToggleBar = colEditMode ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--grid-1);align-items:center">
+      <span class="muted" style="font-size:11px;flex-shrink:0">컬럼 표시:</span>
+      ${D.BOARD_COLS.map((col) => {
+        const isHidden = hiddenCols.has(col.key);
+        const headStatus = col.statusIds.length > 0 ? D.S[col.statusIds[0]] : null;
+        const headColor = headStatus ? headStatus.color : 'var(--text-faint)';
+        return `<button class="proj-chip${isHidden ? ' proj-chip-hidden' : ' active'}" data-board-col-toggle="${col.key}" style="display:flex;align-items:center;gap:5px">
+          <i class="dot" style="background:${headColor}"></i>${col.label}${isHidden ? ' <span style="opacity:.5">○</span>' : ' <span style="color:var(--c-green)">●</span>'}
+        </button>`;
+      }).join('')}
+    </div>` : '';
+
+    const visibleCols = D.BOARD_COLS.filter((col) => !hiddenCols.has(col.key));
+
+    const cols = visibleCols.map((col) => {
       const items = wps.filter((w) => col.statusIds.includes(w.statusId))
         .sort((a, b) => a._due - b._due);
       const headStatus = col.statusIds.length > 0 ? D.S[col.statusIds[0]] : null;
@@ -65,6 +83,7 @@
     return `
       <div class="section-row"><h2>Board · WP 상태 보드</h2><span class="muted mono" style="font-size:11px">칸반 · New → Done</span></div>
       ${filterBar}
+      ${colToggleBar}
       <div class="board">${cols}</div>`;
   };
 })();

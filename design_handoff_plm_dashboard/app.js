@@ -52,7 +52,11 @@
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
     resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
-    projOrder: [], kpiSections: null, projEditMode: false, kpiEditMode: false };
+    projOrder: [], kpiSections: null, projEditMode: false, kpiEditMode: false,
+    projKpiSections: null, projKpiEditMode: false,
+    resKpiSections: null,  resKpiEditMode: false,
+    riskKpiSections: null, riskKpiEditMode: false,
+    boardHiddenCols: [], boardColEditMode: false };
   let state = Object.assign({}, DEFAULTS);
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
@@ -161,16 +165,34 @@
     const rsort = t.closest('[data-res-sort]');
     if (rsort) { state.resSort = rsort.dataset.resSort; save(); renderContent(); return; }
     if (t.closest('[data-toggle-proj-edit]')) { state.projEditMode = !state.projEditMode; save(); renderContent(); return; }
-    if (t.closest('[data-toggle-kpi-edit]')) { state.kpiEditMode = !state.kpiEditMode; save(); renderContent(); return; }
+    if (t.closest('[data-toggle-kpi-edit]')) {
+      const ns = t.closest('[data-toggle-kpi-edit]').closest('[data-kpi-ns]')?.dataset.kpiNs || '';
+      const modeKey = ns ? ns + 'KpiEditMode' : 'kpiEditMode';
+      state[modeKey] = !state[modeKey];
+      save(); renderContent(); return;
+    }
     const kpiToggle = t.closest('[data-kpi-toggle]');
     if (kpiToggle) {
+      const ns = kpiToggle.closest('[data-kpi-ns]')?.dataset.kpiNs || '';
+      const rawDef = kpiToggle.closest('[data-kpi-ns]')?.dataset.kpiDefaults;
+      const DEF = rawDef ? JSON.parse(rawDef) : ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
+      const sectKey = ns ? ns + 'KpiSections' : 'kpiSections';
       const key = kpiToggle.dataset.kpiToggle;
-      const DEF = ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
-      const sects = [...(state.kpiSections || DEF)];
+      const sects = [...(state[sectKey] || DEF)];
       const idx = sects.indexOf(key);
       if (idx >= 0 && sects.length > 1) { sects.splice(idx, 1); }
       else if (idx < 0) { sects.push(key); }
-      state.kpiSections = sects;
+      state[sectKey] = sects;
+      save(); renderContent(); return;
+    }
+    if (t.closest('[data-toggle-board-col-edit]')) { state.boardColEditMode = !state.boardColEditMode; save(); renderContent(); return; }
+    const boardColToggle = t.closest('[data-board-col-toggle]');
+    if (boardColToggle) {
+      const col = boardColToggle.dataset.boardColToggle;
+      const hidden = [...(state.boardHiddenCols || [])];
+      const idx = hidden.indexOf(col);
+      if (idx >= 0) { hidden.splice(idx, 1); } else { hidden.push(col); }
+      state.boardHiddenCols = hidden;
       save(); renderContent(); return;
     }
     if (t.closest('[data-toggle-sidebar]')) { state.collapsed = !state.collapsed; save(); renderShell(); return; }
@@ -199,7 +221,7 @@
   });
 
   /* ---------- drag & drop — project order + KPI section order ---------- */
-  let _dragProjId = null, _dragKpiKey = null;
+  let _dragProjId = null, _dragKpiKey = null, _dragKpiNs = '', _dragKpiDef = null;
 
   document.addEventListener('dragstart', (e) => {
     const chip = e.target.closest('[data-proj-drag]');
@@ -213,6 +235,8 @@
     const kpiEl = e.target.closest('[data-kpi-drag]');
     if (kpiEl) {
       _dragKpiKey = kpiEl.dataset.kpiDrag;
+      _dragKpiNs = kpiEl.closest('[data-kpi-ns]')?.dataset.kpiNs || '';
+      _dragKpiDef = kpiEl.closest('[data-kpi-ns]')?.dataset.kpiDefaults || null;
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', _dragKpiKey);
       kpiEl.classList.add('is-dragging');
@@ -251,11 +275,12 @@
     if (_dragKpiKey) {
       const target = e.target.closest('[data-kpi-drag]');
       if (target && target.dataset.kpiDrag !== _dragKpiKey) {
-        const DEF = ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
-        const sects = [...(state.kpiSections || DEF)];
+        const DEF = _dragKpiDef ? JSON.parse(_dragKpiDef) : ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
+        const sectKey = _dragKpiNs ? _dragKpiNs + 'KpiSections' : 'kpiSections';
+        const sects = [...(state[sectKey] || DEF)];
         const from = sects.indexOf(_dragKpiKey), to = sects.indexOf(target.dataset.kpiDrag);
         if (from >= 0 && to >= 0) { sects.splice(from, 1); sects.splice(to, 0, _dragKpiKey); }
-        state.kpiSections = sects;
+        state[sectKey] = sects;
         save(); renderContent();
       }
     }
@@ -263,7 +288,7 @@
 
   document.addEventListener('dragend', () => {
     document.querySelectorAll('.is-dragging,.drag-over').forEach((el) => el.classList.remove('is-dragging', 'drag-over'));
-    _dragProjId = null; _dragKpiKey = null;
+    _dragProjId = null; _dragKpiKey = null; _dragKpiNs = ''; _dragKpiDef = null;
   });
 
   /* ---------- tooltip ---------- */

@@ -143,6 +143,14 @@
     const team = new Set([lead.id]);
     const teamSize = ri(3, 6);
     while (team.size < teamSize) team.add(pick(USERS).id);
+    // Assign project roles: lead → PL, first PM-titled member → PM, rest → Member
+    const memberRoles = {};
+    [...team].forEach((id) => {
+      const u = USERS.find((u) => u.id === id);
+      if (id === lead.id) memberRoles[id] = 'PL';
+      else if (u && u.title === 'PM' && !Object.values(memberRoles).includes('PM')) memberRoles[id] = 'PM';
+      else memberRoles[id] = 'Member';
+    });
     return {
       id: i + 1,
       name: p[0],
@@ -151,6 +159,7 @@
       health: p[3],
       leadId: lead.id,
       memberIds: [...team],
+      memberRoles,
       startDate: iso(start),
       dueDate: iso(end),
       _start: start, _end: end,
@@ -455,6 +464,17 @@
     if (!p.health) p.health  = 'normal';
     if (!p.nameKo) p.nameKo  = p.name;
     if (!p.leadId) p.leadId  = p.memberIds[0] || null;
+    if (!p.memberRoles) {
+      p.memberRoles = {};
+      p.memberIds.forEach((id) => {
+        const u = USERS.find((u) => u.id === id);
+        if (id === p.leadId) { p.memberRoles[id] = 'PL'; return; }
+        if (u && /project.?manager/i.test(u.role) && !Object.values(p.memberRoles).includes('PM')) {
+          p.memberRoles[id] = 'PM'; return;
+        }
+        p.memberRoles[id] = 'Member';
+      });
+    }
     const starts = [...pvs.map((v) => v._start), ...wps.map((wp) => wp._start)].filter(Boolean);
     const ends   = [...pvs.map((v) => v._end),   ...wps.map((wp) => wp._due)].filter(Boolean);
     p._start = starts.length ? new Date(Math.min(...starts.map((x) => x.getTime()))) : TODAY;

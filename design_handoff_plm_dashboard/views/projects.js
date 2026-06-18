@@ -97,13 +97,21 @@
 
     /* PM/PL/Member role info */
     const roles = p.memberRoles || {};
-    const pmId  = Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
+    const overridePmId = (state.projPmOverrides || {})[p.id];
+    const pmId  = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
     const plId  = Object.entries(roles).find(([, r]) => r === 'PL')?.[0];
 
-    /* header */
-    const pmBlock = pmId && D.U[+pmId]
-      ? `<div><div class="kpi-label">PM</div><div style="display:flex;align-items:center;gap:7px;margin-top:5px">${UI.avatar(D.U[+pmId])}<b style="font-size:13px">${D.U[+pmId].name}</b></div></div>`
-      : '';
+    /* PM selector — all non-bot, non-observer users */
+    const pmCandidates = Object.values(D.U).filter((u) => !u.isBot && !u.isObserver);
+    const pmOpts = `<option value="">– 없음 –</option>` +
+      pmCandidates.map((u) => `<option value="${u.id}"${pmId && +pmId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
+    const pmBlock = `<div>
+      <div class="kpi-label">PM</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-top:5px">
+        ${pmId && D.U[+pmId] ? UI.avatar(D.U[+pmId]) : ''}
+        <select data-proj-pm="${p.id}" style="font-size:13px;font-weight:700;background:transparent;border:none;color:inherit;cursor:pointer;padding:0;max-width:140px">${pmOpts}</select>
+      </div>
+    </div>`;
     const plBlock = plId && D.U[+plId]
       ? `<div><div class="kpi-label">PL</div><div style="display:flex;align-items:center;gap:7px;margin-top:5px">${UI.avatar(D.U[+plId])}<b style="font-size:13px">${D.U[+plId].name}</b></div></div>`
       : '';

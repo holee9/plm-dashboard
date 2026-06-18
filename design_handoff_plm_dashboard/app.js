@@ -52,7 +52,7 @@
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
     resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
-    projOrder: [], kpiSections: null, projEditMode: false, kpiEditMode: false,
+    projOrder: [], projPmOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
     projKpiSections: null, projKpiEditMode: false,
     resKpiSections: null,  resKpiEditMode: false,
     riskKpiSections: null, riskKpiEditMode: false,
@@ -225,6 +225,13 @@
     if (t.matches('[data-board-project]')) { state.boardProject = t.value; save(); renderContent(); }
     if (t.matches('[data-board-user]')) { state.boardUser = t.value; save(); renderContent(); }
     if (t.matches('[data-tl-project]')) { state.tlProject = t.value; save(); renderContent(); }
+    if (t.matches('[data-proj-pm]')) {
+      const pid = +t.dataset.projPm;
+      if (!state.projPmOverrides) state.projPmOverrides = {};
+      if (t.value) { state.projPmOverrides[pid] = +t.value; }
+      else { delete state.projPmOverrides[pid]; }
+      save(); renderContent();
+    }
   });
 
   /* ---------- drag & drop — project order + KPI section order ---------- */

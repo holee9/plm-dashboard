@@ -120,9 +120,13 @@
   }
 
   function renderContent() {
-    const fn = window.Views[state.view];
     const el = document.getElementById('content');
     el.scrollTop = 0;
+    if (D._loading) {
+      el.innerHTML = '<div class="empty">OpenProject 데이터 로딩 중…</div>';
+      return;
+    }
+    const fn = window.Views[state.view];
     try {
       el.innerHTML = fn ? fn(state) : '<div class="empty">view not found</div>';
     } catch (err) {

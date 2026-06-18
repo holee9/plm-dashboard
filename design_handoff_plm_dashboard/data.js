@@ -92,23 +92,8 @@
 
   // =====================  USERS (members)  ===================================
   const AVATAR_COLORS = ['#3B82F6', '#8B5CF6', '#06B6D4', '#22C55E', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6', '#6366F1', '#F97316'];
-  const USER_DEFS = [
-    ['김도현', 'Project Lead',     'PM'],
-    ['이서연', 'Tech Lead',        'Backend'],
-    ['박지훈', 'Backend Engineer', 'Backend'],
-    ['최유나', 'Backend Engineer', 'Backend'],
-    ['정민재', 'Frontend Engineer','Frontend'],
-    ['강하늘', 'Frontend Engineer','Frontend'],
-    ['윤서준', 'Fullstack Engineer','Fullstack'],
-    ['임채원', 'Fullstack Engineer','Fullstack'],
-    ['한지우', 'QA Engineer',      'QA'],
-    ['오현우', 'QA Engineer',      'QA'],
-    ['배수빈', 'DevOps Engineer',  'DevOps'],
-    ['신예은', 'Product Designer', 'Design'],
-    ['조태양', 'Data Engineer',    'Data'],
-    ['홍지민', 'Backend Engineer', 'Backend'],
-    ['문가영', 'Frontend Engineer','Frontend'],
-  ];
+  // Sample data removed — USE_LIVE_API=true, all data comes from OP on page load.
+  const USER_DEFS = [];
   const USERS = USER_DEFS.map((u, i) => ({
     id: i + 1,
     name: u[0],
@@ -121,20 +106,8 @@
   const usersByRole = (role) => USERS.filter((u) => u.role === role);
 
   // =====================  PROJECTS  ==========================================
-  const PROJECT_DEFS = [
-    ['PLM Core Platform',   '코어 플랫폼',       'core',      'on_track'],
-    ['BOM Management',      'BOM 관리',          'bom',       'at_risk'],
-    ['Document Vault',      '문서 관리',         'docvault',  'on_track'],
-    ['Workflow Engine',     '워크플로 엔진',     'workflow',  'on_track'],
-    ['CAD Integration',     'CAD 연동',          'cad',       'at_risk'],
-    ['Change Management',   '설계변경 관리',     'change',    'off_track'],
-    ['Supplier Portal',     '협력사 포털',       'supplier',  'on_track'],
-    ['Quality Module',      '품질 관리',         'quality',   'on_track'],
-    ['Mobile App',          '모바일 앱',         'mobile',    'at_risk'],
-    ['Analytics & Reporting','분석·리포팅',      'analytics', 'on_track'],
-    ['Data Migration',      '데이터 이관',       'migration', 'off_track'],
-    ['Infra & DevOps',      '인프라·DevOps',     'infra',     'on_track'],
-  ];
+  // Sample data removed — USE_LIVE_API=true, all data comes from OP on page load.
+  const PROJECT_DEFS = [];
   const PROJECTS = PROJECT_DEFS.map((p, i) => {
     const start = addDays(TODAY, -ri(70, 220));
     const end = addDays(TODAY, ri(20, 160));

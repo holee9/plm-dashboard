@@ -538,11 +538,27 @@
   if (window.OPAdapter && window.OPAdapter.USE_LIVE_API) {
     window.DB._loading = true;
     window.DB._error = null;
-    window.OPAdapter.buildLiveDataset().then(reload).catch(function (err) {
-      console.error('[PLM] live fetch failed:', err);
-      window.DB._loading = false;
-      window.DB._error = err.message || String(err);
-      if (window.App && window.App.showError) window.App.showError(window.DB._error);
-    });
+
+    function doRefresh() {
+      window.OPAdapter.buildLiveDataset().then(function (ds) {
+        // Detect newly added OP users before replacing the array.
+        const prevIds = new Set(USERS.map(function (u) { return u.id; }));
+        const added = ds.USERS.filter(function (u) { return !prevIds.has(u.id); });
+        if (added.length) {
+          console.info('[PLM] 신규 사용자 ' + added.length + '명 감지: ' +
+            added.map(function (u) { return u.name + '(#' + u.id + ')'; }).join(', '));
+        }
+        reload(ds);
+      }).catch(function (err) {
+        console.error('[PLM] live fetch failed:', err);
+        window.DB._loading = false;
+        window.DB._error = err.message || String(err);
+        if (window.App && window.App.showError) window.App.showError(window.DB._error);
+      });
+    }
+
+    doRefresh();
+    // Re-fetch every 5 minutes — picks up newly added users and data changes.
+    setInterval(doRefresh, 5 * 60 * 1000);
   }
 })();

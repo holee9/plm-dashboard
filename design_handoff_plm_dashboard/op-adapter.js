@@ -103,12 +103,12 @@
   }
 
   function mapUser(u) {
-    // 성(lastName) + 이름(firstName) 순으로 조합 — OP 사용자 프로필의 분리 필드 우선.
-    // Korean order: no space between lastName and firstName.
-    const name = (u.lastName && u.firstName)
-      ? `${u.lastName}${u.firstName}`
-      : u.name || 'Unknown';
-    // initials: first 2 chars works for 3-char Korean names (e.g. 김도현 → 김도)
+    // GOTCHA: /principals returns `name` only — firstName/lastName are empty for all users.
+    // /api/v3/users (admin-only, 403) is the only source for separated fields.
+    // Root fix: OP admin must set each user's First name / Last name in OP profile;
+    // then /principals `name` field will reflect the correct display name automatically.
+    const name = u.name || 'Unknown';
+    // initials: first 2 chars works for 3-char Korean names (e.g. 황인호 → 황인)
     const initials = name.slice(0, 2).toUpperCase();
     return {
       id: u.id,

@@ -221,7 +221,17 @@
       // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
-        .map((p) => ({ id: p.id, name: p.name, identifier: p.identifier })),
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          identifier: p.identifier,
+          // GOTCHA #11 — OP has no nameKo/health/leadId fields; hydrateProject fills these in.
+          nameKo: p.name,       // Korean name not in OP; use English name as fallback
+          health: null,         // no direct field; hydrateProject defaults to 'normal'
+          leadId: null,         // hydrateProject derives from memberIds[0]
+          startDate: null,      // hydrateProject computes from versions + WPs
+          dueDate: null,        // hydrateProject computes from versions + WPs
+        })),
       VERSIONS: versions.map(mapVersion),
       WORK_PACKAGES,
       TIME_ENTRIES,

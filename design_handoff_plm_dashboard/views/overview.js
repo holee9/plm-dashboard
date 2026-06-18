@@ -173,15 +173,16 @@
       hint: '각 과제의 건강 상태·진행률·지연 WP를 한눈에 비교합니다. 지연(Off track)·주의(At risk) 과제가 상단에 정렬됩니다. 행을 클릭하면 과제 상세로 이동합니다.',
       body: `<table class="tbl"><thead><tr><th>Project</th><th>Health</th><th>Progress</th><th class="num">Open</th><th class="num">Overdue</th><th>Team</th></tr></thead>
         <tbody>${healthRows}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:340px;overflow-y:auto',
     });
 
     /* -------- ⑤ Needs Attention (risk feed) -------- */
-    const overdue = wps.filter(D.isOverdue).sort((a, b) => a._due - b._due).slice(0, 4);
+    const overdue = wps.filter(D.isOverdue).sort((a, b) => a._due - b._due);
     const riskFeed = UI.panel({
       title: 'Needs Attention · 주의 항목', sub: `${wps.filter(D.isOverdue).length}건 마감 초과`,
       tools: `<button class="mini-btn" data-nav="risks">전체 →</button>`,
       hint: '마감일이 이미 지난 WP를 초과 일수 순으로 표시합니다. 가장 긴급한 항목부터 담당자에게 확인하고 완료 처리 또는 일정 재조정을 진행하세요.',
+      bodyStyle: 'max-height:340px;overflow-y:auto',
       body: `<div class="feed">${overdue.map((wp) => {
         const due = UI.dueLabel(wp.dueDate);
         return `<div class="feed-item">
@@ -199,12 +200,12 @@
     /* -------- ⑥ 이번 주 마감 WP 피드 -------- */
     const thisWeekWps = wps
       .filter((w) => D.isOpen(w) && w._due && w._due > D.TODAY && w._due <= D.addDays(D.TODAY, 7))
-      .sort((a, b) => a._due - b._due)
-      .slice(0, 4);
+      .sort((a, b) => a._due - b._due);
     const weeklyFeed = UI.panel({
       title: '이번 주 마감 · 금주 WP', sub: `이번 주 마감 예정 ${k.dueThisWeek}건`,
       tools: `<button class="mini-btn" data-nav="timeline">일정 →</button>`,
       hint: '이번 주(오늘 기준 7일 이내) 마감 예정인 WP입니다. 미리 진행 상태를 확인해 완료율을 높이면 다음 주 지연 건으로 이어지는 것을 막을 수 있습니다.',
+      bodyStyle: 'max-height:340px;overflow-y:auto',
       body: `<div class="feed">${thisWeekWps.map((wp) => {
         const due = UI.dueLabel(wp.dueDate);
         return `<div class="feed-item">
@@ -283,9 +284,9 @@
         <span class="rule"></span>
       </div>
       <div class="grid">
-        <div class="col-4">${healthPanel}</div>
-        <div class="col-4">${riskFeed}</div>
-        <div class="col-4">${weeklyFeed}</div>
+        <div class="col-6">${healthPanel}</div>
+        <div class="col-3">${riskFeed}</div>
+        <div class="col-3">${weeklyFeed}</div>
       </div>
       <div class="tier">
         <span class="tier-name">추세 · 분배</span>

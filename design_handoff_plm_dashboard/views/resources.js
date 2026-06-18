@@ -60,7 +60,7 @@
     const avgLoad = util.length ? Math.round(util.reduce((a, u) => a + u.load, 0) / util.length) : 0;
     const totalSpent = Math.round(util.reduce((a, u) => a + u.spent, 0));
     const avgRemaining = util.length ? Math.round(util.reduce((a, u) => a + u.remaining, 0) / util.length) : 0;
-    const activeMembers = D.USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot && !u.isFormerEmployee).length;
+    const activeMembers = D.USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).length;
 
     /* KPI strip */
     const kpiEdit = !!state.resKpiEditMode;

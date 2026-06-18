@@ -123,12 +123,11 @@
   function mapUser(u) {
     // GOTCHA: /principals returns account login as `name` — firstName/lastName are empty.
     // NAME_TABLE maps account names → 성+이름 Korean names (see GOTCHA #13 above).
+    // Former employees are excluded by OP admin deactivating their account (they disappear
+    // from /principals naturally). Do NOT pattern-match names for exclusion — it would
+    // block new employees who haven't been added to NAME_TABLE yet.
     const raw = u.name || 'Unknown';
     const name = NAME_TABLE[raw] || raw;
-    // Account-style names not in NAME_TABLE and with no Korean characters are former employees.
-    // Active users are either in NAME_TABLE or already have Korean names (e.g. 황인호).
-    const hasKorean = /[가-힣]/.test(raw);
-    const isFormerEmployee = !NAME_TABLE[raw] && !hasKorean;
     // initials: first 2 chars works for 3-char Korean names (e.g. 강동근 → 강동)
     const initials = name.slice(0, 2).toUpperCase();
     return {
@@ -139,7 +138,6 @@
       // GOTCHA #4 — role / title / weekly capacity DO NOT EXIST in OP core.
       role: 'Member', title: '', capacityPerWeek: 40,
       color: '#3B82F6',
-      isFormerEmployee,
     };
   }
 
@@ -229,6 +227,8 @@
     usersMapped.forEach((u) => {
       if (/observer/i.test(u.role)) u.isObserver = true;
       if (/form.?reporter/i.test(u.name) || /form.?reporter/i.test(u.login)) u.isBot = true;
+      // Service/admin accounts — excluded from all views but kept in D.U for lookup.
+      if (/^(guest|abyz-lab|admin)$/i.test(u.name)) u.isBot = true;
     });
     // GOTCHA #12 — /principals may not include every WP assignee (service accounts,
     // cross-scope users, external collaborators). Use _links.assignee.title from the

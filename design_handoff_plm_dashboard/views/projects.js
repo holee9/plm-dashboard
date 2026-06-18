@@ -9,8 +9,14 @@
     const D = window.DB, UI = window.UI, C = window.Charts;
 
     const hp = new Set(state.hiddenProjects || []);
-    const visibleProjects = D.PROJECTS.filter((p) => !hp.has(p.id));
-    const hiddenList = D.PROJECTS.filter((p) => hp.has(p.id));
+    const orderedAll = (() => {
+      const ord = state.projOrder && state.projOrder.length ? state.projOrder : null;
+      if (!ord) return [...D.PROJECTS];
+      const byId = Object.fromEntries(D.PROJECTS.map((p) => [p.id, p]));
+      return [...ord.map((id) => byId[id]).filter(Boolean), ...D.PROJECTS.filter((p) => !ord.includes(p.id))];
+    })();
+    const visibleProjects = orderedAll.filter((p) => !hp.has(p.id));
+    const hiddenList = orderedAll.filter((p) => hp.has(p.id));
 
     // All hidden — show restore UI.
     if (visibleProjects.length === 0) {

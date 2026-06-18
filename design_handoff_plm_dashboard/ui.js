@@ -53,10 +53,11 @@
   }
 
   function panel(opts) {
-    const { title, sub, body, tools = '', sticky = '', cls = '', bodyStyle = '' } = opts;
+    const { title, sub, body, tools = '', sticky = '', cls = '', bodyStyle = '', hint = '' } = opts;
+    const titleEl = hint ? `${title}<span class="hint-ic" data-tip="${hint}">ⓘ</span>` : title;
     return `<div class="panel ${cls}">
       <div class="panel-head">
-        <div><div class="panel-title">${title}</div>${sub ? `<div class="panel-sub">${sub}</div>` : ''}</div>
+        <div><div class="panel-title">${titleEl}</div>${sub ? `<div class="panel-sub">${sub}</div>` : ''}</div>
         <div class="spacer"></div>${tools}
       </div>
       <div class="panel-body" style="${bodyStyle}">${body}</div>
@@ -64,8 +65,8 @@
   }
 
   function kpi(opts) {
-    const { label, value, unit = '', foot = '', spark = '', tone = '' } = opts;
-    return `<div class="kpi ${tone ? 'tone-' + tone : ''}">
+    const { label, value, unit = '', foot = '', spark = '', tone = '', attrs = '' } = opts;
+    return `<div class="kpi ${tone ? 'tone-' + tone : ''}" ${attrs}>
       <div class="kpi-label">${label}</div>
       <div class="kpi-value">${value}${unit ? `<small>${unit}</small>` : ''}</div>
       ${foot ? `<div class="kpi-foot">${foot}</div>` : ''}

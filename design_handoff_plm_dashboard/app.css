@@ -245,9 +245,32 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .hidden-proj-chip:hover { border-color: var(--accent); color: var(--text); }
 /* project filter chip bar (Overview global project selector) */
 .proj-filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.proj-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text-faint); font-size: 11.5px; cursor: pointer; transition: all .12s; }
+.proj-chip { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text-faint); font-size: 11.5px; cursor: pointer; transition: all .12s; }
 .proj-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .proj-chip:hover { border-color: var(--accent); color: var(--text); }
+.proj-chip[draggable="true"] { cursor: grab; }
+.proj-chip[draggable="true"]:active { cursor: grabbing; }
+.proj-chip-hidden { border-style: dashed; color: var(--text-faint) !important; background: transparent !important; border-color: var(--border) !important; }
+.proj-chip-hidden:hover { border-color: var(--accent) !important; color: var(--text) !important; }
+.proj-chip-x { font-size: 11px; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-faint); margin-left: 2px; flex-shrink: 0; }
+.proj-chip-x:hover { color: var(--c-red); background: rgba(239,68,68,.15); }
+/* drag & drop visual feedback */
+.is-dragging { opacity: 0.35 !important; }
+.drag-over { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+/* hint icon — shared for panel titles and tier labels */
+.hint-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%; font-size: 9.5px; font-style: normal;
+  color: var(--text-faint); border: 1px solid var(--border); cursor: help; flex-shrink: 0;
+}
+.hint-ic:hover { color: var(--accent); border-color: var(--accent); }
+.panel-title .hint-ic { margin-left: 5px; vertical-align: middle; }
+/* KPI edit mode — hidden section add placeholder */
+.kpi-hidden { border-style: dashed !important; opacity: 0.55; cursor: pointer; user-select: none; }
+.kpi-hidden:hover { opacity: 1; border-color: var(--accent) !important; }
+/* KPI remove × button inside kpi-label */
+.kpi-remove { margin-left: 5px; color: var(--text-faint); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; }
+.kpi-remove:hover { color: var(--c-red); background: rgba(239,68,68,.12); }
 /* WP ID badge */
 a.wp-id { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); border: 1px solid color-mix(in oklch, var(--accent), transparent 60%); font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; line-height: 1.6; }
 a.wp-id:hover { background: color-mix(in oklch, var(--accent), transparent 75%); text-decoration: none; }
@@ -333,7 +356,9 @@ a.wp-id:hover { background: color-mix(in oklch, var(--accent), transparent 75%);
 .supporting .panel-title { color: var(--text-faint); }
 
 /* quiet KPI strip — reference data, secondary to the headline */
-.kpi-strip { margin-top: var(--grid-1); grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 1280px){ .kpi-strip { grid-template-columns: repeat(2,1fr);} }
+.kpi-strip { margin-top: var(--grid-1); grid-template-columns: repeat(var(--kpi-cols, 4), 1fr); }
+@media (max-width: 1280px){ .kpi-strip { grid-template-columns: repeat(2,1fr) !important;} }
 .kpi-strip .kpi { padding: var(--kpi-pad) calc(var(--kpi-pad) - 2px); }
 .kpi-strip .kpi-value { font-size: 26px; margin-top: 6px; }
+.kpi-strip.kpi-edit .kpi[draggable="true"] { cursor: grab; }
+.kpi-strip.kpi-edit .kpi[draggable="true"]:active { cursor: grabbing; }

@@ -51,7 +51,8 @@
   /* ---------- state ---------- */
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
-    resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false };
+    resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
+    projOrder: [], kpiSections: null, projEditMode: false, kpiEditMode: false };
   let state = Object.assign({}, DEFAULTS);
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
@@ -159,6 +160,19 @@
     if (ptab) { state.projectTab = +ptab.dataset.projectTab; save(); renderContent(); return; }
     const rsort = t.closest('[data-res-sort]');
     if (rsort) { state.resSort = rsort.dataset.resSort; save(); renderContent(); return; }
+    if (t.closest('[data-toggle-proj-edit]')) { state.projEditMode = !state.projEditMode; save(); renderContent(); return; }
+    if (t.closest('[data-toggle-kpi-edit]')) { state.kpiEditMode = !state.kpiEditMode; save(); renderContent(); return; }
+    const kpiToggle = t.closest('[data-kpi-toggle]');
+    if (kpiToggle) {
+      const key = kpiToggle.dataset.kpiToggle;
+      const DEF = ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
+      const sects = [...(state.kpiSections || DEF)];
+      const idx = sects.indexOf(key);
+      if (idx >= 0 && sects.length > 1) { sects.splice(idx, 1); }
+      else if (idx < 0) { sects.push(key); }
+      state.kpiSections = sects;
+      save(); renderContent(); return;
+    }
     if (t.closest('[data-toggle-sidebar]')) { state.collapsed = !state.collapsed; save(); renderShell(); return; }
     if (t.closest('[data-theme-toggle]')) { state.theme = state.theme === 'dark' ? 'light' : 'dark'; save(); applyChrome(); renderShell(); return; }
     if (t.closest('[data-refresh]')) {
@@ -182,6 +196,74 @@
     if (t.matches('[data-board-project]')) { state.boardProject = t.value; save(); renderContent(); }
     if (t.matches('[data-board-user]')) { state.boardUser = t.value; save(); renderContent(); }
     if (t.matches('[data-tl-project]')) { state.tlProject = t.value; save(); renderContent(); }
+  });
+
+  /* ---------- drag & drop — project order + KPI section order ---------- */
+  let _dragProjId = null, _dragKpiKey = null;
+
+  document.addEventListener('dragstart', (e) => {
+    const chip = e.target.closest('[data-proj-drag]');
+    if (chip) {
+      _dragProjId = +chip.dataset.projDrag;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(_dragProjId));
+      chip.classList.add('is-dragging');
+      return;
+    }
+    const kpiEl = e.target.closest('[data-kpi-drag]');
+    if (kpiEl) {
+      _dragKpiKey = kpiEl.dataset.kpiDrag;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dragKpiKey);
+      kpiEl.classList.add('is-dragging');
+    }
+  });
+
+  document.addEventListener('dragover', (e) => {
+    if (_dragProjId !== null) {
+      const chip = e.target.closest('[data-proj-drag]');
+      if (chip && +chip.dataset.projDrag !== _dragProjId) { e.preventDefault(); chip.classList.add('drag-over'); }
+    }
+    if (_dragKpiKey) {
+      const kpiEl = e.target.closest('[data-kpi-drag]');
+      if (kpiEl && kpiEl.dataset.kpiDrag !== _dragKpiKey) { e.preventDefault(); kpiEl.classList.add('drag-over'); }
+    }
+  });
+
+  document.addEventListener('dragleave', (e) => {
+    e.target.closest('[data-proj-drag]')?.classList.remove('drag-over');
+    e.target.closest('[data-kpi-drag]')?.classList.remove('drag-over');
+  });
+
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (_dragProjId !== null) {
+      const target = e.target.closest('[data-proj-drag]');
+      if (target && +target.dataset.projDrag !== _dragProjId) {
+        const allIds = D.PROJECTS.map((p) => p.id);
+        const order = (state.projOrder && state.projOrder.length) ? [...state.projOrder] : [...allIds];
+        const from = order.indexOf(_dragProjId), to = order.indexOf(+target.dataset.projDrag);
+        if (from >= 0 && to >= 0) { order.splice(from, 1); order.splice(to, 0, _dragProjId); }
+        state.projOrder = order;
+        save(); renderContent();
+      }
+    }
+    if (_dragKpiKey) {
+      const target = e.target.closest('[data-kpi-drag]');
+      if (target && target.dataset.kpiDrag !== _dragKpiKey) {
+        const DEF = ['total', 'open', 'spent', 'closeRate', 'dueWeek'];
+        const sects = [...(state.kpiSections || DEF)];
+        const from = sects.indexOf(_dragKpiKey), to = sects.indexOf(target.dataset.kpiDrag);
+        if (from >= 0 && to >= 0) { sects.splice(from, 1); sects.splice(to, 0, _dragKpiKey); }
+        state.kpiSections = sects;
+        save(); renderContent();
+      }
+    }
+  });
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('.is-dragging,.drag-over').forEach((el) => el.classList.remove('is-dragging', 'drag-over'));
+    _dragProjId = null; _dragKpiKey = null;
   });
 
   /* ---------- tooltip ---------- */

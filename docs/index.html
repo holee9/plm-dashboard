@@ -921,6 +921,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>외부 API 연동 시 표시 이름 정제 테이블을 코드와 분리하면 운영 유연성 확보</strong></td>
     <td><code>user-map.js</code>처럼 매핑 테이블을 별도 파일로 두면, 개발자 개입 없이 운영팀이 이름을 직접 수정할 수 있다 (#26). 코드 재배포 없이 표시 이름을 바꿀 수 있는 구조가 실 운영에서 중요하다. 형식 A(문자열)와 형식 B(객체)를 모두 지원해 필요에 따라 이름만, 또는 직함·역할·capacity까지 오버라이드 가능하게 설계한다.</td>
   </tr>
+  <tr>
+    <td>P17</td>
+    <td><strong>OP <code>/principals</code> <code>name</code> 필드는 관리자 패널의 성+이름을 반영하지 않음 — 계정명이 그대로 노출</strong></td>
+    <td>OP 관리자 패널에서 성·이름을 설정해도 <code>/principals</code> API <code>name</code> 필드는 계정명(예: <code>drake.lee</code>)을 유지한다. <code>firstName</code>/<code>lastName</code> 분리 필드는 비어 있으며, <code>/api/v3/users</code> 전체 목록은 403이다. 해결책: <code>op-adapter.js</code> 상단 <code>NAME_TABLE</code>에 계정명→성이름 매핑을 유지한다 (#29).</td>
+  </tr>
+  <tr>
+    <td>K9</td>
+    <td><strong>NAME_TABLE 미등록 + 한글 없는 계정명 = 퇴사자 판별 규칙으로 뷰 자동 제외</strong></td>
+    <td>활성 사용자는 NAME_TABLE에 등록되거나 이미 한국어 이름(황인호 등)이다. 그 어느 쪽도 아닌 계정(jykim 등)은 퇴사자로 간주하여 <code>isFormerEmployee: true</code>를 설정, 모든 뷰 필터에서 제외한다. 별도 관리 액션 없이 퇴사자가 대시보드에서 자동 사라진다 (#29).</td>
+  </tr>
 </table>
 
 <div class="note tip">

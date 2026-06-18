@@ -149,9 +149,12 @@
         </button>
       </div>`;
 
-    /* -------- ④ Project health panel -------- */
-    const healthRows = [...health]
-      .sort((a, b) => ({ off_track: 0, at_risk: 1, on_track: 2 }[a.project.health] - { off_track: 0, at_risk: 1, on_track: 2 }[b.project.health]))
+    /* -------- ④ Project health panel (projOrder 기준 정렬) -------- */
+    const healthByProjId = Object.fromEntries(health.map((h) => [h.project.id, h]));
+    const healthRows = projects
+      .filter((p) => !hp.has(p.id))
+      .map((p) => healthByProjId[p.id])
+      .filter(Boolean)
       .map((h) => {
         const p = h.project;
         return `<tr data-nav-project="${p.id}" style="cursor:pointer">
@@ -165,7 +168,7 @@
       }).join('');
 
     const healthPanel = UI.panel({
-      title: 'Projects · 과제 현황', sub: '지연·주의 순',
+      title: 'Projects · 과제 현황', sub: state.projOrder && state.projOrder.length ? '사용자 지정 순서' : '기본 순서',
       tools: `<button class="mini-btn" data-nav="projects">전체 보기 →</button>`,
       hint: '각 과제의 건강 상태·진행률·지연 WP를 한눈에 비교합니다. 지연(Off track)·주의(At risk) 과제가 상단에 정렬됩니다. 행을 클릭하면 과제 상세로 이동합니다.',
       body: `<table class="tbl"><thead><tr><th>Project</th><th>Health</th><th>Progress</th><th class="num">Open</th><th class="num">Overdue</th><th>Team</th></tr></thead>
@@ -280,8 +283,9 @@
         <span class="rule"></span>
       </div>
       <div class="grid">
-        <div class="col-7">${healthPanel}</div>
-        <div class="col-5" style="display:flex;flex-direction:column;gap:var(--grid-1)">${riskFeed}${weeklyFeed}</div>
+        <div class="col-4">${healthPanel}</div>
+        <div class="col-4">${riskFeed}</div>
+        <div class="col-4">${weeklyFeed}</div>
       </div>
       <div class="tier">
         <span class="tier-name">추세 · 분배</span>

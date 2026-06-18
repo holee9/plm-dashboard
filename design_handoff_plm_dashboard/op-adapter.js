@@ -22,6 +22,24 @@
   // Run a tiny same-origin proxy that injects `Authorization: Basic base64(apikey:TOKEN)`
   // and forwards to https://plm.abyz-lab.work/api/v3/*  (see §CORS in the audit).
 
+  // GOTCHA #13 — /principals returns account login as `name` even when First/Last name
+  // are set in the OP admin panel. /api/v3/users (admin-only, 403) is the only endpoint
+  // that exposes firstName/lastName. This static table maps OP account names → 성+이름.
+  // Update when users are added or renamed in OP admin (Administration → Users).
+  // @MX:NOTE: [AUTO] Add new OP users here when /principals shows an unrecognized account name.
+  const NAME_TABLE = {
+    'drake.lee':  '이태호',
+    'mskim':      '김명섭',
+    'jjm':        '정재민',
+    'sjs':        '송진선',
+    'sdc':        '서동철',
+    's.heigl':    '이성하',
+    'David.kang': '강동근',
+    'Jimin Han':  '한지민',
+    'Jimmy Jeon': '전제우',
+    // jykim — not in admin panel; add Korean name when confirmed
+  };
+
   /* ------------------------------------------------------------------ utils */
 
   // GOTCHA #1 — TIME IS ISO8601 DURATION, NOT A NUMBER.
@@ -103,12 +121,11 @@
   }
 
   function mapUser(u) {
-    // GOTCHA: /principals returns `name` only — firstName/lastName are empty for all users.
-    // /api/v3/users (admin-only, 403) is the only source for separated fields.
-    // Root fix: OP admin must set each user's First name / Last name in OP profile;
-    // then /principals `name` field will reflect the correct display name automatically.
-    const name = u.name || 'Unknown';
-    // initials: first 2 chars works for 3-char Korean names (e.g. 황인호 → 황인)
+    // GOTCHA: /principals returns account login as `name` — firstName/lastName are empty.
+    // NAME_TABLE maps account names → 성+이름 Korean names (see GOTCHA #13 above).
+    const raw = u.name || 'Unknown';
+    const name = NAME_TABLE[raw] || raw;
+    // initials: first 2 chars works for 3-char Korean names (e.g. 강동근 → 강동)
     const initials = name.slice(0, 2).toUpperCase();
     return {
       id: u.id,
@@ -217,9 +234,9 @@
     wpsRaw.forEach((wp) => {
       const uid = refId(wp, 'assignee');
       if (uid && !userById[uid] && wp._links?.assignee?.title) {
-        const name = wp._links.assignee.title;
-        const parts = name.trim().split(/\s+/);
-        const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+        const raw = wp._links.assignee.title;
+        const name = NAME_TABLE[raw] || raw;
+        const initials = name.slice(0, 2).toUpperCase();
         const u = { id: uid, name, initials, role: '', title: '', capacityPerWeek: 40, color: '#8B93A7' };
         usersMapped.push(u);
         userById[uid] = u;

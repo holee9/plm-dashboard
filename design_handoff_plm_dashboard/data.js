@@ -148,7 +148,8 @@
     [...team].forEach((id) => {
       const u = USERS.find((u) => u.id === id);
       if (id === lead.id) memberRoles[id] = 'PL';
-      else if (u && u.title === 'PM' && !Object.values(memberRoles).includes('PM')) memberRoles[id] = 'PM';
+      // GOTCHA: title = job title ('Project Lead'), role = dept code ('PM'). Check role, not title.
+      else if (u && u.role === 'PM' && !Object.values(memberRoles).includes('PM')) memberRoles[id] = 'PM';
       else memberRoles[id] = 'Member';
     });
     return {

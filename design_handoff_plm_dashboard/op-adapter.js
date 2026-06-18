@@ -210,6 +210,20 @@
       if (/observer/i.test(u.role)) u.isObserver = true;
       if (/form.?reporter/i.test(u.name) || /form.?reporter/i.test(u.login)) u.isBot = true;
     });
+    // GOTCHA #12 — /principals may not include every WP assignee (service accounts,
+    // cross-scope users, external collaborators). Use _links.assignee.title from the
+    // raw HAL WP response to build a minimal stub so views show a name, not "#id".
+    wpsRaw.forEach((wp) => {
+      const uid = refId(wp, 'assignee');
+      if (uid && !userById[uid] && wp._links?.assignee?.title) {
+        const name = wp._links.assignee.title;
+        const parts = name.trim().split(/\s+/);
+        const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+        const u = { id: uid, name, initials, role: '', title: '', capacityPerWeek: 40, color: '#8B93A7' };
+        usersMapped.push(u);
+        userById[uid] = u;
+      }
+    });
     const USERS = usersMapped;
 
     return {

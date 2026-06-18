@@ -901,6 +901,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>칸반/그리드 컬럼 표시/숨김은 <code>state.hiddenCols[]</code> 패턴으로 설계</strong></td>
     <td>Board 뷰의 컬럼이 기능 추가 시 계속 늘어날 수 있다 (#24). 처음부터 <code>state.boardHiddenCols: []</code>를 예약해두고 렌더 시 <code>BOARD_COLS.filter(col => !hiddenCols.has(col.key))</code>로 필터링하면, 컬럼 수가 바뀌어도 코드 변경 없이 UX를 유연하게 유지할 수 있다. Overview의 hiddenProjects 패턴과 완전히 동일한 구조다 — 동일 패턴을 재사용하라.</td>
   </tr>
+  <tr>
+    <td>P14</td>
+    <td><strong>USER_DEFS의 <code>title</code>(직함)과 <code>role</code>(부서 코드)를 혼동해 PM 미표시 버그 발생</strong></td>
+    <td>data.js USER_DEFS는 [이름, 직함, 부서코드] 순으로 정의된다. 김도현의 경우 <code>title='Project Lead'</code>, <code>role='PM'</code>. memberRoles 계산에서 <code>u.title === 'PM'</code>으로 체크하면 절대 매치되지 않는다 — 반드시 <code>u.role === 'PM'</code>을 써야 한다 (#25). 같은 USERS 객체를 쓰는 모든 코드에서 직함(title)과 역할 코드(role)를 혼동하지 말 것.</td>
+  </tr>
+  <tr>
+    <td>P15</td>
+    <td><strong>실 OP <code>/principals</code>가 모든 WP 담당자를 반환하지 않아 <code>#id</code> 노출</strong></td>
+    <td><code>/principals</code>는 API 호출자의 권한 스코프 내 사용자만 반환한다. 서비스 계정·외부 협력사 계정·다른 스코프 사용자가 WP에 담당자로 지정돼 있으면 <code>D.U[assigneeId]</code>가 undefined → 뷰에 <code>#123</code> 표시. 해결책: op-adapter에서 WP 매핑 후 principals 미포함 담당자를 <code>_links.assignee.title</code> HAL 필드로 스텁 생성 보충 (#25).</td>
+  </tr>
 </table>
 
 <div class="note tip">

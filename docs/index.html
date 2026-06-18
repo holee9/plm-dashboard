@@ -927,9 +927,14 @@ Key files: [관련 파일 목록]</pre>
     <td>OP 관리자 패널에서 성·이름을 설정해도 <code>/principals</code> API <code>name</code> 필드는 계정명(예: <code>drake.lee</code>)을 유지한다. <code>firstName</code>/<code>lastName</code> 분리 필드는 비어 있으며, <code>/api/v3/users</code> 전체 목록은 403이다. 해결책: <code>op-adapter.js</code> 상단 <code>NAME_TABLE</code>에 계정명→성이름 매핑을 유지한다 (#29).</td>
   </tr>
   <tr>
+    <td>P18</td>
+    <td><strong>NAME_TABLE 미등록 패턴으로 퇴사자 감지 시 신규 직원도 차단되는 버그</strong></td>
+    <td>NAME_TABLE에 없고 한글 없는 계정명을 퇴사자로 간주하면, 새로 합류한 직원이 NAME_TABLE에 추가되기 전까지 대시보드에 표시되지 않는다. 패턴 기반 차단은 포함/제외 기준이 명시적이지 않아 오판이 발생한다. 퇴사자 판별은 이름 패턴이 아니라 OP 계정 상태로 해야 한다 (#30).</td>
+  </tr>
+  <tr>
     <td>K9</td>
-    <td><strong>NAME_TABLE 미등록 + 한글 없는 계정명 = 퇴사자 판별 규칙으로 뷰 자동 제외</strong></td>
-    <td>활성 사용자는 NAME_TABLE에 등록되거나 이미 한국어 이름(황인호 등)이다. 그 어느 쪽도 아닌 계정(jykim 등)은 퇴사자로 간주하여 <code>isFormerEmployee: true</code>를 설정, 모든 뷰 필터에서 제외한다. 별도 관리 액션 없이 퇴사자가 대시보드에서 자동 사라진다 (#29).</td>
+    <td><strong>OP 잠금 계정 판별: <code>_links.showUser</code> 부재로 신뢰도 높게 감지</strong></td>
+    <td>OP에서 계정을 영구잠금하면 <code>/principals</code> 응답에서 <code>_links.showUser</code>가 사라진다. 활성 사용자는 항상 이 링크를 가진다. E2E 검증(2026-06-18): jykim(#25) 잠금 → showUser 없음 확인. <code>mapUser()</code>에서 이 링크 유무로 <code>isLocked</code>를 설정하면 코드 변경 없이 잠금 처리된 퇴사자가 자동 제외된다 (#30).</td>
   </tr>
 </table>
 

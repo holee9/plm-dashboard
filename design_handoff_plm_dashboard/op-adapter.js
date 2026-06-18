@@ -103,18 +103,13 @@
   }
 
   function mapUser(u) {
-    // USER_MAP (user-map.js) 우선 조회 — OP 계정명·영문명을 표시 이름으로 정제.
-    const mapEntry = (window.USER_MAP || {})[u.id];
-    const override = mapEntry && typeof mapEntry === 'object' ? mapEntry : {};
-    const overrideName = typeof mapEntry === 'string' ? mapEntry : override.name;
-
-    // /principals returns only id, name, avatar — no firstName/lastName/email/login.
-    const rawName = u.name || `${u.firstName||''} ${u.lastName||''}`.trim() || 'Unknown';
-    const name = overrideName || rawName;
-    const parts = name.trim().split(/\s+/);
-    const initials = parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : name.slice(0, 2).toUpperCase();
+    // 성(lastName) + 이름(firstName) 순으로 조합 — OP 사용자 프로필의 분리 필드 우선.
+    // Korean order: no space between lastName and firstName.
+    const name = (u.lastName && u.firstName)
+      ? `${u.lastName}${u.firstName}`
+      : u.name || 'Unknown';
+    // initials: first 2 chars works for 3-char Korean names (e.g. 김도현 → 김도)
+    const initials = name.slice(0, 2).toUpperCase();
     return {
       id: u.id,
       name,
@@ -124,9 +119,7 @@
       //   role  → resolve from /api/v3/memberships roles (set below)
       //   title → not in API; leave blank or map from a custom field
       //   capacityPerWeek → no source; default 40 and let admins override.
-      role: override.role || 'Member',
-      title: override.title || '',
-      capacityPerWeek: override.capacityPerWeek || 40,
+      role: 'Member', title: '', capacityPerWeek: 40,
       color: '#3B82F6',
     };
   }

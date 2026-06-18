@@ -165,7 +165,7 @@
     /* team — PM/PL/Member roles, no observer/bot */
     const validMembers = p.memberIds.filter((id) => {
       const u = D.U[id];
-      return u && !u.isObserver && !u.isBot;
+      return u && !u.isObserver && !u.isBot && !u.isFormerEmployee;
     });
     const teamRows = validMembers.map((id) => {
       const u = D.U[id] || { id, name: `#${id}`, initials: '?', role: '', color: '#8B93A7' };

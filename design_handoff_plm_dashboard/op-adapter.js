@@ -125,6 +125,10 @@
     // NAME_TABLE maps account names → 성+이름 Korean names (see GOTCHA #13 above).
     const raw = u.name || 'Unknown';
     const name = NAME_TABLE[raw] || raw;
+    // Account-style names not in NAME_TABLE and with no Korean characters are former employees.
+    // Active users are either in NAME_TABLE or already have Korean names (e.g. 황인호).
+    const hasKorean = /[가-힣]/.test(raw);
+    const isFormerEmployee = !NAME_TABLE[raw] && !hasKorean;
     // initials: first 2 chars works for 3-char Korean names (e.g. 강동근 → 강동)
     const initials = name.slice(0, 2).toUpperCase();
     return {
@@ -133,11 +137,9 @@
       initials,
       email: u.email || '', avatar: u.avatar || '', login: u.login || '',
       // GOTCHA #4 — role / title / weekly capacity DO NOT EXIST in OP core.
-      //   role  → resolve from /api/v3/memberships roles (set below)
-      //   title → not in API; leave blank or map from a custom field
-      //   capacityPerWeek → no source; default 40 and let admins override.
       role: 'Member', title: '', capacityPerWeek: 40,
       color: '#3B82F6',
+      isFormerEmployee,
     };
   }
 

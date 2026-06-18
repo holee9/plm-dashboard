@@ -375,7 +375,7 @@
   function userUtilization() {
     const HORIZON = 21;
     const horizonEnd = addDays(TODAY, HORIZON);
-    return USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).map((u) => {
+    return USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot && !u.isFormerEmployee).map((u) => {
       const assigned = WORK_PACKAGES.filter((wp) => wp.assigneeId === u.id);
       const open = assigned.filter(isOpen);
       const imminent = open.filter((wp) => wp._due <= horizonEnd); // incl. overdue
@@ -539,26 +539,25 @@
     window.DB._loading = true;
     window.DB._error = null;
 
-    function doRefresh() {
-      window.OPAdapter.buildLiveDataset().then(function (ds) {
-        // Detect newly added OP users before replacing the array.
-        const prevIds = new Set(USERS.map(function (u) { return u.id; }));
-        const added = ds.USERS.filter(function (u) { return !prevIds.has(u.id); });
-        if (added.length) {
-          console.info('[PLM] 신규 사용자 ' + added.length + '명 감지: ' +
-            added.map(function (u) { return u.name + '(#' + u.id + ')'; }).join(', '));
-        }
-        reload(ds);
-      }).catch(function (err) {
-        console.error('[PLM] live fetch failed:', err);
-        window.DB._loading = false;
-        window.DB._error = err.message || String(err);
-        if (window.App && window.App.showError) window.App.showError(window.DB._error);
-      });
-    }
-
-    doRefresh();
-    // Re-fetch every 5 minutes — picks up newly added users and data changes.
-    setInterval(doRefresh, 5 * 60 * 1000);
+    window.OPAdapter.buildLiveDataset().then(function (ds) {
+      // Log newly added users and former employees detected via NAME_TABLE gap.
+      const prevIds = new Set(USERS.map(function (u) { return u.id; }));
+      const added = ds.USERS.filter(function (u) { return !prevIds.has(u.id) && !u.isFormerEmployee; });
+      if (added.length) {
+        console.info('[PLM] 신규 사용자 ' + added.length + '명 감지: ' +
+          added.map(function (u) { return u.name + '(#' + u.id + ')'; }).join(', '));
+      }
+      const former = ds.USERS.filter(function (u) { return u.isFormerEmployee; });
+      if (former.length) {
+        console.info('[PLM] 퇴사자 제외: ' +
+          former.map(function (u) { return u.name + '(#' + u.id + ')'; }).join(', '));
+      }
+      reload(ds);
+    }).catch(function (err) {
+      console.error('[PLM] live fetch failed:', err);
+      window.DB._loading = false;
+      window.DB._error = err.message || String(err);
+      if (window.App && window.App.showError) window.App.showError(window.DB._error);
+    });
   }
 })();

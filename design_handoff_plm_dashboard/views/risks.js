@@ -183,7 +183,7 @@
             <td class="num" style="color:var(--c-red)">${w.dueDate ? `${-UI.daysFromToday(w.dueDate)}d` : '–'}</td>
             <td class="num" style="${pctStyle}">${pct}%</td>`;
         })).join('') || '<tr><td colspan="8"><div class="empty">없음 🎉</div></td></tr>'}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:320px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:300px;overflow-y:auto',
     });
 
     // --- 3. DueSoon (진행률 추가) ---
@@ -212,7 +212,7 @@
             <td class="num" style="${pctStyle}">${pct}%</td>
           </tr>`;
         }).join('') || '<tr><td colspan="6"><div class="empty">없음</div></td></tr>'}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:300px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto',
     });
 
     // --- 4. ON HOLD 상세 (방치일 포함) ---
@@ -245,7 +245,7 @@
       bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto',
     });
 
-    // --- 5. 미배정 WP ---
+    // --- 5. 미배정 WP --- (Zone A: unassigned max-height = overdue와 동일 300px)
     const overdueUnassigned = unassigned.filter(D.isOverdue).length;
     const unassignedPanel = UI.panel({
       title: '미배정 · Unassigned Open WP',
@@ -278,18 +278,26 @@
       bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:300px;overflow-y:auto',
     });
 
-    // --- 6. 마감일 미설정 ---
+    // --- 6. 마감일 미설정 --- (Zone B: 280px로 dueSoon/onHold와 통일)
     const noDueDatePanel = UI.panel({
       title: '마감일 미설정',
       sub: `${noDueDate.length}건 — 모든 리스크 필터 사각지대`,
       tools: INFO_TIP('마감일(Due Date)이 없는 Open WP는 지연/임박 등 모든 리스크 지표에서 제외됩니다. OP에서 마감일을 설정해 주세요.'),
       body: noDueDate.length
-        ? `<div style="padding:12px 14px;font-size:12px;color:var(--text-faint);line-height:1.9">
-            마감일이 없는 WP는 Overdue·DueSoon·위의 과제별 매트릭스 지연/임박 집계에서 모두 제외됩니다.<br>
-            현재 <b style="color:var(--c-amber)">${noDueDate.length}건</b>이 마감일 미설정 상태입니다.<br><br>
-            <b>설정 방법</b>: OP에서 Work Package 상세 → 우측 패널 → 마감일(Due Date) 입력
-          </div>`
+        ? `<table class="tbl" style="table-layout:fixed;width:100%"><thead><tr>
+            <th style="width:72px">ID</th>
+            <th>Subject</th>
+            <th style="width:44px">Owner</th>
+            <th style="width:100px">Project</th>
+          </tr></thead>
+          <tbody>${noDueDate.slice(0, 80).map((w) => `<tr>
+            <td>${UI.wpLink(w)}</td>
+            <td class="strong clamp">${UI.priorityDot(w.priorityId)} ${w.subject}</td>
+            <td>${UI.avatar(D.U[w.assigneeId])}</td>
+            <td class="muted" style="font-size:11px">${D.P[w.projectId].name}</td>
+          </tr>`).join('')}</tbody></table>`
         : '<div class="empty">모든 Open WP에 마감일 설정됨 👍</div>',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto',
     });
 
     // --- 7. 방치 WP (14일 이상 미업데이트) ---

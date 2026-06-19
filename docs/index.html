@@ -947,6 +947,11 @@ Key files: [관련 파일 목록]</pre>
     <td>실 OP 인스턴스의 role 제목은 <code>"PM"</code>과 <code>"프로젝트 관리자"</code>(한국어)이며, 영문 "Project Manager"는 존재하지 않는다. <code>hydrateProject()</code>의 <code>/project.?manager/i</code> regex가 두 제목 모두에 매칭 실패해 PM/PL 배지가 전혀 표시되지 않았다. 수정: <code>op-adapter.js</code>에서 memberships를 프로젝트별로 순회해 <code>projMemberRoles</code>를 미리 계산하고 project 객체에 pre-populate. 매핑: OP "프로젝트 관리자" → 대시보드 PM, OP "PM" → 대시보드 PL, 나머지 → Member. 동일 uid가 복수 role일 때 우선순위(PM &gt; PL &gt; Member) 적용 (#33).</td>
   </tr>
   <tr>
+    <td>P21</td>
+    <td><strong>OP "PM" 역할을 대시보드 "PL"에 잘못 매핑하고, "Tech Lead" 역할을 미매핑(Member 처리)한 채 릴리즈</strong></td>
+    <td>실 OP API를 직접 조회하지 않고 가정으로 매핑 테이블을 작성했다. 실제 OP 역할: <code>"PM"</code>(실무 PM), <code>"Tech Lead"</code>(기술 리드), <code>"프로젝트 관리자"</code>(총괄 이태호). 잘못된 매핑: OP PM → PL, Tech Lead → Member. 올바른 매핑: OP <code>"PM"</code> → dashboard PM, OP <code>"Tech Lead"</code> → dashboard TL, OP "프로젝트 관리자" → Member. 반드시 <code>GET /api/v3/roles</code>로 실 역할 목록을 확인한 뒤 매핑 테이블을 작성할 것 (#33).</td>
+  </tr>
+  <tr>
     <td>K10</td>
     <td><strong>글로벌 <code>u.role</code> 대신 per-project memberRoles를 미리 계산해 주입하면 hydrateProject()의 자체 계산을 안전하게 우회할 수 있다</strong></td>
     <td><code>hydrateProject()</code>는 <code>if (!p.memberRoles)</code> 조건이 있어, <code>op-adapter.js</code>에서 <code>memberRoles</code>를 미리 채워 넣으면 buggy한 regex 블록이 완전히 스킵된다. per-project membership 데이터를 활용하면 한 사용자가 프로젝트마다 다른 role을 가져도 정확히 반영된다. 글로벌 <code>u.role</code>(마지막 membership 덮어쓰기)은 isObserver 감지 등 용도로만 유지 (#33).</td>

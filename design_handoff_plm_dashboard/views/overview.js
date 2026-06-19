@@ -139,15 +139,17 @@
       </div>`
     ).join('') : '';
 
-    const kpiStrip = `
+    const kpiStrip = `<div data-kpi-ns="">
       <div class="kpi-row kpi-strip${kpiEdit ? ' kpi-edit' : ''}" style="--kpi-cols:${totalCols}">
         ${kpiCards}${hiddenKpiCards}
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px">
+        ${kpiEdit ? `<button class="mini-btn" data-cancel-kpi-edit>취소</button>` : ''}
         <button class="mini-btn${kpiEdit ? ' on' : ''}" data-toggle-kpi-edit>
           ${kpiEdit ? 'KPI 편집 완료' : 'KPI 편집'}
         </button>
-      </div>`;
+      </div>
+    </div>`;
 
     /* -------- ④ Project health panel (projOrder 기준 정렬) -------- */
     const healthByProjId = Object.fromEntries(health.map((h) => [h.project.id, h]));

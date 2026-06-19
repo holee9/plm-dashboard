@@ -39,7 +39,8 @@
       <div class="kpi-row kpi-strip${kpiEdit ? ' kpi-edit' : ''}" style="--kpi-cols:${totalCols}">
         ${kpiCards}${hiddenCards}
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px">
+        ${kpiEdit ? `<button class="mini-btn" data-cancel-kpi-edit>취소</button>` : ''}
         <button class="mini-btn${kpiEdit ? ' on' : ''}" data-toggle-kpi-edit>
           ${kpiEdit ? 'KPI 편집 완료' : 'KPI 편집'}
         </button>
@@ -101,8 +102,8 @@
     const pmId  = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
     const plId  = Object.entries(roles).find(([, r]) => r === 'PL')?.[0];
 
-    /* PM selector — all non-bot, non-observer users */
-    const pmCandidates = Object.values(D.U).filter((u) => !u.isBot && !u.isObserver);
+    /* PM selector — only PM-role users */
+    const pmCandidates = Object.values(D.U).filter((u) => !u.isBot && !u.isObserver && u.role === 'PM');
     const pmOpts = `<option value="">– 없음 –</option>` +
       pmCandidates.map((u) => `<option value="${u.id}"${pmId && +pmId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
     const pmBlock = `<div>

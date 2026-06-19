@@ -56,8 +56,10 @@
     projKpiSections: null, projKpiEditMode: false,
     resKpiSections: null,  resKpiEditMode: false,
     riskKpiSections: null, riskKpiEditMode: false,
-    boardHiddenCols: [], boardColEditMode: false };
+    boardHiddenCols: [], boardColEditMode: false, boardColOrder: [] };
   let state = Object.assign({}, DEFAULTS);
+  /* Transient snapshot for cancel — NOT persisted to localStorage */
+  const _editSnapshot = {};
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
   const save = () => { try { localStorage.setItem('plm_state', JSON.stringify(state)); } catch (e) {} };
@@ -169,9 +171,19 @@
     const rsort = t.closest('[data-res-sort]');
     if (rsort) { state.resSort = rsort.dataset.resSort; save(); renderContent(); return; }
     if (t.closest('[data-toggle-proj-edit]')) { state.projEditMode = !state.projEditMode; save(); renderContent(); return; }
+    if (t.closest('[data-cancel-kpi-edit]')) {
+      const ns = t.closest('[data-cancel-kpi-edit]').closest('[data-kpi-ns]')?.dataset.kpiNs || '';
+      const modeKey = ns ? ns + 'KpiEditMode' : 'kpiEditMode';
+      const sectKey = ns ? ns + 'KpiSections' : 'kpiSections';
+      if (_editSnapshot[modeKey] !== undefined) { state[sectKey] = _editSnapshot[modeKey]; delete _editSnapshot[modeKey]; }
+      state[modeKey] = false; save(); renderContent(); return;
+    }
     if (t.closest('[data-toggle-kpi-edit]')) {
       const ns = t.closest('[data-toggle-kpi-edit]').closest('[data-kpi-ns]')?.dataset.kpiNs || '';
       const modeKey = ns ? ns + 'KpiEditMode' : 'kpiEditMode';
+      const sectKey = ns ? ns + 'KpiSections' : 'kpiSections';
+      if (!state[modeKey]) { _editSnapshot[modeKey] = state[sectKey] ? [...state[sectKey]] : null; }
+      else { delete _editSnapshot[modeKey]; }
       state[modeKey] = !state[modeKey];
       save(); renderContent(); return;
     }
@@ -189,7 +201,20 @@
       state[sectKey] = sects;
       save(); renderContent(); return;
     }
-    if (t.closest('[data-toggle-board-col-edit]')) { state.boardColEditMode = !state.boardColEditMode; save(); renderContent(); return; }
+    if (t.closest('[data-cancel-board-col-edit]')) {
+      if (_editSnapshot.boardCol) {
+        state.boardHiddenCols = _editSnapshot.boardCol.hiddenCols;
+        state.boardColOrder   = _editSnapshot.boardCol.colOrder;
+        delete _editSnapshot.boardCol;
+      }
+      state.boardColEditMode = false; save(); renderContent(); return;
+    }
+    if (t.closest('[data-toggle-board-col-edit]')) {
+      if (!state.boardColEditMode) {
+        _editSnapshot.boardCol = { hiddenCols: [...(state.boardHiddenCols || [])], colOrder: [...(state.boardColOrder || [])] };
+      } else { delete _editSnapshot.boardCol; }
+      state.boardColEditMode = !state.boardColEditMode; save(); renderContent(); return;
+    }
     const boardColToggle = t.closest('[data-board-col-toggle]');
     if (boardColToggle) {
       const col = boardColToggle.dataset.boardColToggle;
@@ -234,8 +259,8 @@
     }
   });
 
-  /* ---------- drag & drop — project order + KPI section order ---------- */
-  let _dragProjId = null, _dragKpiKey = null, _dragKpiNs = '', _dragKpiDef = null;
+  /* ---------- drag & drop — project order + KPI section order + board col order ---------- */
+  let _dragProjId = null, _dragKpiKey = null, _dragKpiNs = '', _dragKpiDef = null, _dragBoardColKey = null;
 
   document.addEventListener('dragstart', (e) => {
     const chip = e.target.closest('[data-proj-drag]');
@@ -254,6 +279,14 @@
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', _dragKpiKey);
       kpiEl.classList.add('is-dragging');
+      return;
+    }
+    const boardColEl = e.target.closest('[data-board-col-drag]');
+    if (boardColEl) {
+      _dragBoardColKey = boardColEl.dataset.boardColDrag;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dragBoardColKey);
+      boardColEl.classList.add('is-dragging');
     }
   });
 
@@ -266,11 +299,16 @@
       const kpiEl = e.target.closest('[data-kpi-drag]');
       if (kpiEl && kpiEl.dataset.kpiDrag !== _dragKpiKey) { e.preventDefault(); kpiEl.classList.add('drag-over'); }
     }
+    if (_dragBoardColKey) {
+      const boardColEl = e.target.closest('[data-board-col-drag]');
+      if (boardColEl && boardColEl.dataset.boardColDrag !== _dragBoardColKey) { e.preventDefault(); boardColEl.classList.add('drag-over'); }
+    }
   });
 
   document.addEventListener('dragleave', (e) => {
     e.target.closest('[data-proj-drag]')?.classList.remove('drag-over');
     e.target.closest('[data-kpi-drag]')?.classList.remove('drag-over');
+    e.target.closest('[data-board-col-drag]')?.classList.remove('drag-over');
   });
 
   document.addEventListener('drop', (e) => {
@@ -298,11 +336,22 @@
         save(); renderContent();
       }
     }
+    if (_dragBoardColKey) {
+      const target = e.target.closest('[data-board-col-drag]');
+      if (target && target.dataset.boardColDrag !== _dragBoardColKey) {
+        const allKeys = D.BOARD_COLS.map((c) => c.key);
+        const order = (state.boardColOrder && state.boardColOrder.length) ? [...state.boardColOrder] : [...allKeys];
+        const from = order.indexOf(_dragBoardColKey), to = order.indexOf(target.dataset.boardColDrag);
+        if (from >= 0 && to >= 0) { order.splice(from, 1); order.splice(to, 0, _dragBoardColKey); }
+        state.boardColOrder = order;
+        save(); renderContent();
+      }
+    }
   });
 
   document.addEventListener('dragend', () => {
     document.querySelectorAll('.is-dragging,.drag-over').forEach((el) => el.classList.remove('is-dragging', 'drag-over'));
-    _dragProjId = null; _dragKpiKey = null; _dragKpiNs = ''; _dragKpiDef = null;
+    _dragProjId = null; _dragKpiKey = null; _dragKpiNs = ''; _dragKpiDef = null; _dragBoardColKey = null;
   });
 
   /* ---------- tooltip ---------- */

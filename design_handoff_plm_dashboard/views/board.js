@@ -31,23 +31,31 @@
       <span class="muted mono" style="font-size:11.5px">${wps.length} work packages</span>
       <div class="spacer" style="flex:1"></div>
       <span class="legend"><span class="legend-item"><i class="dot" style="background:var(--c-red)"></i>마감 초과</span></span>
+      ${colEditMode ? `<button class="mini-btn" data-cancel-board-col-edit>취소</button>` : ''}
       <button class="mini-btn${colEditMode ? ' on' : ''}" data-toggle-board-col-edit>${colEditMode ? '컬럼 편집 완료' : '컬럼 편집'}</button>
     </div>`;
 
+    /* apply boardColOrder for user-reordered columns */
+    const colOrder = state.boardColOrder && state.boardColOrder.length ? state.boardColOrder : D.BOARD_COLS.map((c) => c.key);
+    const orderedBoardCols = [...D.BOARD_COLS].sort((a, b) => {
+      const ai = colOrder.indexOf(a.key), bi = colOrder.indexOf(b.key);
+      return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    });
+
     /* column toggle bar — shown only in edit mode */
     const colToggleBar = colEditMode ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--grid-1);align-items:center">
-      <span class="muted" style="font-size:11px;flex-shrink:0">컬럼 표시:</span>
-      ${D.BOARD_COLS.map((col) => {
+      <span class="muted" style="font-size:11px;flex-shrink:0">컬럼 표시 · 드래그로 이동:</span>
+      ${orderedBoardCols.map((col) => {
         const isHidden = hiddenCols.has(col.key);
         const headStatus = col.statusIds.length > 0 ? D.S[col.statusIds[0]] : null;
         const headColor = headStatus ? headStatus.color : 'var(--text-faint)';
-        return `<button class="proj-chip${isHidden ? ' proj-chip-hidden' : ' active'}" data-board-col-toggle="${col.key}" style="display:flex;align-items:center;gap:5px">
+        return `<button class="proj-chip${isHidden ? ' proj-chip-hidden' : ' active'}" draggable="true" data-board-col-drag="${col.key}" data-board-col-toggle="${col.key}" style="display:flex;align-items:center;gap:5px;cursor:grab">
           <i class="dot" style="background:${headColor}"></i>${col.label}${isHidden ? ' <span style="opacity:.5">○</span>' : ' <span style="color:var(--c-green)">●</span>'}
         </button>`;
       }).join('')}
     </div>` : '';
 
-    const visibleCols = D.BOARD_COLS.filter((col) => !hiddenCols.has(col.key));
+    const visibleCols = orderedBoardCols.filter((col) => !hiddenCols.has(col.key));
 
     const cols = visibleCols.map((col) => {
       const items = wps.filter((w) => col.statusIds.includes(w.statusId))

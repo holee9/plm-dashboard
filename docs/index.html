@@ -991,6 +991,21 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>새 뷰 추가 시 projOrder가 반영되지 않아 Overview와 순서가 어긋난다</strong></td>
     <td>Timeline 간트 행이 <code>D.PROJECTS</code>를 직접 순회해 <code>state.projOrder</code>를 무시하고 있었다. Overview의 <code>orderedProjects(state)</code> 헬퍼와 동일 로직을 Timeline에도 추가해 해결. 새 뷰를 구현할 때 "프로젝트 목록을 쓰는 곳이 있다면 <code>D.PROJECTS</code> 직접 참조 대신 <code>orderedProjects(state)</code>를 거쳐야 한다"는 체크리스트를 이슈 템플릿에 포함시킬 것 (#37).</td>
   </tr>
+  <tr>
+    <td>P29</td>
+    <td><strong>Risks 뷰 초기 설계에 미배정(UNASSIGNED) WP KPI가 없어 86건이 완전히 누락됨</strong></td>
+    <td>첫 Risks 뷰 구현 시 UNASSIGNED(담당자 없음) WP를 KPI·패널 모두에 포함하지 않았다. 실 OP 데이터 전수 조사 결과 86건이 방치 상태임을 발견했다. "리스크 대시보드에 항목이 없으면 문제가 없는 것"으로 오인될 수 있으므로, 리스크 뷰 설계 시 Overdue·DueSoon 외에 Unassigned·OnHold·NoDueDate·Stale을 체크리스트로 갖고 시작해야 한다 (#38).</td>
+  </tr>
+  <tr>
+    <td>P30</td>
+    <td><strong>timeline.js 마일스톤 typeId를 6으로 하드코딩 — 실 OP 반환값은 2</strong></td>
+    <td>마일스톤 필터에 <code>w.typeId === 6</code>을 하드코딩했으나 실 OP API는 마일스톤 WP에 <code>typeId=2</code>를 반환한다. 결과적으로 간트 마일스톤 표식과 Upcoming Milestones 패널이 항상 빈 상태로 표시됐다. 실 API 응답을 확인하기 전에 typeId 숫자를 코드에 고정하면 안 된다. 신규 뷰 구현 전 <code>/api/v3/work_packages?typeId=…</code>로 실측 필수 (#38).</td>
+  </tr>
+  <tr>
+    <td>K11</td>
+    <td><strong>데이터가 없어 계산 불가한 KPI는 숨기지 말고 "OP 입력 필요" 안내를 표시하라</strong></td>
+    <td>OVER BUDGET·OVERLOADED처럼 사용자가 OP에 <code>estimatedHours</code>·<code>spentHours</code>를 아직 입력하지 않아 계산 불가한 KPI를 숨기거나 0으로 표시하면, 기능 자체가 없는 것으로 오해된다. <code>–</code>를 표시하고 황색 안내 박스("📋 OpenProject 입력 필요 — 각 WP에 예상 공수를 입력하면 이 KPI가 활성화됩니다")를 함께 보여주면 사용자가 스스로 데이터를 채울 수 있다 (#38).</td>
+  </tr>
 </table>
 
 <div class="note tip">

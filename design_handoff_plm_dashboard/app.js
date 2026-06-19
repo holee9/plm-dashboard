@@ -147,16 +147,23 @@
   /* ---------- navigation ---------- */
   function go(view) { state.view = view; save(); renderShell(); }
 
-  /* ---------- ms-panel helper: reopen a panel by id after re-render ---------- */
+  /* ---------- ms-panel helpers ---------- */
+  // Portal: move panel to <body> so position:fixed is relative to viewport,
+  // not to any transformed ancestor (CSS spec: transform creates fixed containing block).
+  function _openMsPanel(trigger, panel) {
+    document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
+    if (panel.parentElement !== document.body) document.body.appendChild(panel);
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top  = (rect.bottom + 4) + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.classList.add('open');
+  }
   function _reopenMsPanel(panelId) {
     const triggerKey = panelId.replace(/^ms-/, '');
     const trigger = document.querySelector(`[data-ms-trigger="${triggerKey}"]`);
     const panel   = document.getElementById(panelId);
     if (!trigger || !panel) return;
-    const rect = trigger.getBoundingClientRect();
-    panel.style.top  = (rect.bottom + 4) + 'px';
-    panel.style.left = rect.left + 'px';
-    panel.classList.add('open');
+    _openMsPanel(trigger, panel);
   }
 
   /* ---------- events ---------- */
@@ -243,7 +250,7 @@
       state.boardHiddenCols = hidden;
       save(); renderContent(); return;
     }
-    // Multi-select PM/TL trigger: toggle panel; position as fixed below the trigger
+    // Multi-select PM/TL trigger: toggle panel via portal (body) to escape transform context
     const msTrigger = t.closest('[data-ms-trigger]');
     if (msTrigger) {
       const key = msTrigger.dataset.msTrigger;
@@ -251,12 +258,7 @@
       if (panel) {
         const isOpen = panel.classList.contains('open');
         document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
-        if (!isOpen) {
-          const rect = msTrigger.getBoundingClientRect();
-          panel.style.top  = (rect.bottom + 4) + 'px';
-          panel.style.left = rect.left + 'px';
-          panel.classList.add('open');
-        }
+        if (!isOpen) _openMsPanel(msTrigger, panel);
       }
       return;
     }

@@ -961,6 +961,21 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>PM+TL 복수 역할 보유자가 TL 드롭다운 후보에 출현 — PM &gt; TL 우선순위 원칙 미적용</strong></td>
     <td>한 멤버가 OP에서 PM과 Tech Lead 두 역할을 동시에 보유할 수 있다. <code>projRoleSets</code>에 두 역할이 모두 저장되므로, 후보 필터를 <code>roleSets.has('TL')</code>로만 작성하면 PM 보유자도 TL 후보에 등장한다. PM &gt; TL &gt; Member 우선순위 원칙에 따라 <strong>PM 역할이 있는 사람은 TL 후보·기본값 산출에서 제외</strong>해야 한다. 수정: TL 후보 필터를 <code>s.has('TL') &amp;&amp; !s.has('PM')</code>로, TL 기본값 fallback도 동일 조건으로 변경 (#33). 정리 규칙: PM 열에는 PM 역할 보유자 전원, TL 열에는 PM 미보유 + TL 보유자만 표기.</td>
   </tr>
+  <tr>
+    <td>P23</td>
+    <td><strong>per-project PM 필터만으로는 전역 PM 유저를 TL 후보에서 못 막음 — globalRole 없이는 불완전</strong></td>
+    <td>사용자가 프로젝트 A에서 PM, 프로젝트 B에서 TL-only인 경우, 프로젝트 B의 TL 후보 필터 <code>!s.has('PM')</code>는 <em>B 프로젝트의 멤버십만</em> 보므로 통과해버린다. 이 사람은 전체 시스템에서 PM이므로 TL 후보에서 제외해야 한다. 수정: <code>op-adapter.js</code>에서 모든 프로젝트를 순회해 <code>globalRole</code>(전역 최고 대시 역할)을 <code>u.globalRole</code>에 주입하고, TL 후보 필터에 <code>&amp;&amp; D.U[id]?.globalRole !== 'PM'</code>를 추가 (#33).</td>
+  </tr>
+  <tr>
+    <td>P24</td>
+    <td><strong>CSS <code>position:fixed</code> 패널을 body에 portal로 이동하면 뷰 전환 시 고아 요소로 남는다</strong></td>
+    <td>패널을 <code>document.body.appendChild(panel)</code>으로 옮긴 뒤 <code>renderContent()</code>로 뷰를 교체하면, 본문 DOM은 새로 그려지지만 body에 직접 붙은 <code>.ms-panel</code>은 정리되지 않는다. 다음 뷰에서 이전 패널이 떠다닌다. 수정: <code>renderContent()</code> 진입 시 <code>document.querySelectorAll('body > .ms-panel').forEach(p =&gt; p.remove())</code>로 정리 (#33).</td>
+  </tr>
+  <tr>
+    <td>P25</td>
+    <td><strong>flex 컨테이너에 overflow-x:auto를 주면 내부 버튼이 칩에 밀려 화면 밖으로 사라진다</strong></td>
+    <td>칩 목록과 액션 버튼이 같은 <code>overflow-x:auto</code> flex 컨테이너에 있으면, 칩이 많을 때 버튼이 스크롤 밖으로 밀려 보이지 않는다. 수정: 칩만 <code>.proj-chips-scroll</code>로 감싸 <code>flex:1; min-width:0; overflow-x:auto</code>를 주고, 바깥 컨테이너는 <code>overflow-x:hidden</code>으로 두어 버튼이 항상 우측에 고정되게 한다 (#33).</td>
+  </tr>
 </table>
 
 <div class="note tip">

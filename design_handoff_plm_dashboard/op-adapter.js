@@ -228,25 +228,28 @@
       return 'Member';
     }
 
-    // Build per-project memberRoles map from memberships.
-    // Higher-ranked roles win when the same uid appears with multiple roles in one project.
-    // @MX:ANCHOR: [AUTO] Core PM/PL role resolution — reads all memberships, produces projMemberRoles
-    // @MX:REASON: [AUTO] hydrateProject() relies on pre-populated memberRoles to skip its own (buggy) role derivation
-    const projMemberRoles = {};  // pid -> { uid -> dashRole }
+    // Build per-project role maps from memberships.
+    // projMemberRoles:  pid -> { uid -> bestDashRole }  — used for team table display & sort
+    // projRoleSets:     pid -> { uid -> Set<dashRole> } — used for PM/TL candidate dropdowns
+    // @MX:ANCHOR: [AUTO] Core PM/TL role resolution — reads all memberships, produces both maps
+    // @MX:REASON: [AUTO] hydrateProject() relies on pre-populated memberRoles; roleSets needed for multi-role candidate lists
+    const projMemberRoles = {};  // pid -> { uid -> bestDashRole }
+    const projRoleSets    = {};  // pid -> { uid -> Set }
     memberships.forEach((m) => {
       const pid = refId(m, 'project');
       const uid = refId(m, 'principal');
       if (!pid || !uid) return;
-      // A single membership can carry multiple roles — pick the highest-priority one
-      const bestDashRole = (m._links.roles || []).reduce((best, r) => {
+      if (!projMemberRoles[pid]) { projMemberRoles[pid] = {}; projRoleSets[pid] = {}; }
+      if (!projRoleSets[pid][uid]) projRoleSets[pid][uid] = new Set();
+      // A single membership can carry multiple roles — collect all, also track best
+      (m._links.roles || []).forEach((r) => {
         const d = opRoleToDash(r.title || '');
-        return DASH_ROLE_ORDER[d] > DASH_ROLE_ORDER[best] ? d : best;
-      }, 'Member');
-      if (!projMemberRoles[pid]) projMemberRoles[pid] = {};
-      const prev = projMemberRoles[pid][uid];
-      if (!prev || DASH_ROLE_ORDER[bestDashRole] > DASH_ROLE_ORDER[prev]) {
-        projMemberRoles[pid][uid] = bestDashRole;
-      }
+        if (d !== 'Member') projRoleSets[pid][uid].add(d);
+        const prev = projMemberRoles[pid][uid];
+        if (!prev || DASH_ROLE_ORDER[d] > DASH_ROLE_ORDER[prev]) {
+          projMemberRoles[pid][uid] = d;
+        }
+      });
     });
 
     // /principals returns both User and Group entries — map ALL of them so D.U
@@ -296,32 +299,31 @@
       PROJECTS: projects
         .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
         .map((p) => {
-          const rawRoles = projMemberRoles[p.id] || {};
+          const rawRoles    = projMemberRoles[p.id] || {};
+          const rawRoleSets = projRoleSets[p.id]    || {};
           // abyz-lab (isBot) is a real PM only in 인프라 project.
-          // Exclude all isBot users from memberRoles in every other project so they
-          // don't appear in team panels or PM/PL badges where they don't belong.
           const isInfra = /인프라/i.test(p.name);
-          const pRoles = isInfra
-            ? rawRoles
-            : Object.fromEntries(
-                Object.entries(rawRoles).filter(([uid]) => !userById[+uid]?.isBot)
-              );
-          // leadId priority: PM (프로젝트 관리자) first, then PL (OP PM), then null.
-          // hydrateProject falls back to memberIds[0] if still null.
+          const filterBot = ([uid]) => !userById[+uid]?.isBot;
+          const pRoles    = isInfra ? rawRoles
+            : Object.fromEntries(Object.entries(rawRoles).filter(filterBot));
+          const pRoleSets = isInfra ? rawRoleSets
+            : Object.fromEntries(Object.entries(rawRoleSets).filter(filterBot));
+          // leadId: first PM entry, else first TL, else null
           const pmEntry = Object.entries(pRoles).find(([, r]) => r === 'PM');
-          const plEntry = Object.entries(pRoles).find(([, r]) => r === 'PL');
-          const leadId = pmEntry ? +pmEntry[0] : (plEntry ? +plEntry[0] : null);
+          const tlEntry = Object.entries(pRoles).find(([, r]) => r === 'TL');
+          const leadId = pmEntry ? +pmEntry[0] : (tlEntry ? +tlEntry[0] : null);
           return {
             id: p.id,
             name: p.name,
             identifier: p.identifier,
             // GOTCHA #11 — OP has no nameKo/health fields; hydrateProject fills these in.
-            nameKo: p.name,         // Korean name not in OP; use English name as fallback
-            health: null,           // no direct field; hydrateProject defaults to 'normal'
-            leadId,                 // derived from PM/PL membership role above
-            memberRoles: pRoles,    // pre-populated → hydrateProject skips its own (buggy) derivation
-            startDate: null,        // hydrateProject computes from versions + WPs
-            dueDate: null,          // hydrateProject computes from versions + WPs
+            nameKo: p.name,
+            health: null,
+            leadId,
+            memberRoles:    pRoles,    // best role per uid — for team table display & sort
+            memberRoleSets: pRoleSets, // all roles per uid — for PM/TL candidate dropdowns
+            startDate: null,
+            dueDate: null,
           };
         }),
       VERSIONS: versions.map(mapVersion),

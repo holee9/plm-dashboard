@@ -97,14 +97,16 @@
     </div>` : ''}`;
 
     /* PM/TL/Member role info */
-    const roles = p.memberRoles || {};
+    const roles    = p.memberRoles    || {};  // best role per uid (for display/sort)
+    const roleSets = p.memberRoleSets || {};  // all roles per uid (for candidate lists)
     const overridePmId = (state.projPmOverrides || {})[p.id];
     const overrideTlId = (state.projTlOverrides || {})[p.id];
     const pmId = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
-    const tlId = overrideTlId != null ? String(overrideTlId) : Object.entries(roles).find(([, r]) => r === 'TL')?.[0];
+    const tlId = overrideTlId != null ? String(overrideTlId) : Object.entries(roles).find(([, r]) => r === 'TL')?.[0]
+      ?? Object.entries(roleSets).find(([, s]) => s.has('TL'))?.[0];
 
-    /* PM selector — project members with PM role in this project */
-    const pmCandidates = Object.entries(roles).filter(([, r]) => r === 'PM').map(([id]) => D.U[+id]).filter(Boolean);
+    /* PM selector — anyone with PM in their role set */
+    const pmCandidates = Object.entries(roleSets).filter(([, s]) => s.has('PM')).map(([id]) => D.U[+id]).filter(Boolean);
     const pmOpts = `<option value="">– 없음 –</option>` +
       pmCandidates.map((u) => `<option value="${u.id}"${pmId && +pmId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
     const pmBlock = `<div>
@@ -115,8 +117,8 @@
       </div>
     </div>`;
 
-    /* TL selector — project members with TL role in this project */
-    const tlCandidates = Object.entries(roles).filter(([, r]) => r === 'TL').map(([id]) => D.U[+id]).filter(Boolean);
+    /* TL selector — anyone with TL in their role set (including those who also have PM) */
+    const tlCandidates = Object.entries(roleSets).filter(([, s]) => s.has('TL')).map(([id]) => D.U[+id]).filter(Boolean);
     const tlOpts = `<option value="">– 없음 –</option>` +
       tlCandidates.map((u) => `<option value="${u.id}"${tlId && +tlId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
     const tlBlock = `<div>

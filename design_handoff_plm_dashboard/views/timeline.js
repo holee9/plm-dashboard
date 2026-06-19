@@ -131,7 +131,7 @@
           return `<tr><td class="strong">${p.name}</td><td class="mono">${v.name}</td><td class="mono muted" style="font-size:11px">${UI.fmtDate(v.startDate)}–${UI.fmtDate(v.dueDate)}</td>
           <td style="width:120px"><div style="display:flex;align-items:center;gap:8px">${UI.progressBar(prog)}<span class="mono" style="font-size:11px">${prog}%</span></div></td></tr>`; }).join('')}
       </tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:360px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:360px;overflow-y:auto;min-height:360px',
     });
 
     return `

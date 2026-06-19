@@ -188,6 +188,7 @@
     const burndown = UI.panel({
       title: 'Sprint Burndown · 번다운', sub: curV ? `${curV.name} · 잔여 공수 ${bd.total}h` : '진행 중 스프린트 없음',
       tools: `<div class="legend"><span class="legend-item"><i class="dot" style="background:var(--text-faint)"></i>Ideal</span><span class="legend-item"><i class="dot" style="background:var(--accent)"></i>Remaining</span></div>`,
+      bodyStyle: 'min-height:146px',
       body: bd.points.length ? C.lines({
         series: [
           { name: 'Ideal', color: 'var(--text-faint)', dashed: true, values: bd.points.map((pt) => pt.ideal) },
@@ -228,7 +229,7 @@
         <tbody>${teamRows.map((r) => `<tr><td><div style="display:flex;align-items:center;gap:8px">${UI.avatar(r.u)}<span class="strong">${r.u.name}</span></div></td>
           <td><span class="badge soft" style="${r.projRole === 'PM' ? 'background:rgba(139,92,246,.18);color:#a78bfa' : r.projRole === 'TL' ? 'background:rgba(59,130,246,.18);color:#93c5fd' : ''}">${r.projRole}</span></td>
           <td class="num">${r.open}</td><td class="num" style="color:${r.overdue ? 'var(--c-red)' : 'var(--text-faint)'}">${r.overdue || '–'}</td><td class="num">${r.spent}h</td></tr>`).join('')}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:300px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:380px;overflow-y:auto;min-height:366px',
     });
 
     /* recent WP list — all, scrollable */

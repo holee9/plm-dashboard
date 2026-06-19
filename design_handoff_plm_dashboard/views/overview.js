@@ -238,6 +238,7 @@
     const donut = UI.panel({
       title: 'WP Status · 상태 분포', sub: `${k.total} total`,
       hint: '전체 WP의 상태별 분포입니다. In Progress·Review·Testing 비율로 병목 구간을 파악하세요. On Hold가 많으면 블로커 해소가 시급합니다. Closed 비율이 낮으면 완료 속도를 점검하세요.',
+      bodyStyle: 'min-height:270px',
       body: `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
         ${C.donut({ segments: dist.map((d) => ({ value: d.count, color: d.status.color, label: d.status.name })),
           size: 150, thickness: 22, centerTop: k.open, centerBottom: 'OPEN' })}
@@ -268,6 +269,7 @@
     const actPanel = UI.panel({
       title: 'Effort by Activity · 활동별 투입', sub: `총 ${totalH.toLocaleString()}h`,
       hint: '전체 투입 시간을 활동 유형(개발·테스트·관리 등)별로 분류합니다. 개발 대비 관리·지원 비율이 과도하게 높으면 실질 진척이 낮을 수 있습니다. 이상 패턴 발견 시 프로세스를 점검하세요.',
+      bodyStyle: 'min-height:294px',
       body: `<div style="margin-bottom:14px"><div class="loadbar" style="height:14px;border-radius:7px">
         ${(() => { let x = 0; return act.map((a) => { const w = (a.hours / totalH) * 100; const s = `<span data-tip="${a.activity.name}: ${a.hours}h (${Math.round(w)}%)" style="left:${x}%;width:${w}%;background:${a.activity.color};cursor:pointer"></span>`; x += w; return s; }).join(''); })()}
       </div></div>

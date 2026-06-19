@@ -97,6 +97,7 @@
     const roleArr = Object.entries(roles).sort((a, b) => b[1].remaining - a[1].remaining);
     const rolePanel = UI.panel({
       title: 'Workload by Role · 직무별', sub: '잔여 공수 기준',
+      bodyStyle: 'min-height:396px;display:flex;align-items:center',
       body: `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
         ${C.donut({ segments: roleArr.map(([r, v]) => ({ value: Math.round(v.remaining), color: roleColors[r] || '#888', label: r })), size: 132, thickness: 20, centerTop: roleArr.reduce((a, [, v]) => a + v.count, 0), centerBottom: 'PEOPLE' })}
         <div class="legend" style="flex-direction:column;flex:1;min-width:120px">

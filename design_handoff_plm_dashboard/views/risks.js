@@ -372,27 +372,46 @@
         : '<div class="empty">과부하 인원 없음</div>',
     });
 
+    const zoneLabel = (txt) =>
+      `<div style="margin-top:calc(var(--grid-1)*1.4);margin-bottom:calc(var(--grid-1)*0.3);display:flex;align-items:center;gap:10px">
+        <span style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase">${txt}</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>`;
+
+    const zoneC = stalePanel
+      ? `<div class="grid" style="margin-top:var(--grid-1)">
+           <div class="col-7">${stalePanel}</div>
+           <div class="col-5" style="display:flex;flex-direction:column;gap:var(--grid-1)">
+             ${budgetPanel}${overloadPanel}
+           </div>
+         </div>`
+      : `<div class="grid" style="margin-top:var(--grid-1)">
+           <div class="col-6">${budgetPanel}</div>
+           <div class="col-6">${overloadPanel}</div>
+         </div>`;
+
     return `
       <div class="section-row"><h2>Risks · 지연/리스크 알림</h2><span class="muted mono" style="font-size:11px">우선 조치 대상</span></div>
       ${kpiRow}
+
       <div class="grid" style="margin-top:var(--grid-1)">
         <div class="col-12">${matrixPanel}</div>
       </div>
-      <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-12">${overduePanel}</div>
+
+      ${zoneLabel('Zone A — 즉각 조치')}
+      <div class="grid">
+        <div class="col-6">${overduePanel}</div>
+        <div class="col-6">${unassignedPanel}</div>
       </div>
-      <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-7">${dueSoonPanel}</div>
-        <div class="col-5">${onHoldPanel}</div>
-      </div>
-      <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-8">${unassignedPanel}</div>
+
+      ${zoneLabel('Zone B — 주의 모니터링')}
+      <div class="grid">
+        <div class="col-4">${dueSoonPanel}</div>
+        <div class="col-4">${onHoldPanel}</div>
         <div class="col-4">${noDueDatePanel}</div>
       </div>
-      ${stalePanel ? `<div class="grid" style="margin-top:var(--grid-1)"><div class="col-12">${stalePanel}</div></div>` : ''}
-      <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-5">${budgetPanel}</div>
-        <div class="col-7">${overloadPanel}</div>
-      </div>`;
+
+      ${zoneLabel('Zone C — 방치 · 공수 분석')}
+      ${zoneC}`;
   };
 })();

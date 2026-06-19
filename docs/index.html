@@ -976,6 +976,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>flex 컨테이너에 overflow-x:auto를 주면 내부 버튼이 칩에 밀려 화면 밖으로 사라진다</strong></td>
     <td>칩 목록과 액션 버튼이 같은 <code>overflow-x:auto</code> flex 컨테이너에 있으면, 칩이 많을 때 버튼이 스크롤 밖으로 밀려 보이지 않는다. 수정: 칩만 <code>.proj-chips-scroll</code>로 감싸 <code>flex:1; min-width:0; overflow-x:auto</code>를 주고, 바깥 컨테이너는 <code>overflow-x:hidden</code>으로 두어 버튼이 항상 우측에 고정되게 한다 (#33).</td>
   </tr>
+  <tr>
+    <td>P26</td>
+    <td><strong>OP API는 abyz-lab 계정이 멤버인 프로젝트만 반환 — 신규 과제 추가 후 대시보드에 미반영</strong></td>
+    <td>OpenProject는 API 키 소유 계정이 멤버로 등록된 프로젝트만 응답에 포함한다. 신규 과제 생성 후 대시보드에 나타나지 않는다면 코드 버그가 아니라 OP 관리자 패널에서 <code>abyz-lab</code> 계정을 해당 프로젝트 멤버로 추가해야 한다. 추가 즉시 다음 새로고침에 자동 반영 — 코드 변경 불필요 (#36).</td>
+  </tr>
+  <tr>
+    <td>P27</td>
+    <td><strong>localStorage에 저장된 projOrder에 신규 과제 ID가 없으면 드래그 이동이 무시된다</strong></td>
+    <td><code>state.projOrder</code>는 과제가 22개일 때 저장됐으므로, 새로 추가된 과제 ID가 배열에 없다. drop 핸들러에서 <code>order.indexOf(newId)</code>가 -1을 반환해 <code>from &gt;= 0 &amp;&amp; to &gt;= 0</code> 조건 불통과 → 이동 묵살. 수정: <code>baseOrder</code>에서 누락된 ID를 <code>allIds</code>에서 보충(<code>allIds.filter(id =&gt; !baseOrder.includes(id))</code>)해 항상 전체 과제가 순서 배열에 있도록 보장 (#36).</td>
+  </tr>
 </table>
 
 <div class="note tip">

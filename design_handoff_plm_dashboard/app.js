@@ -147,6 +147,18 @@
   /* ---------- navigation ---------- */
   function go(view) { state.view = view; save(); renderShell(); }
 
+  /* ---------- ms-panel helper: reopen a panel by id after re-render ---------- */
+  function _reopenMsPanel(panelId) {
+    const triggerKey = panelId.replace(/^ms-/, '');
+    const trigger = document.querySelector(`[data-ms-trigger="${triggerKey}"]`);
+    const panel   = document.getElementById(panelId);
+    if (!trigger || !panel) return;
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top  = (rect.bottom + 4) + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.classList.add('open');
+  }
+
   /* ---------- events ---------- */
   document.addEventListener('click', (e) => {
     const t = e.target;
@@ -231,7 +243,7 @@
       state.boardHiddenCols = hidden;
       save(); renderContent(); return;
     }
-    // Multi-select PM/TL trigger: toggle panel open/closed; close other panels
+    // Multi-select PM/TL trigger: toggle panel; position as fixed below the trigger
     const msTrigger = t.closest('[data-ms-trigger]');
     if (msTrigger) {
       const key = msTrigger.dataset.msTrigger;
@@ -239,12 +251,17 @@
       if (panel) {
         const isOpen = panel.classList.contains('open');
         document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
-        if (!isOpen) panel.classList.add('open');
+        if (!isOpen) {
+          const rect = msTrigger.getBoundingClientRect();
+          panel.style.top  = (rect.bottom + 4) + 'px';
+          panel.style.left = rect.left + 'px';
+          panel.classList.add('open');
+        }
       }
       return;
     }
-    // Click outside any .ms-wrap closes all open panels
-    if (!t.closest('.ms-wrap')) {
+    // Click outside any ms-trigger closes all open panels
+    if (!t.closest('[data-ms-trigger]') && !t.closest('.ms-panel')) {
       document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
     }
     if (t.closest('[data-toggle-sidebar]')) { state.collapsed = !state.collapsed; save(); renderShell(); return; }
@@ -282,8 +299,8 @@
       if (checked.length) { state.projPmOverrides[pid] = checked; }
       else { delete state.projPmOverrides[pid]; }
       save(); renderContent();
-      // Re-open the panel after re-render so user can keep selecting
-      if (panelId) document.getElementById(panelId)?.classList.add('open');
+      // Re-open the panel in the fresh DOM, repositioned below the new trigger
+      if (panelId) _reopenMsPanel(panelId);
     }
     if (t.matches('[data-proj-tl-check]')) {
       const pid = +t.dataset.projTlCheck;
@@ -294,8 +311,8 @@
       if (checked.length) { state.projTlOverrides[pid] = checked; }
       else { delete state.projTlOverrides[pid]; }
       save(); renderContent();
-      // Re-open the panel after re-render so user can keep selecting
-      if (panelId) document.getElementById(panelId)?.classList.add('open');
+      // Re-open the panel in the fresh DOM, repositioned below the new trigger
+      if (panelId) _reopenMsPanel(panelId);
     }
   });
 

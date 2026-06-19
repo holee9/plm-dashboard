@@ -956,6 +956,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>글로벌 <code>u.role</code> 대신 per-project memberRoles를 미리 계산해 주입하면 hydrateProject()의 자체 계산을 안전하게 우회할 수 있다</strong></td>
     <td><code>hydrateProject()</code>는 <code>if (!p.memberRoles)</code> 조건이 있어, <code>op-adapter.js</code>에서 <code>memberRoles</code>를 미리 채워 넣으면 buggy한 regex 블록이 완전히 스킵된다. per-project membership 데이터를 활용하면 한 사용자가 프로젝트마다 다른 role을 가져도 정확히 반영된다. 글로벌 <code>u.role</code>(마지막 membership 덮어쓰기)은 isObserver 감지 등 용도로만 유지 (#33).</td>
   </tr>
+  <tr>
+    <td>P22</td>
+    <td><strong>PM+TL 복수 역할 보유자가 TL 드롭다운 후보에 출현 — PM &gt; TL 우선순위 원칙 미적용</strong></td>
+    <td>한 멤버가 OP에서 PM과 Tech Lead 두 역할을 동시에 보유할 수 있다. <code>projRoleSets</code>에 두 역할이 모두 저장되므로, 후보 필터를 <code>roleSets.has('TL')</code>로만 작성하면 PM 보유자도 TL 후보에 등장한다. PM &gt; TL &gt; Member 우선순위 원칙에 따라 <strong>PM 역할이 있는 사람은 TL 후보·기본값 산출에서 제외</strong>해야 한다. 수정: TL 후보 필터를 <code>s.has('TL') &amp;&amp; !s.has('PM')</code>로, TL 기본값 fallback도 동일 조건으로 변경 (#33). 정리 규칙: PM 열에는 PM 역할 보유자 전원, TL 열에는 PM 미보유 + TL 보유자만 표기.</td>
+  </tr>
 </table>
 
 <div class="note tip">

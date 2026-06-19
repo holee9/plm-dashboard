@@ -212,7 +212,7 @@
             <td class="num" style="${pctStyle}">${pct}%</td>
           </tr>`;
         }).join('') || '<tr><td colspan="6"><div class="empty">없음</div></td></tr>'}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:240px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:275px;overflow-y:auto',
     });
 
     // --- 4. ON HOLD 상세 (방치일 포함) ---
@@ -325,7 +325,7 @@
             <td class="num mono" style="font-size:11px">${w.dueDate ? UI.fmtDate(w.dueDate) : '–'}</td>
           </tr>`;
         }).join('')}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:220px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:254px;overflow-y:auto',
     }) : null;
 
     // --- 8. Over Budget ---
@@ -378,6 +378,7 @@
           </div>
         </div>`).join('')}</div>`
         : '<div class="empty">과부하 인원 없음</div>',
+      bodyStyle: 'min-height:145px',
     });
 
     const zoneLabel = (txt) =>

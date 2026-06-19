@@ -237,12 +237,15 @@
       const pid = refId(m, 'project');
       const uid = refId(m, 'principal');
       if (!pid || !uid) return;
-      const roles = m._links.roles || [];
-      const dashRole = opRoleToDash(roles[0]?.title || '');
+      // A single membership can carry multiple roles — pick the highest-priority one
+      const bestDashRole = (m._links.roles || []).reduce((best, r) => {
+        const d = opRoleToDash(r.title || '');
+        return DASH_ROLE_ORDER[d] > DASH_ROLE_ORDER[best] ? d : best;
+      }, 'Member');
       if (!projMemberRoles[pid]) projMemberRoles[pid] = {};
       const prev = projMemberRoles[pid][uid];
-      if (!prev || DASH_ROLE_ORDER[dashRole] > DASH_ROLE_ORDER[prev]) {
-        projMemberRoles[pid][uid] = dashRole;
+      if (!prev || DASH_ROLE_ORDER[bestDashRole] > DASH_ROLE_ORDER[prev]) {
+        projMemberRoles[pid][uid] = bestDashRole;
       }
     });
 

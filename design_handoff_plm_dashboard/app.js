@@ -129,6 +129,7 @@
   }
 
   function renderContent() {
+    document.querySelectorAll('body > .ms-panel').forEach(function(p) { p.remove(); });
     const el = document.getElementById('content');
     el.scrollTop = 0;
     if (D._loading) {

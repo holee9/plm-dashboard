@@ -196,7 +196,20 @@
     if (ptab) { state.projectTab = +ptab.dataset.projectTab; save(); renderContent(); return; }
     const rsort = t.closest('[data-res-sort]');
     if (rsort) { state.resSort = rsort.dataset.resSort; save(); renderContent(); return; }
-    if (t.closest('[data-toggle-proj-edit]')) { state.projEditMode = !state.projEditMode; save(); renderContent(); return; }
+    if (t.closest('[data-cancel-proj-edit]')) {
+      if (_editSnapshot.proj) {
+        state.hiddenProjects = _editSnapshot.proj.hiddenProjects;
+        state.projOrder      = _editSnapshot.proj.projOrder;
+        delete _editSnapshot.proj;
+      }
+      state.projEditMode = false; save(); renderContent(); return;
+    }
+    if (t.closest('[data-toggle-proj-edit]')) {
+      if (!state.projEditMode) {
+        _editSnapshot.proj = { hiddenProjects: [...(state.hiddenProjects || [])], projOrder: [...(state.projOrder || [])] };
+      } else { delete _editSnapshot.proj; }
+      state.projEditMode = !state.projEditMode; save(); renderContent(); return;
+    }
     if (t.closest('[data-cancel-kpi-edit]')) {
       const ns = t.closest('[data-cancel-kpi-edit]').closest('[data-kpi-ns]')?.dataset.kpiNs || '';
       const modeKey = ns ? ns + 'KpiEditMode' : 'kpiEditMode';

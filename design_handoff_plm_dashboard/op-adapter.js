@@ -252,12 +252,26 @@
       });
     });
 
+    // Compute globalRole per user: best dash role across ALL projects.
+    // Used to exclude globally-PM users from TL candidate lists in any project.
+    const globalRoleMap = {};  // uid -> best dash role across all projects
+    Object.values(projMemberRoles).forEach((roleMap) => {
+      Object.entries(roleMap).forEach(([uid, role]) => {
+        const prev = globalRoleMap[uid];
+        if (!prev || DASH_ROLE_ORDER[role] > DASH_ROLE_ORDER[prev]) globalRoleMap[uid] = role;
+      });
+    });
+
     // /principals returns both User and Group entries — map ALL of them so D.U
     // lookup never returns undefined (WPs/projects may reference any principal).
     // Groups and Observers are kept in USERS for rendering but flagged so that
     // the assignee dropdown can filter them out (see board.js).
     const usersMapped = users.map((u) => ({ ...mapUser(u), isGroup: u._type === 'Group' }));
     const userById = {}; usersMapped.forEach((u) => (userById[u.id] = u));
+    // Attach globalRole so views can filter TL candidates by global PM status.
+    Object.entries(globalRoleMap).forEach(([uid, role]) => {
+      if (userById[+uid]) userById[+uid].globalRole = role;
+    });
     // Set global u.role from memberships for isObserver detection below (last membership wins).
     memberships.forEach((m) => {
       const uid = refId(m, 'principal');

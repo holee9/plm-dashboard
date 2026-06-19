@@ -102,9 +102,11 @@
     const ovPm = (state.projPmOverrides || {})[p.id];  // number[] | undefined
     const ovTl = (state.projTlOverrides || {})[p.id];  // number[] | undefined
 
-    // Auto-detect: all PM holders; all TL holders excluding PM holders (PM > TL priority)
+    // Auto-detect: all PM holders; TL holders who are NOT PM in this project AND NOT PM globally
     const autoPmIds = Object.entries(roleSets).filter(([, s]) => s.has('PM')).map(([id]) => +id);
-    const autoTlIds = Object.entries(roleSets).filter(([, s]) => s.has('TL') && !s.has('PM')).map(([id]) => +id);
+    const autoTlIds = Object.entries(roleSets)
+      .filter(([id, s]) => s.has('TL') && !s.has('PM') && D.U[+id]?.globalRole !== 'PM')
+      .map(([id]) => +id);
     const pmIds = ovPm ?? autoPmIds;  // selected PM uids (array)
     const tlIds = ovTl ?? autoTlIds;  // selected TL uids (array)
 
@@ -128,8 +130,10 @@
       </div>
     </div>`;
 
-    /* TL multi-select — PM > TL priority: exclude users who hold PM role */
-    const tlCandidates = Object.entries(roleSets).filter(([, s]) => s.has('TL') && !s.has('PM')).map(([id]) => D.U[+id]).filter(Boolean);
+    /* TL multi-select — PM > TL priority: exclude per-project PM and globally-PM users */
+    const tlCandidates = Object.entries(roleSets)
+      .filter(([id, s]) => s.has('TL') && !s.has('PM') && D.U[+id]?.globalRole !== 'PM')
+      .map(([id]) => D.U[+id]).filter(Boolean);
     const tlAvatars = tlIds.map((uid) => D.U[uid]).filter(Boolean).map((u) => UI.avatar(u)).join('');
     const tlItems = tlCandidates.length
       ? tlCandidates.map((u) => `<label class="ms-item">

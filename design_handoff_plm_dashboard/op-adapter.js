@@ -215,15 +215,16 @@
       if (st && st.isClosed) wp.closedAt = wp.updatedAt;   // proxy; see GOTCHA #5
     });
 
-    // Role mapping (per user requirement):
-    //   OP "프로젝트 관리자" → dashboard "PM"  (총괄/임원)
-    //   OP "PM"              → dashboard "PL"  (실무 PL)
+    // Role mapping (per OP actual roles):
+    //   OP "PM"              → dashboard "PM"  (실무 PM)
+    //   OP "Tech Lead"       → dashboard "TL"
+    //   OP "프로젝트 관리자" → dashboard "Member" (총괄, 별도 처리)
     //   everything else      → dashboard "Member"
     // Observer / Form Reporter / guest → excluded via isObserver/isBot flags below.
-    const DASH_ROLE_ORDER = { PM: 2, PL: 1, Member: 0 };
+    const DASH_ROLE_ORDER = { PM: 3, TL: 2, Member: 0 };
     function opRoleToDash(roleTitle) {
-      if (/프로젝트.?관리자/i.test(roleTitle)) return 'PM';
-      if (roleTitle === 'PM') return 'PL';
+      if (roleTitle === 'PM') return 'PM';
+      if (/tech.?lead/i.test(roleTitle)) return 'TL';
       return 'Member';
     }
 

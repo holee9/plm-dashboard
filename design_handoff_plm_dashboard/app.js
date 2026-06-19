@@ -52,7 +52,7 @@
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
     resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
-    projOrder: [], projPmOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
+    projOrder: [], projPmOverrides: {}, projTlOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
     projKpiSections: null, projKpiEditMode: false,
     resKpiSections: null,  resKpiEditMode: false,
     riskKpiSections: null, riskKpiEditMode: false,
@@ -255,6 +255,13 @@
       if (!state.projPmOverrides) state.projPmOverrides = {};
       if (t.value) { state.projPmOverrides[pid] = +t.value; }
       else { delete state.projPmOverrides[pid]; }
+      save(); renderContent();
+    }
+    if (t.matches('[data-proj-tl]')) {
+      const pid = +t.dataset.projTl;
+      if (!state.projTlOverrides) state.projTlOverrides = {};
+      if (t.value) { state.projTlOverrides[pid] = +t.value; }
+      else { delete state.projTlOverrides[pid]; }
       save(); renderContent();
     }
   });

@@ -96,14 +96,15 @@
       ${hiddenList.map((hp2) => `<button class="hidden-proj-chip" data-show-project="${hp2.id}">${hp2.name}</button>`).join('')}
     </div>` : ''}`;
 
-    /* PM/PL/Member role info */
+    /* PM/TL/Member role info */
     const roles = p.memberRoles || {};
     const overridePmId = (state.projPmOverrides || {})[p.id];
-    const pmId  = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
-    const plId  = Object.entries(roles).find(([, r]) => r === 'PL')?.[0];
+    const overrideTlId = (state.projTlOverrides || {})[p.id];
+    const pmId = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
+    const tlId = overrideTlId != null ? String(overrideTlId) : Object.entries(roles).find(([, r]) => r === 'TL')?.[0];
 
-    /* PM selector — only PM-role users */
-    const pmCandidates = Object.values(D.U).filter((u) => !u.isBot && !u.isObserver && u.role === 'PM');
+    /* PM selector — project members with PM role in this project */
+    const pmCandidates = Object.entries(roles).filter(([, r]) => r === 'PM').map(([id]) => D.U[+id]).filter(Boolean);
     const pmOpts = `<option value="">– 없음 –</option>` +
       pmCandidates.map((u) => `<option value="${u.id}"${pmId && +pmId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
     const pmBlock = `<div>
@@ -113,9 +114,18 @@
         <select data-proj-pm="${p.id}" style="font-size:13px;font-weight:700;background:transparent;border:none;color:inherit;cursor:pointer;padding:0;max-width:140px">${pmOpts}</select>
       </div>
     </div>`;
-    const plBlock = plId && D.U[+plId]
-      ? `<div><div class="kpi-label">PL</div><div style="display:flex;align-items:center;gap:7px;margin-top:5px">${UI.avatar(D.U[+plId])}<b style="font-size:13px">${D.U[+plId].name}</b></div></div>`
-      : '';
+
+    /* TL selector — project members with TL role in this project */
+    const tlCandidates = Object.entries(roles).filter(([, r]) => r === 'TL').map(([id]) => D.U[+id]).filter(Boolean);
+    const tlOpts = `<option value="">– 없음 –</option>` +
+      tlCandidates.map((u) => `<option value="${u.id}"${tlId && +tlId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
+    const tlBlock = `<div>
+      <div class="kpi-label">TL</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-top:5px">
+        ${tlId && D.U[+tlId] ? UI.avatar(D.U[+tlId]) : ''}
+        <select data-proj-tl="${p.id}" style="font-size:13px;font-weight:700;background:transparent;border:none;color:inherit;cursor:pointer;padding:0;max-width:140px">${tlOpts}</select>
+      </div>
+    </div>`;
     const header = `<div class="panel" style="margin-top:var(--grid-1)"><div class="panel-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
       <div style="flex:1;min-width:220px">
         <div style="display:flex;align-items:center;gap:12px">
@@ -124,10 +134,10 @@
         <div class="muted" style="margin-top:4px;font-size:13px">${p.nameKo} · <span class="mono">${p.identifier}</span></div>
         <div style="display:flex;gap:18px;margin-top:14px;flex-wrap:wrap">
           ${pmBlock}
-          ${plBlock}
+          ${tlBlock}
           <div><div class="kpi-label">TIMELINE</div><div class="mono" style="margin-top:7px;font-size:13px">${UI.fmtDateY(p.startDate)} → ${UI.fmtDateY(p.dueDate)}</div></div>
           <div><div class="kpi-label">SPRINT</div><div class="mono" style="margin-top:7px;font-size:13px">${curV ? curV.name : '–'}</div></div>
-          <div><div class="kpi-label">TEAM</div><div style="margin-top:5px">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'PL' && roles[id] !== 'PM'), 6)}</div></div>
+          <div><div class="kpi-label">TEAM</div><div style="margin-top:5px">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'TL' && roles[id] !== 'PM'), 6)}</div></div>
         </div>
       </div>
       <div style="text-align:center">${C.donut({ segments: [{ value: progress, color: 'var(--accent)', label: '완료' }, { value: 100 - progress, color: 'var(--panel-2)', label: '잔여' }], size: 132, thickness: 16, centerTop: progress + '%', centerBottom: 'PROGRESS' })}</div>
@@ -184,14 +194,14 @@
       const spent = Math.round(owned.reduce((a, w) => a + w.spentHours, 0));
       return { u, projRole, open: open.length, total: owned.length, spent, overdue: owned.filter(D.isOverdue).length };
     }).sort((a, b) => {
-      const order = { PM: 0, PL: 1, Member: 2 };
+      const order = { PM: 0, TL: 1, Member: 2 };
       return (order[a.projRole] ?? 2) - (order[b.projRole] ?? 2) || b.open - a.open;
     });
     const teamPanel = UI.panel({
       title: 'Team · 팀원별 WP', sub: `${validMembers.length} members`,
       body: `<table class="tbl"><thead><tr><th>Member</th><th>역할</th><th class="num">Open</th><th class="num">Overdue</th><th class="num">Spent</th></tr></thead>
         <tbody>${teamRows.map((r) => `<tr><td><div style="display:flex;align-items:center;gap:8px">${UI.avatar(r.u)}<span class="strong">${r.u.name}</span></div></td>
-          <td><span class="badge soft" style="${r.projRole === 'PM' ? 'background:rgba(139,92,246,.18);color:#a78bfa' : r.projRole === 'PL' ? 'background:rgba(59,130,246,.18);color:#93c5fd' : ''}">${r.projRole}</span></td>
+          <td><span class="badge soft" style="${r.projRole === 'PM' ? 'background:rgba(139,92,246,.18);color:#a78bfa' : r.projRole === 'TL' ? 'background:rgba(59,130,246,.18);color:#93c5fd' : ''}">${r.projRole}</span></td>
           <td class="num">${r.open}</td><td class="num" style="color:${r.overdue ? 'var(--c-red)' : 'var(--text-faint)'}">${r.overdue || '–'}</td><td class="num">${r.spent}h</td></tr>`).join('')}</tbody></table>`,
       bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:300px;overflow-y:auto',
     });

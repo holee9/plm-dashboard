@@ -388,9 +388,10 @@
 
     const zoneC = stalePanel
       ? `<div class="grid" style="margin-top:var(--grid-1)">
-           <div class="col-5">${stalePanel}</div>
-           <div class="col-4">${budgetPanel}</div>
-           <div class="col-3">${overloadPanel}</div>
+           <div class="col-6">${stalePanel}</div>
+           <div class="col-6" style="display:flex;flex-direction:column;gap:var(--grid-1)">
+             ${budgetPanel}${overloadPanel}
+           </div>
          </div>`
       : `<div class="grid" style="margin-top:var(--grid-1)">
            <div class="col-6">${budgetPanel}</div>

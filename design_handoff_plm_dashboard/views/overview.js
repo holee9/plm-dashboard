@@ -43,16 +43,18 @@
 
     const projFilterBar = `<div class="proj-filter-bar">
       <span class="muted" style="font-size:11px;flex-shrink:0">과제</span>
-      ${visChips.map((p) => `<button class="proj-chip active" draggable="true"
-          data-proj-drag="${p.id}"
-          ${projEdit ? `title="드래그로 순서 변경"` : ''}>
-          ${projEdit ? `<span style="opacity:.35;font-size:9px;line-height:1">⠿</span>` : ''}
-          ${p.name}
-          ${projEdit ? `<span class="proj-chip-x" data-hide-project="${p.id}">×</span>` : ''}
-        </button>`).join('')}
-      ${projEdit ? hidChips.map((p) =>
-        `<button class="proj-chip proj-chip-hidden" data-show-project="${p.id}" title="클릭해서 표시">+ ${p.name}</button>`
-      ).join('') : ''}
+      <div class="proj-chips-scroll">
+        ${visChips.map((p) => `<button class="proj-chip active" draggable="true"
+            data-proj-drag="${p.id}"
+            ${projEdit ? `title="드래그로 순서 변경"` : ''}>
+            ${projEdit ? `<span style="opacity:.35;font-size:9px;line-height:1">⠿</span>` : ''}
+            ${p.name}
+            ${projEdit ? `<span class="proj-chip-x" data-hide-project="${p.id}">×</span>` : ''}
+          </button>`).join('')}
+        ${projEdit ? hidChips.map((p) =>
+          `<button class="proj-chip proj-chip-hidden" data-show-project="${p.id}" title="클릭해서 표시">+ ${p.name}</button>`
+        ).join('') : ''}
+      </div>
       ${projEdit ? `<button class="mini-btn" data-cancel-proj-edit style="flex-shrink:0">취소</button>` : ''}
       <button class="mini-btn${projEdit ? ' on' : ''}" data-toggle-proj-edit style="flex-shrink:0;margin-left:2px">
         ${projEdit ? '완료' : '편집'}

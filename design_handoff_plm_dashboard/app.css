@@ -244,7 +244,8 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .hidden-proj-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 10px; border: 1px dashed var(--border); background: transparent; color: var(--text-faint); font-size: 11.5px; cursor: pointer; }
 .hidden-proj-chip:hover { border-color: var(--accent); color: var(--text); }
 /* project filter chip bar (Overview global project selector) */
-.proj-filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.proj-filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow-x: hidden; margin-bottom: 12px; }
+.proj-chips-scroll { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 .proj-chip { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text-faint); font-size: 11.5px; cursor: pointer; transition: all .12s; white-space: nowrap; flex-shrink: 0; }
 .proj-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .proj-chip:hover { border-color: var(--accent); color: var(--text); }

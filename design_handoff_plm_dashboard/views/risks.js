@@ -386,24 +386,20 @@
         <div style="flex:1;height:1px;background:var(--border)"></div>
       </div>`;
 
-    const zoneC = stalePanel
-      ? `<div class="grid" style="margin-top:var(--grid-1)">
-           <div class="col-6">${stalePanel}</div>
-           <div class="col-6" style="display:flex;flex-direction:column;gap:var(--grid-1)">
-             ${budgetPanel}${overloadPanel}
-           </div>
-         </div>`
-      : `<div class="grid" style="margin-top:var(--grid-1)">
-           <div class="col-6">${budgetPanel}</div>
-           <div class="col-6">${overloadPanel}</div>
-         </div>`;
+    const zoneC = `<div class="grid" style="margin-top:var(--grid-1)">
+        <div class="col-6">${budgetPanel}</div>
+        <div class="col-6">${overloadPanel}</div>
+      </div>`;
 
     return `
       <div class="section-row"><h2>Risks · 지연/리스크 알림</h2><span class="muted mono" style="font-size:11px">우선 조치 대상</span></div>
       ${kpiRow}
 
       <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-12">${matrixPanel}</div>
+        <div class="col-6">${matrixPanel}</div>
+        <div class="col-6" style="display:flex;flex-direction:column;gap:var(--grid-1)">
+          ${dueSoonPanel}${stalePanel || ''}
+        </div>
       </div>
 
       ${zoneLabel('Zone A — 즉각 조치')}
@@ -414,9 +410,8 @@
 
       ${zoneLabel('Zone B — 주의 모니터링')}
       <div class="grid">
-        <div class="col-4">${dueSoonPanel}</div>
-        <div class="col-4">${onHoldPanel}</div>
-        <div class="col-4">${noDueDatePanel}</div>
+        <div class="col-6">${onHoldPanel}</div>
+        <div class="col-6">${noDueDatePanel}</div>
       </div>
 
       ${zoneLabel('Zone C — 방치 · 공수 분석')}

@@ -21,6 +21,9 @@
     filter: '<path d="M22 3H2l8 9.5V19l4 2v-8.5z"/>',
   };
   const svg = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
 
   const VIEWS = [
     { key: 'overview',  en: 'Overview',  ko: '전체 현황',  ic: IC.overview,  section: 'MONITOR' },
@@ -60,6 +63,8 @@
   let state = Object.assign({}, DEFAULTS);
   /* Transient snapshot for cancel — NOT persisted to localStorage */
   const _editSnapshot = {};
+  let refreshStatus = 'idle';
+  let refreshMessage = '새로고침';
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
   // Migrate: projPmOverrides/projTlOverrides were single numbers; now arrays
@@ -100,6 +105,9 @@
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0'), mm = String(now.getMinutes()).padStart(2, '0');
     const cur = VIEWS.find((v) => v.key === state.view);
+    const refreshTone = refreshStatus === 'loading' ? ' data-refresh-loading="true"'
+      : refreshStatus === 'error' ? ' data-refresh-error="true"' : '';
+    const refreshBusy = refreshStatus === 'loading' ? ' disabled aria-busy="true"' : '';
 
     document.getElementById('app').innerHTML = `
       <aside class="sidebar ${state.collapsed ? 'collapsed' : ''}">
@@ -120,7 +128,7 @@
           <div class="topbar-spacer"></div>
           <button class="tb-chip" data-noop>${svg(IC.cal)}<span>Last 90d</span></button>
           <button class="tb-chip" data-noop data-tip="마지막으로 OpenProject 데이터를 성공적으로 수신한 시각입니다. 클릭 기능 없음 — 새로고침은 오른쪽 버튼을 사용하세요."><span class="live-dot"></span>업데이트 <b>${hh}:${mm}</b></button>
-          <button class="tb-icon" data-refresh data-tip="OpenProject에서 전체 데이터를 다시 조회합니다. 완료 후 모든 뷰가 최신 상태로 갱신됩니다.">${svg(IC.refresh)}</button>
+          <button class="tb-chip" data-refresh${refreshTone}${refreshBusy} data-tip="OpenProject에서 전체 데이터를 다시 조회합니다. 완료 후 모든 뷰가 최신 상태로 갱신됩니다.">${svg(IC.refresh)}<span>${refreshMessage}</span></button>
           <button class="tb-icon" data-theme-toggle>${svg(state.theme === 'dark' ? IC.sun : IC.moon)}</button>
         </header>
         <div class="content" id="content"></div>
@@ -132,8 +140,12 @@
     document.querySelectorAll('body > .ms-panel').forEach(function(p) { p.remove(); });
     const el = document.getElementById('content');
     el.scrollTop = 0;
-    if (D._loading) {
+    if (D._loading && !D.WORK_PACKAGES.length) {
       el.innerHTML = '<div class="empty">OpenProject 데이터 로딩 중…</div>';
+      return;
+    }
+    if (D._error) {
+      el.innerHTML = `<div class="empty" style="color:var(--c-red)">연동 오류: ${escapeHtml(D._error)}</div>`;
       return;
     }
     const fn = window.Views[state.view];
@@ -141,7 +153,7 @@
       el.innerHTML = fn ? fn(state) : '<div class="empty">view not found</div>';
     } catch (err) {
       console.error('[PLM] renderContent error:', err);
-      el.innerHTML = `<div class="empty">렌더링 오류: ${err.message}</div>`;
+      el.innerHTML = `<div class="empty">렌더링 오류: ${escapeHtml(err.message || err)}</div>`;
     }
   }
 
@@ -283,19 +295,28 @@
     if (t.closest('[data-toggle-sidebar]')) { state.collapsed = !state.collapsed; save(); renderShell(); return; }
     if (t.closest('[data-theme-toggle]')) { state.theme = state.theme === 'dark' ? 'light' : 'dark'; save(); applyChrome(); renderShell(); return; }
     if (t.closest('[data-refresh]')) {
-      const ic = t.closest('[data-refresh]').querySelector('svg');
-      ic.style.transition = 'transform .6s'; ic.style.transform = 'rotate(360deg)';
-      setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = 'none'; }, 600);
       // Re-fetch live data if adapter is available; otherwise just re-render.
       if (window.OPAdapter && window.OPAdapter.USE_LIVE_API && window.DB && window.DB.reload) {
+        refreshStatus = 'loading';
+        refreshMessage = '갱신 중...';
         window.DB._loading = true;
-        renderContent();   // show "로딩 중…" immediately while fetch runs
-        window.OPAdapter.buildLiveDataset().then(window.DB.reload).catch(function (err) {
+        renderShell();
+        window.OPAdapter.buildLiveDataset().then(function (ds) {
+          window.DB.reload(ds);
+          const done = new Date();
+          refreshStatus = 'success';
+          refreshMessage = `갱신 완료 ${String(done.getHours()).padStart(2, '0')}:${String(done.getMinutes()).padStart(2, '0')}:${String(done.getSeconds()).padStart(2, '0')}`;
+          renderShell();
+        }).catch(function (err) {
           console.error('[PLM] refresh fetch failed:', err);
+          refreshStatus = 'error';
+          refreshMessage = '갱신 실패';
           window.DB._loading = false;
           renderShell();
         });
       } else {
+        refreshStatus = 'success';
+        refreshMessage = '갱신 완료';
         renderShell();
       }
       return;
@@ -433,7 +454,7 @@
   document.addEventListener('mouseover', (e) => {
     const el = e.target.closest('[data-tip]');
     if (!el) return;
-    tip.innerHTML = el.getAttribute('data-tip');
+    tip.textContent = el.getAttribute('data-tip');
     tip.classList.add('show');
   });
   document.addEventListener('mousemove', (e) => {
@@ -450,6 +471,7 @@
 
   /* ---------- expose for Tweaks ---------- */
   window.App = {
+    save,
     set(key, val) {
       if (key === 'accent' && !ACCENTS[val]) return;
       state[key] = val; save(); applyChrome();
@@ -460,7 +482,7 @@
     refresh() { renderShell(); },
     showError(msg) {
       const el = document.getElementById('content');
-      if (el) el.innerHTML = `<div class="empty" style="color:var(--red)">연동 오류: ${msg}</div>`;
+      if (el) el.innerHTML = `<div class="empty" style="color:var(--c-red)">연동 오류: ${escapeHtml(msg)}</div>`;
     },
   };
 

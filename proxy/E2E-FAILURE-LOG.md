@@ -147,6 +147,30 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 
 ---
 
+### [2026-06-19] 수동 새로고침 중 화면 로딩 고정 — Board 필터 E2E 실패 (#40)
+
+**문제:** `e2e-verify-v2.py`의 AC-UX-11에서 `[data-board-project]` 셀렉트를 찾지 못함.
+새로고침 버튼 클릭 후 OP 재조회가 3초 이상 걸리는 동안 `DB._loading=true`가 유지되고,
+`renderContent()`가 모든 뷰를 `OpenProject 데이터 로딩 중…`으로 덮어 Board 화면이 사라졌다.
+
+**근본 원인:** 초기 부트 로딩과 수동 새로고침 로딩을 같은 UI 정책으로 처리했다.
+초기 부트에는 로딩 화면이 맞지만, 이미 데이터가 있는 상태의 수동 갱신은 기존 화면을 유지해야 한다.
+
+**수정 내용:**
+- `app.js`: `D._loading && !D.WORK_PACKAGES.length`일 때만 콘텐츠 로딩 화면 표시
+- `app.js`: 새로고침 버튼을 `tb-chip`으로 바꾸고 `새로고침 → 갱신 중... → 갱신 완료 HH:mm:ss` 상태 표시
+- `app.js`: 갱신 중 버튼 비활성화로 중복 요청 방지
+
+**검증:**
+- Playwright 직접 확인: 버튼 문구 `새로고침 → 갱신 중... → 갱신 완료 HH:mm:ss`
+- `python3 proxy/e2e-verify-v2.py` 결과: 실패 0
+
+**Anti-pattern:**
+> ❌ WRONG: 기존 데이터가 있어도 수동 새로고침 중 전체 콘텐츠를 로딩 화면으로 교체
+> ✅ CORRECT: 초기 부트만 로딩 화면, 수동 갱신은 기존 화면 유지 + 버튼 상태 메시지로 피드백
+
+---
+
 ## 재발 방지 체크리스트 (E2E 실증 전 필수 확인)
 
 - [ ] E2E 검증은 의미 있는 DOM 선택자를 사용하는가? (`html.length` 금지)
@@ -159,3 +183,5 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 - [ ] OP principals 중 봇/서비스 계정(form-reporter 등)에 isBot 플래그가 부여되어 있는가?
 - [ ] WP 표시 ID는 displayId를 사용하는가? (numeric id 직접 노출 금지)
 - [ ] 과제 선택(hiddenProjects)이 모든 뷰(Overview/Board/Timeline/Projects)에 연동되어 있는가?
+- [ ] 수동 새로고침 중 기존 데이터가 있는 경우 화면 탐색이 유지되는가?
+- [ ] 새로고침 버튼이 진행/완료/실패 상태를 사용자가 볼 수 있게 표시하는가?

@@ -751,7 +751,7 @@ Key files: [관련 파일 목록]</pre>
 <section id="lessons">
 <h2><span class="n">13</span>레슨 &amp; 러닝 — PLM Dashboard 프로젝트</h2>
 <p>이 섹션은 <strong>이번 프로젝트를 직접 진행하면서 부딪힌 실제 사례</strong>를 KPT(Keep · Problem · Try) 형식으로 기록합니다. 방법론의 이론이 아니라, 현장에서 나온 raw 레슨입니다.</p>
-<p class="muted" style="font-size:0.88em">원자료: GitHub Issues #1~#20 타임라인 코멘트 + 커밋 히스토리 · 2026-06-18 기준</p>
+<p class="muted" style="font-size:0.88em">원자료: GitHub Issues #1~#40 타임라인 코멘트 + 커밋 히스토리 · 2026-06-19 기준</p>
 
 <h3>Keep — 잘된 것, 다음에도 반드시 유지</h3>
 <table>
@@ -1020,6 +1020,16 @@ Key files: [관련 파일 목록]</pre>
     <td>P32</td>
     <td><strong>Risks 매트릭스 동반 패널 선택 — 숫자보다 논리적 연관성으로 짝을 결정해야 한다</strong></td>
     <td>Risks 뷰 재설계(매트릭스 col-6 + 동반 패널 col-6)에서 동반 패널 후보가 다수였다. 단순히 "건수가 많은 것"을 우측에 채우면 매트릭스와 연관 없는 정보가 붙어 맥락이 끊긴다. 채택 원칙: 매트릭스의 고위험(빨간) 사분면 항목과 직접 연관된 세부 목록만 동반 패널로 배치. 결과: "임박 7일(DUE SOON)" → DUE SOON WP 목록, "방치 14일(stale)" → 방치 WP 목록으로 1:1 연결. 나머지 리스크 항목(Zone A/B/C)은 별도 행으로 분리 (#39).</td>
+  </tr>
+  <tr>
+    <td>P33</td>
+    <td><strong>수동 새로고침은 요청 재발생만 검증하면 부족하다 — 사용자 피드백까지 검증해야 한다</strong></td>
+    <td>새로고침 버튼은 OP API 요청을 다시 보냈지만, 데이터가 같고 업데이트 표시가 HH:MM 단위라 사용자는 "새로고침이 안 된다"고 느꼈다. 또한 갱신 중 <code>DB._loading=true</code>가 전체 콘텐츠를 로딩 화면으로 바꿔 Board 필터 E2E가 실패했다. 해결: 초기 부트 로딩과 수동 갱신을 분리하고, 기존 데이터가 있으면 화면을 유지한 채 버튼에 <code>갱신 중...</code>·<code>갱신 완료 HH:mm:ss</code>·<code>갱신 실패</code>를 표시한다 (#40).</td>
+  </tr>
+  <tr>
+    <td>K13</td>
+    <td><strong>이슈 기반 이력 관리가 사후 보강에도 방향을 잃지 않게 해준다</strong></td>
+    <td>리뷰 후 발견된 새로고침 UX·날짜·마일스톤·문서화 작업을 #40으로 묶고, 커밋 메시지와 완료 코멘트에 연결했다. 코드 변경뿐 아니라 문서·E2E 결과까지 같은 이슈 타임라인에 남기면 다음 세션은 <code>gh issue view 40</code>만으로 왜 바꿨는지 복원할 수 있다.</td>
   </tr>
 </table>
 

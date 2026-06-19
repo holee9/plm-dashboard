@@ -42,6 +42,16 @@
 
   /* ------------------------------------------------------------------ utils */
 
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[ch]));
+  }
+  function safeColor(color, fallback) {
+    const c = String(color || '').trim();
+    return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(c) ? c : fallback;
+  }
+
   // GOTCHA #1 — TIME IS ISO8601 DURATION, NOT A NUMBER.
   // estimatedTime / spentTime / time-entry hours come as "PT40H", "PT5H30M",
   // "P1DT2H" … never 40. Parse to decimal hours (8h working day for the D part).
@@ -94,27 +104,28 @@
   /* --------------------------------------------------------------- mappers */
 
   function mapStatus(s) {
+    const name = escapeHtml(s.name);
     return {
-      id: s.id, name: s.name,
+      id: s.id, name,
       isClosed: !!s.isClosed,
-      color: s.color || '#8B93A7',
+      color: safeColor(s.color, '#8B93A7'),
       // GOTCHA — OP has NO "category" enum. We derive board buckets from name.
       // wont must be checked before generic isClosed to avoid merging into 'closed'.
-      cat: s.isClosed && /won.?t|reject/i.test(s.name) ? 'wont'
+      cat: s.isClosed && /won.?t|reject/i.test(s.name || '') ? 'wont'
         : s.isClosed ? 'closed'
-        : /progress/i.test(s.name) ? 'inProgress'
-        : /review/i.test(s.name) ? 'review'
-        : /test/i.test(s.name) ? 'testing'
-        : /hold|block/i.test(s.name) ? 'onHold' : 'new',
+        : /progress/i.test(s.name || '') ? 'inProgress'
+        : /review/i.test(s.name || '') ? 'review'
+        : /test/i.test(s.name || '') ? 'testing'
+        : /hold|block/i.test(s.name || '') ? 'onHold' : 'new',
     };
   }
-  const mapType = (t) => ({ id: t.id, name: t.name, color: t.color, glyph: '•' });
-  const mapPriority = (p) => ({ id: p.id, name: p.name, color: p.color || '#3B82F6' });
-  const mapActivity = (a) => ({ id: a.id, name: a.name, color: '#8B93A7' });
+  const mapType = (t) => ({ id: t.id, name: escapeHtml(t.name), color: safeColor(t.color, '#8B93A7'), glyph: '•' });
+  const mapPriority = (p) => ({ id: p.id, name: escapeHtml(p.name), color: safeColor(p.color, '#3B82F6') });
+  const mapActivity = (a) => ({ id: a.id, name: escapeHtml(a.name), color: '#8B93A7' });
 
   function mapVersion(v) {
     return {
-      id: v.id, name: v.name,
+      id: v.id, name: escapeHtml(v.name),
       projectId: refId(v, 'project'),
       startDate: v.startDate || null,
       dueDate: v.effectiveDate || null,         // GOTCHA — due date is `effectiveDate`
@@ -126,18 +137,19 @@
     // GOTCHA: /principals returns account login as `name` — firstName/lastName are empty.
     // NAME_TABLE maps account names → 성+이름 Korean names (see GOTCHA #13 above).
     const raw = u.name || 'Unknown';
-    const name = NAME_TABLE[raw] || raw;
+    const displayName = NAME_TABLE[raw] || raw;
+    const name = escapeHtml(displayName);
     // GOTCHA #14 — Locked OP accounts remain in /principals but lose the 'showUser' link.
     // Active users always have _links.showUser; permanently locked accounts do not.
     // E2E verified 2026-06-18: jykim(#25) locked → no showUser; all others have it.
     const isLocked = !u._links?.showUser;
     // initials: first 2 chars works for 3-char Korean names (e.g. 강동근 → 강동)
-    const initials = name.slice(0, 2).toUpperCase();
+    const initials = displayName.slice(0, 2).toUpperCase();
     return {
       id: u.id,
       name,
       initials,
-      email: u.email || '', avatar: u.avatar || '', login: u.login || '',
+      email: escapeHtml(u.email || ''), avatar: u.avatar || '', login: escapeHtml(u.login || ''),
       // GOTCHA #4 — role / title / weekly capacity DO NOT EXIST in OP core.
       role: 'Member', title: '', capacityPerWeek: 40,
       color: '#3B82F6',
@@ -148,8 +160,8 @@
   function mapWorkPackage(wp) {
     return {
       id: wp.id,
-      displayId: wp.displayId || String(wp.id),  // e.g. "BH-1"; fallback to numeric id
-      subject: wp.subject,
+      displayId: escapeHtml(wp.displayId || String(wp.id)),  // e.g. "BH-1"; fallback to numeric id
+      subject: escapeHtml(wp.subject),
       projectId: refId(wp, 'project'),
       typeId: refId(wp, 'type'),
       statusId: refId(wp, 'status'),
@@ -202,8 +214,13 @@
     const wpsRaw = await fetchAll('/work_packages', []);
     const timeRaw = await fetchSafe('/time_entries');
 
-    const WORK_PACKAGES = wpsRaw.map(mapWorkPackage);
-    const TIME_ENTRIES = timeRaw.map(mapTimeEntry);
+    const includeProject = (p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name || '');
+    const allowedProjectIds = new Set(projects.filter(includeProject).map((p) => p.id));
+    const WORK_PACKAGES = wpsRaw.map(mapWorkPackage).filter((wp) => allowedProjectIds.has(wp.projectId));
+    const workPackageIds = new Set(WORK_PACKAGES.map((wp) => wp.id));
+    const TIME_ENTRIES = timeRaw.map(mapTimeEntry)
+      .filter((te) => allowedProjectIds.has(te.projectId) && (!te.workPackageId || workPackageIds.has(te.workPackageId)));
+    const VERSIONS = versions.map(mapVersion).filter((v) => allowedProjectIds.has(v.projectId));
 
     // Aggregate spent hours from time entries (reliable) + approximate closedAt.
     const statusById = {}; statuses.map(mapStatus).forEach((s) => (statusById[s.id] = s));
@@ -276,7 +293,7 @@
     memberships.forEach((m) => {
       const uid = refId(m, 'principal');
       const role = refTitle(m, 'roles') || (m._links.roles && m._links.roles[0] && m._links.roles[0].title);
-      if (userById[uid] && role) userById[uid].role = role;
+      if (userById[uid] && role) userById[uid].role = escapeHtml(role);
     });
     // Mark observers and bots — excluded from assignee dropdowns but kept for D.U lookup.
     usersMapped.forEach((u) => {
@@ -290,12 +307,13 @@
     // GOTCHA #12 — /principals may not include every WP assignee (service accounts,
     // cross-scope users, external collaborators). Use _links.assignee.title from the
     // raw HAL WP response to build a minimal stub so views show a name, not "#id".
-    wpsRaw.forEach((wp) => {
+    wpsRaw.filter((wp) => allowedProjectIds.has(refId(wp, 'project'))).forEach((wp) => {
       const uid = refId(wp, 'assignee');
       if (uid && !userById[uid] && wp._links?.assignee?.title) {
         const raw = wp._links.assignee.title;
-        const name = NAME_TABLE[raw] || raw;
-        const initials = name.slice(0, 2).toUpperCase();
+        const displayName = NAME_TABLE[raw] || raw;
+        const name = escapeHtml(displayName);
+        const initials = displayName.slice(0, 2).toUpperCase();
         const u = { id: uid, name, initials, role: '', title: '', capacityPerWeek: 40, color: '#8B93A7' };
         usersMapped.push(u);
         userById[uid] = u;
@@ -311,7 +329,7 @@
       USERS,
       // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
       PROJECTS: projects
-        .filter((p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name))
+        .filter(includeProject)
         .map((p) => {
           const rawRoles    = projMemberRoles[p.id] || {};
           const rawRoleSets = projRoleSets[p.id]    || {};
@@ -328,10 +346,10 @@
           const leadId = pmEntry ? +pmEntry[0] : (tlEntry ? +tlEntry[0] : null);
           return {
             id: p.id,
-            name: p.name,
-            identifier: p.identifier,
+            name: escapeHtml(p.name),
+            identifier: escapeHtml(p.identifier),
             // GOTCHA #11 — OP has no nameKo/health fields; hydrateProject fills these in.
-            nameKo: p.name,
+            nameKo: escapeHtml(p.name),
             health: null,
             leadId,
             memberRoles:    pRoles,    // best role per uid — for team table display & sort
@@ -340,7 +358,7 @@
             dueDate: null,
           };
         }),
-      VERSIONS: versions.map(mapVersion),
+      VERSIONS,
       WORK_PACKAGES,
       TIME_ENTRIES,
     };

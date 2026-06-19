@@ -266,16 +266,17 @@
 
     const act = D.activityBreakdown(D.TIME_ENTRIES);
     const totalH = act.reduce((a, x) => a + x.hours, 0);
-    const actPanel = UI.panel({
-      title: 'Effort by Activity · 활동별 투입', sub: `총 ${totalH.toLocaleString()}h`,
-      hint: '전체 투입 시간을 활동 유형(개발·테스트·관리 등)별로 분류합니다. 개발 대비 관리·지원 비율이 과도하게 높으면 실질 진척이 낮을 수 있습니다. 이상 패턴 발견 시 프로세스를 점검하세요.',
-      bodyStyle: 'min-height:294px',
-      body: `<div style="margin-bottom:14px"><div class="loadbar" style="height:14px;border-radius:7px">
+    const actBody = totalH > 0 ? `<div style="margin-bottom:14px"><div class="loadbar" style="height:14px;border-radius:7px">
         ${(() => { let x = 0; return act.map((a) => { const w = (a.hours / totalH) * 100; const s = `<span data-tip="${a.activity.name}: ${a.hours}h (${Math.round(w)}%)" style="left:${x}%;width:${w}%;background:${a.activity.color};cursor:pointer"></span>`; x += w; return s; }).join(''); })()}
       </div></div>
       ${C.hbars({ rows: act.sort((a, b) => b.hours - a.hours).map((a) => ({
         label: `<span style="display:flex;align-items:center;gap:6px"><i class="dot" style="background:${a.activity.color}"></i>${a.activity.name}</span>`,
-        value: a.hours, color: a.activity.color, right: a.hours + 'h' })) })}`,
+        value: a.hours, color: a.activity.color, right: a.hours + 'h' })) })}` : '<div class="empty">시간 기록 데이터 없음</div>';
+    const actPanel = UI.panel({
+      title: 'Effort by Activity · 활동별 투입', sub: `총 ${totalH.toLocaleString()}h`,
+      hint: '전체 투입 시간을 활동 유형(개발·테스트·관리 등)별로 분류합니다. 개발 대비 관리·지원 비율이 과도하게 높으면 실질 진척이 낮을 수 있습니다. 이상 패턴 발견 시 프로세스를 점검하세요.',
+      bodyStyle: 'min-height:294px',
+      body: actBody,
     });
 
     /* -------- layout -------- */

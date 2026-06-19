@@ -42,10 +42,11 @@
   const rf = (min, max) => min + rnd() * (max - min);
 
   // ---- time helpers ---------------------------------------------------------
+  const localMidnight = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   let TODAY = new Date('2026-05-29T00:00:00');
   const DAY = 86400000;
   const addDays = (d, n) => new Date(d.getTime() + n * DAY);
-  const iso = (d) => d.toISOString().slice(0, 10);
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const startOfWeek = (d) => { const x = new Date(d); const day = (x.getDay() + 6) % 7; return addDays(x, -day); };
 
   // =====================  STATIC ENUMS  ======================================
@@ -292,9 +293,13 @@
   const U = byId(USERS), P = byId(PROJECTS), S = byId(STATUSES),
         T = byId(TYPES), PR = byId(PRIORITIES), V = byId(VERSIONS), A = byId(ACTIVITIES);
 
-  const isOpen = (wp) => !S[wp.statusId].isClosed;
-  const isOverdue = (wp) => isOpen(wp) && wp._due < TODAY;
-  const dueWithin = (wp, days) => isOpen(wp) && wp._due >= TODAY && wp._due <= addDays(TODAY, days);
+  const isOpen = (wp) => {
+    const status = S[wp.statusId];
+    return !status || !status.isClosed;
+  };
+  const hasDueDate = (wp) => !!wp._due;
+  const isOverdue = (wp) => isOpen(wp) && hasDueDate(wp) && wp._due < TODAY;
+  const dueWithin = (wp, days) => isOpen(wp) && hasDueDate(wp) && wp._due >= TODAY && wp._due <= addDays(TODAY, days);
 
   function statusDistribution(wps) {
     const d = {};
@@ -352,7 +357,7 @@
     return USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).map((u) => {
       const assigned = WORK_PACKAGES.filter((wp) => wp.assigneeId === u.id);
       const open = assigned.filter(isOpen);
-      const imminent = open.filter((wp) => wp._due <= horizonEnd); // incl. overdue
+      const imminent = open.filter((wp) => wp._due && wp._due <= horizonEnd); // incl. overdue, excludes unscheduled work
       const nearTerm = imminent.reduce((a, wp) => a + wp.estimatedHours * (1 - wp.percentDone / 100), 0);
       const backlog = open.reduce((a, wp) => a + wp.estimatedHours * (1 - wp.percentDone / 100), 0);
       const spent = assigned.reduce((a, wp) => a + wp.spentHours, 0);
@@ -476,7 +481,7 @@
   function reload(ds) {
     function replaceArr(t, s) { t.length = 0; s.forEach((x) => t.push(x)); }
     function replaceObj(t, s) { Object.keys(t).forEach((k) => delete t[k]); Object.assign(t, s); }
-    TODAY = new Date();
+    TODAY = localMidnight();
     ds.WORK_PACKAGES.forEach(hydrateWP);
     ds.TIME_ENTRIES.forEach(hydrateTE);
     ds.VERSIONS.forEach(hydrateVersion);

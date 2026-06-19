@@ -185,3 +185,4 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 - [ ] 과제 선택(hiddenProjects)이 모든 뷰(Overview/Board/Timeline/Projects)에 연동되어 있는가?
 - [ ] 수동 새로고침 중 기존 데이터가 있는 경우 화면 탐색이 유지되는가?
 - [ ] 새로고침 버튼이 진행/완료/실패 상태를 사용자가 볼 수 있게 표시하는가?
+- [ ] 레이아웃 변경은 Playwright 스크린샷과 `getBoundingClientRect()` 좌표로 검증했는가? (겹침·화면 밖 요소·텍스트 잘림 0건)

@@ -119,7 +119,7 @@
           ${UI.avatar(u)}<span>${u.name}</span>
         </label>`).join('')
       : `<div class="ms-none">후보 없음</div>`;
-    const pmBlock = `<div>
+    const pmBlock = `<div class="project-fact">
       <div class="kpi-label">PM</div>
       <div class="ms-wrap" style="margin-top:5px">
         <div class="ms-trigger" data-ms-trigger="pm-${p.id}">
@@ -141,7 +141,7 @@
           ${UI.avatar(u)}<span>${u.name}</span>
         </label>`).join('')
       : `<div class="ms-none">후보 없음</div>`;
-    const tlBlock = `<div>
+    const tlBlock = `<div class="project-fact">
       <div class="kpi-label">TL</div>
       <div class="ms-wrap" style="margin-top:5px">
         <div class="ms-trigger" data-ms-trigger="tl-${p.id}">
@@ -151,21 +151,21 @@
         <div class="ms-panel" id="ms-tl-${p.id}">${tlItems}</div>
       </div>
     </div>`;
-    const header = `<div class="panel" style="margin-top:var(--grid-1)"><div class="panel-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-      <div style="flex:1;min-width:220px">
-        <div style="display:flex;align-items:center;gap:12px">
+    const header = `<div class="panel project-hero-panel"><div class="panel-body project-hero-body">
+      <div class="project-hero-copy">
+        <div class="project-title-row">
           <h2 style="margin:0;font-size:20px;white-space:nowrap">${p.name}</h2>${UI.healthChip(p.health)}
         </div>
         <div class="muted" style="margin-top:4px;font-size:13px">${p.nameKo} · <span class="mono">${p.identifier}</span></div>
-        <div style="display:flex;gap:18px;margin-top:14px;flex-wrap:wrap">
+        <div class="project-fact-grid">
           ${pmBlock}
           ${tlBlock}
-          <div><div class="kpi-label">TIMELINE</div><div class="mono" style="margin-top:7px;font-size:13px">${UI.fmtDateY(p.startDate)} → ${UI.fmtDateY(p.dueDate)}</div></div>
-          <div><div class="kpi-label">SPRINT</div><div class="mono" style="margin-top:7px;font-size:13px">${curV ? curV.name : '–'}</div></div>
-          <div><div class="kpi-label">TEAM</div><div style="margin-top:5px">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'TL' && roles[id] !== 'PM'), 6)}</div></div>
+          <div class="project-fact project-fact-wide"><div class="kpi-label">TIMELINE</div><div class="mono project-fact-value">${UI.fmtDateY(p.startDate)} → ${UI.fmtDateY(p.dueDate)}</div></div>
+          <div class="project-fact"><div class="kpi-label">SPRINT</div><div class="mono project-fact-value">${curV ? curV.name : '–'}</div></div>
+          <div class="project-fact"><div class="kpi-label">TEAM</div><div class="project-fact-value">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'TL' && roles[id] !== 'PM'), 6)}</div></div>
         </div>
       </div>
-      <div style="text-align:center">${C.donut({ segments: [{ value: progress, color: 'var(--accent)', label: '완료' }, { value: 100 - progress, color: 'var(--panel-2)', label: '잔여' }], size: 132, thickness: 16, centerTop: progress + '%', centerBottom: 'PROGRESS' })}</div>
+      <div class="project-progress-card">${C.donut({ segments: [{ value: progress, color: 'var(--accent)', label: '완료' }, { value: 100 - progress, color: 'var(--panel-2)', label: '잔여' }], size: 132, thickness: 16, centerTop: progress + '%', centerBottom: 'PROGRESS' })}</div>
     </div></div>`;
 
     /* KPI strip */
@@ -229,7 +229,7 @@
         <tbody>${teamRows.map((r) => `<tr><td><div style="display:flex;align-items:center;gap:8px">${UI.avatar(r.u)}<span class="strong">${r.u.name}</span></div></td>
           <td><span class="badge soft" style="${r.projRole === 'PM' ? 'background:rgba(139,92,246,.18);color:#a78bfa' : r.projRole === 'TL' ? 'background:rgba(59,130,246,.18);color:#93c5fd' : ''}">${r.projRole}</span></td>
           <td class="num">${r.open}</td><td class="num" style="color:${r.overdue ? 'var(--c-red)' : 'var(--text-faint)'}">${r.overdue || '–'}</td><td class="num">${r.spent}h</td></tr>`).join('')}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:380px;overflow-y:auto;min-height:366px',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:256px;overflow-y:auto;min-height:218px',
     });
 
     /* recent WP list — all, scrollable */
@@ -246,19 +246,23 @@
           <td>${UI.avatar(D.U[w.assigneeId])}</td>
           <td><span class="kpi-delta ${D.isOpen(w) ? due.cls : ''}" style="font-size:11px">${D.isOpen(w) ? due.txt : '완료'}</span></td>
           <td class="num">${w.percentDone}</td></tr>`; }).join('')}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:380px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:560px;overflow-y:auto;min-height:488px',
     });
 
     return `
       <div class="section-row"><h2>Projects · 과제별 현황</h2><span class="muted mono" style="font-size:11px">탭으로 과제 전환</span></div>
       ${subtabs}
-      ${header}
-      ${miniKpis}
-      <div class="grid" style="margin-top:var(--grid-1)">
-        <div class="col-6">${burndown}</div>
-        <div class="col-6">${statusPanel}</div>
-        <div class="col-4">${teamPanel}</div>
-        <div class="col-8">${wpPanel}</div>
+      <div class="project-layout-grid">
+        <div class="project-main-stack">
+          ${header}
+          ${wpPanel}
+        </div>
+        <div class="project-side-stack">
+          <div class="project-kpi-rail">${miniKpis}</div>
+          ${teamPanel}
+          ${statusPanel}
+          ${burndown}
+        </div>
       </div>`;
   };
 })();

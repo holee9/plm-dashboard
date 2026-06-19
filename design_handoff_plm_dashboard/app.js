@@ -390,7 +390,8 @@
       const target = e.target.closest('[data-proj-drag]');
       if (target && +target.dataset.projDrag !== _dragProjId) {
         const allIds = D.PROJECTS.map((p) => p.id);
-        const order = (state.projOrder && state.projOrder.length) ? [...state.projOrder] : [...allIds];
+        const baseOrder = (state.projOrder && state.projOrder.length) ? [...state.projOrder] : [...allIds];
+        const order = [...baseOrder, ...allIds.filter((id) => !baseOrder.includes(id))];
         const from = order.indexOf(_dragProjId), to = order.indexOf(+target.dataset.projDrag);
         if (from >= 0 && to >= 0) { order.splice(from, 1); order.splice(to, 0, _dragProjId); }
         state.projOrder = order;

@@ -212,7 +212,7 @@
             <td class="num" style="${pctStyle}">${pct}%</td>
           </tr>`;
         }).join('') || '<tr><td colspan="6"><div class="empty">없음</div></td></tr>'}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:240px;overflow-y:auto',
     });
 
     // --- 4. ON HOLD 상세 (방치일 포함) ---
@@ -242,7 +242,7 @@
             </tr>`;
           }).join('')}</tbody></table>`
         : '<div class="empty">보류 없음 👍</div>',
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:280px;overflow-y:auto;min-height:250px',
     });
 
     // --- 5. 미배정 WP --- (Zone A: unassigned max-height = overdue와 동일 300px)
@@ -325,7 +325,7 @@
             <td class="num mono" style="font-size:11px">${w.dueDate ? UI.fmtDate(w.dueDate) : '–'}</td>
           </tr>`;
         }).join('')}</tbody></table>`,
-      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:260px;overflow-y:auto',
+      bodyStyle: 'padding:0 4px 4px;overflow-x:auto;max-height:220px;overflow-y:auto',
     }) : null;
 
     // --- 8. Over Budget ---

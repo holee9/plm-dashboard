@@ -6,15 +6,25 @@
   window.Views = window.Views || {};
   const DAY = 86400000;
 
+  function orderedProjects(state) {
+    const ord = state.projOrder && state.projOrder.length ? state.projOrder : null;
+    if (!ord) return [...window.DB.PROJECTS];
+    const byId = Object.fromEntries(window.DB.PROJECTS.map((p) => [p.id, p]));
+    const sorted = ord.map((id) => byId[id]).filter(Boolean);
+    const rest = window.DB.PROJECTS.filter((p) => !ord.includes(p.id));
+    return [...sorted, ...rest];
+  }
+
   Views.timeline = function (state) {
     const D = window.DB, UI = window.UI;
     const hp = new Set(state.hiddenProjects || []);
     const scope = state.tlProject || 'all';
+    const projects = orderedProjects(state);
 
     // build rows
     let rows, rangeStart, rangeEnd;
     if (scope === 'all') {
-      rows = D.PROJECTS.filter((p) => !hp.has(p.id)).map((p) => {
+      rows = projects.filter((p) => !hp.has(p.id)).map((p) => {
         const wps = D.WORK_PACKAGES.filter((w) => w.projectId === p.id);
         const prog = wps.length ? Math.round(wps.reduce((a, w) => a + w.percentDone, 0) / wps.length) : 0;
         const ms = wps.filter((w) => w.typeId === 6).map((w) => ({ date: w._due, label: w.subject }));
@@ -82,7 +92,7 @@
 
     const scopeSel = `<select class="board-select" data-tl-project>
       <option value="all" ${scope === 'all' ? 'selected' : ''}>All Projects · 전체 과제</option>
-      ${D.PROJECTS.filter((p) => !hp.has(p.id)).map((p) => `<option value="${p.id}" ${+scope === p.id ? 'selected' : ''}>${p.name} · WP</option>`).join('')}
+      ${projects.filter((p) => !hp.has(p.id)).map((p) => `<option value="${p.id}" ${+scope === p.id ? 'selected' : ''}>${p.name} · WP</option>`).join('')}
     </select>`;
 
     const gantt = UI.panel({

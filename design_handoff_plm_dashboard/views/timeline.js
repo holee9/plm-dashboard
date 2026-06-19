@@ -27,7 +27,7 @@
       rows = projects.filter((p) => !hp.has(p.id)).map((p) => {
         const wps = D.WORK_PACKAGES.filter((w) => w.projectId === p.id);
         const prog = wps.length ? Math.round(wps.reduce((a, w) => a + w.percentDone, 0) / wps.length) : 0;
-        const ms = wps.filter((w) => w.typeId === 6).map((w) => ({ date: w._due, label: w.subject }));
+        const ms = wps.filter((w) => w.typeId === 2).map((w) => ({ date: w._due, label: w.subject }));
         return { id: p.id, label: p.name, ko: p.nameKo, start: p._start, end: p._end, progress: prog,
           color: p.health === 'on_track' ? 'var(--c-blue)' : p.health === 'at_risk' ? 'var(--c-amber)' : 'var(--c-red)',
           milestones: ms, health: p.health, nav: p.id };
@@ -110,7 +110,7 @@
     });
 
     // upcoming milestones across projects — all, scrollable
-    const milestones = D.WORK_PACKAGES.filter((w) => w.typeId === 6 && D.isOpen(w))
+    const milestones = D.WORK_PACKAGES.filter((w) => w.typeId === 2 && D.isOpen(w))
       .sort((a, b) => a._due - b._due);
     const msPanel = UI.panel({
       title: 'Upcoming Milestones · 마일스톤', sub: `${milestones.length} 예정`,

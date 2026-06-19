@@ -1006,6 +1006,21 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>데이터가 없어 계산 불가한 KPI는 숨기지 말고 "OP 입력 필요" 안내를 표시하라</strong></td>
     <td>OVER BUDGET·OVERLOADED처럼 사용자가 OP에 <code>estimatedHours</code>·<code>spentHours</code>를 아직 입력하지 않아 계산 불가한 KPI를 숨기거나 0으로 표시하면, 기능 자체가 없는 것으로 오해된다. <code>–</code>를 표시하고 황색 안내 박스("📋 OpenProject 입력 필요 — 각 WP에 예상 공수를 입력하면 이 KPI가 활성화됩니다")를 함께 보여주면 사용자가 스스로 데이터를 채울 수 있다 (#38).</td>
   </tr>
+  <tr>
+    <td>P31</td>
+    <td><strong>CSS grid는 col 높이를 균일화하지만 내부 .panel은 자동으로 늘어나지 않는다</strong></td>
+    <td><code>display:grid</code>는 같은 행의 col들을 동일 높이로 맞추지만, col 안의 <code>.panel</code>은 콘텐츠 높이만큼만 차지한다. 결과적으로 짧은 패널은 긴 패널 옆에서 빈 공간을 드러내 시각적으로 어긋나 보인다. 해결 패턴: ① Playwright <code>getBoundingClientRect()</code>로 같은 행 패널들의 실제 pixel 높이를 실측 → ② 짧은 패널의 필요 body 높이를 <code>panel_h_target − header_h − 2(border)</code>로 계산 → ③ <code>UI.panel({ bodyStyle: 'min-height:XXXpx' })</code>로 주입. Overview·Resources·Projects·Timeline 4개 뷰에 동일 패턴을 적용해 전 행 pixel-perfect 정렬 달성 (#39, 0b56afc).</td>
+  </tr>
+  <tr>
+    <td>K12</td>
+    <td><strong>패널 행 높이 정렬은 Playwright 실측 → min-height 주입 패턴이 재사용 가능한 표준</strong></td>
+    <td>CSS로 grid 내부 패널 높이를 맞추는 유일한 신뢰할 수 있는 방법은 런타임 실측이다. <code>document.querySelectorAll('[class]')</code>로 패널을 수집하고 <code>getBoundingClientRect()</code>로 헤더·바디 높이를 측정한 뒤 짧은 쪽에 <code>min-height</code>를 추가한다. 공식: <code>body_min_h = taller_panel_h − shorter_panel_header_h − 2</code>(border overhead). 이 값은 목업 데이터 기준이므로 실 데이터의 콘텐츠 양이 크게 달라지면 재측이 필요하다 (#39).</td>
+  </tr>
+  <tr>
+    <td>P32</td>
+    <td><strong>Risks 매트릭스 동반 패널 선택 — 숫자보다 논리적 연관성으로 짝을 결정해야 한다</strong></td>
+    <td>Risks 뷰 재설계(매트릭스 col-6 + 동반 패널 col-6)에서 동반 패널 후보가 다수였다. 단순히 "건수가 많은 것"을 우측에 채우면 매트릭스와 연관 없는 정보가 붙어 맥락이 끊긴다. 채택 원칙: 매트릭스의 고위험(빨간) 사분면 항목과 직접 연관된 세부 목록만 동반 패널로 배치. 결과: "임박 7일(DUE SOON)" → DUE SOON WP 목록, "방치 14일(stale)" → 방치 WP 목록으로 1:1 연결. 나머지 리스크 항목(Zone A/B/C)은 별도 행으로 분리 (#39).</td>
+  </tr>
 </table>
 
 <div class="note tip">

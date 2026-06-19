@@ -80,7 +80,7 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 | **Resources** | `views/resources.js` | 개발자별 부하 — 부하 %, 단기 잔여 시간, 백로그, 담당 프로젝트, 지연 WP |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |
 | **Timeline** | `views/timeline.js` | 간트 차트 + 스프린트 번다운, 마일스톤, WP 바, 기간 선택 |
-| **Risks** | `views/risks.js` | 마감 초과·임박, 인원 과부하, 공수 초과 등 위험 항목 집계 |
+| **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
 
 ---
 

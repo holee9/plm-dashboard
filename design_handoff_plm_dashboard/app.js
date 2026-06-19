@@ -62,6 +62,13 @@
   const _editSnapshot = {};
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
+  // Migrate: projPmOverrides/projTlOverrides were single numbers; now arrays
+  ['projPmOverrides', 'projTlOverrides'].forEach((key) => {
+    const map = state[key] || {};
+    Object.keys(map).forEach((pid) => {
+      if (typeof map[pid] === 'number') map[pid] = [map[pid]];
+    });
+  });
   const save = () => { try { localStorage.setItem('plm_state', JSON.stringify(state)); } catch (e) {} };
   // Expose save() so views can persist state mutations (e.g. auto-seed hiddenProjects).
   window.App = window.App || {};
@@ -224,6 +231,22 @@
       state.boardHiddenCols = hidden;
       save(); renderContent(); return;
     }
+    // Multi-select PM/TL trigger: toggle panel open/closed; close other panels
+    const msTrigger = t.closest('[data-ms-trigger]');
+    if (msTrigger) {
+      const key = msTrigger.dataset.msTrigger;
+      const panel = document.getElementById('ms-' + key);
+      if (panel) {
+        const isOpen = panel.classList.contains('open');
+        document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
+        if (!isOpen) panel.classList.add('open');
+      }
+      return;
+    }
+    // Click outside any .ms-wrap closes all open panels
+    if (!t.closest('.ms-wrap')) {
+      document.querySelectorAll('.ms-panel.open').forEach((el) => el.classList.remove('open'));
+    }
     if (t.closest('[data-toggle-sidebar]')) { state.collapsed = !state.collapsed; save(); renderShell(); return; }
     if (t.closest('[data-theme-toggle]')) { state.theme = state.theme === 'dark' ? 'light' : 'dark'; save(); applyChrome(); renderShell(); return; }
     if (t.closest('[data-refresh]')) {
@@ -250,19 +273,29 @@
     if (t.matches('[data-board-project]')) { state.boardProject = t.value; save(); renderContent(); }
     if (t.matches('[data-board-user]')) { state.boardUser = t.value; save(); renderContent(); }
     if (t.matches('[data-tl-project]')) { state.tlProject = t.value; save(); renderContent(); }
-    if (t.matches('[data-proj-pm]')) {
-      const pid = +t.dataset.projPm;
+    if (t.matches('[data-proj-pm-check]')) {
+      const pid = +t.dataset.projPmCheck;
       if (!state.projPmOverrides) state.projPmOverrides = {};
-      if (t.value) { state.projPmOverrides[pid] = +t.value; }
+      const panel = t.closest('.ms-panel');
+      const panelId = panel?.id;
+      const checked = [...panel.querySelectorAll('[data-proj-pm-check]:checked')].map((el) => +el.value);
+      if (checked.length) { state.projPmOverrides[pid] = checked; }
       else { delete state.projPmOverrides[pid]; }
       save(); renderContent();
+      // Re-open the panel after re-render so user can keep selecting
+      if (panelId) document.getElementById(panelId)?.classList.add('open');
     }
-    if (t.matches('[data-proj-tl]')) {
-      const pid = +t.dataset.projTl;
+    if (t.matches('[data-proj-tl-check]')) {
+      const pid = +t.dataset.projTlCheck;
       if (!state.projTlOverrides) state.projTlOverrides = {};
-      if (t.value) { state.projTlOverrides[pid] = +t.value; }
+      const panel = t.closest('.ms-panel');
+      const panelId = panel?.id;
+      const checked = [...panel.querySelectorAll('[data-proj-tl-check]:checked')].map((el) => +el.value);
+      if (checked.length) { state.projTlOverrides[pid] = checked; }
       else { delete state.projTlOverrides[pid]; }
       save(); renderContent();
+      // Re-open the panel after re-render so user can keep selecting
+      if (panelId) document.getElementById(panelId)?.classList.add('open');
     }
   });
 

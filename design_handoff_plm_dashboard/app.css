@@ -362,3 +362,27 @@ a.wp-id:hover { background: color-mix(in oklch, var(--accent), transparent 75%);
 .kpi-strip .kpi-value { font-size: 26px; margin-top: 6px; }
 .kpi-strip.kpi-edit .kpi[draggable="true"] { cursor: grab; }
 .kpi-strip.kpi-edit .kpi[draggable="true"]:active { cursor: grabbing; }
+
+/* Multi-select PM/TL picker */
+.ms-wrap { position: relative; display: inline-flex; align-items: center; }
+.ms-trigger { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 4px 2px 0; border-radius: 6px; min-height: 28px; }
+.ms-trigger:hover { background: var(--hover); }
+.ms-caret { font-size: 10px; color: var(--text-dim); margin-left: 2px; }
+.ms-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 170px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 0;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+}
+.ms-panel.open { display: block; }
+.ms-item { display: flex; align-items: center; gap: 8px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.ms-item:hover { background: var(--hover); }
+.ms-item input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+.ms-none { font-size: 12px; color: var(--text-faint); padding: 5px 12px; font-style: italic; }

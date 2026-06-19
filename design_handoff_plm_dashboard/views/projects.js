@@ -99,34 +99,52 @@
     /* PM/TL/Member role info */
     const roles    = p.memberRoles    || {};  // best role per uid (for display/sort)
     const roleSets = p.memberRoleSets || {};  // all roles per uid (for candidate lists)
-    const overridePmId = (state.projPmOverrides || {})[p.id];
-    const overrideTlId = (state.projTlOverrides || {})[p.id];
-    const pmId = overridePmId != null ? String(overridePmId) : Object.entries(roles).find(([, r]) => r === 'PM')?.[0];
-    // PM > TL priority: TL default fallback excludes users who already hold PM role
-    const tlId = overrideTlId != null ? String(overrideTlId) : Object.entries(roles).find(([, r]) => r === 'TL')?.[0]
-      ?? Object.entries(roleSets).find(([, s]) => s.has('TL') && !s.has('PM'))?.[0];
+    const ovPm = (state.projPmOverrides || {})[p.id];  // number[] | undefined
+    const ovTl = (state.projTlOverrides || {})[p.id];  // number[] | undefined
 
-    /* PM selector — anyone with PM in their role set */
+    // Auto-detect: all PM holders; all TL holders excluding PM holders (PM > TL priority)
+    const autoPmIds = Object.entries(roleSets).filter(([, s]) => s.has('PM')).map(([id]) => +id);
+    const autoTlIds = Object.entries(roleSets).filter(([, s]) => s.has('TL') && !s.has('PM')).map(([id]) => +id);
+    const pmIds = ovPm ?? autoPmIds;  // selected PM uids (array)
+    const tlIds = ovTl ?? autoTlIds;  // selected TL uids (array)
+
+    /* PM multi-select — anyone with PM in their role set */
     const pmCandidates = Object.entries(roleSets).filter(([, s]) => s.has('PM')).map(([id]) => D.U[+id]).filter(Boolean);
-    const pmOpts = `<option value="">– 없음 –</option>` +
-      pmCandidates.map((u) => `<option value="${u.id}"${pmId && +pmId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
+    const pmAvatars = pmIds.map((uid) => D.U[uid]).filter(Boolean).map((u) => UI.avatar(u)).join('');
+    const pmItems = pmCandidates.length
+      ? pmCandidates.map((u) => `<label class="ms-item">
+          <input type="checkbox" data-proj-pm-check="${p.id}" value="${u.id}"${pmIds.includes(u.id) ? ' checked' : ''}>
+          ${UI.avatar(u)}<span>${u.name}</span>
+        </label>`).join('')
+      : `<div class="ms-none">후보 없음</div>`;
     const pmBlock = `<div>
       <div class="kpi-label">PM</div>
-      <div style="display:flex;align-items:center;gap:7px;margin-top:5px">
-        ${pmId && D.U[+pmId] ? UI.avatar(D.U[+pmId]) : ''}
-        <select data-proj-pm="${p.id}" style="font-size:13px;font-weight:700;background:transparent;border:none;color:inherit;cursor:pointer;padding:0;max-width:140px">${pmOpts}</select>
+      <div class="ms-wrap" style="margin-top:5px">
+        <div class="ms-trigger" data-ms-trigger="pm-${p.id}">
+          <div class="avatar-stack" style="min-width:24px">${pmAvatars}</div>
+          <span class="ms-caret">▾</span>
+        </div>
+        <div class="ms-panel" id="ms-pm-${p.id}">${pmItems}</div>
       </div>
     </div>`;
 
-    /* TL selector — PM > TL priority: exclude users who hold PM role from TL candidates */
+    /* TL multi-select — PM > TL priority: exclude users who hold PM role */
     const tlCandidates = Object.entries(roleSets).filter(([, s]) => s.has('TL') && !s.has('PM')).map(([id]) => D.U[+id]).filter(Boolean);
-    const tlOpts = `<option value="">– 없음 –</option>` +
-      tlCandidates.map((u) => `<option value="${u.id}"${tlId && +tlId === u.id ? ' selected' : ''}>${u.name}</option>`).join('');
+    const tlAvatars = tlIds.map((uid) => D.U[uid]).filter(Boolean).map((u) => UI.avatar(u)).join('');
+    const tlItems = tlCandidates.length
+      ? tlCandidates.map((u) => `<label class="ms-item">
+          <input type="checkbox" data-proj-tl-check="${p.id}" value="${u.id}"${tlIds.includes(u.id) ? ' checked' : ''}>
+          ${UI.avatar(u)}<span>${u.name}</span>
+        </label>`).join('')
+      : `<div class="ms-none">후보 없음</div>`;
     const tlBlock = `<div>
       <div class="kpi-label">TL</div>
-      <div style="display:flex;align-items:center;gap:7px;margin-top:5px">
-        ${tlId && D.U[+tlId] ? UI.avatar(D.U[+tlId]) : ''}
-        <select data-proj-tl="${p.id}" style="font-size:13px;font-weight:700;background:transparent;border:none;color:inherit;cursor:pointer;padding:0;max-width:140px">${tlOpts}</select>
+      <div class="ms-wrap" style="margin-top:5px">
+        <div class="ms-trigger" data-ms-trigger="tl-${p.id}">
+          <div class="avatar-stack" style="min-width:24px">${tlAvatars}</div>
+          <span class="ms-caret">▾</span>
+        </div>
+        <div class="ms-panel" id="ms-tl-${p.id}">${tlItems}</div>
       </div>
     </div>`;
     const header = `<div class="panel" style="margin-top:var(--grid-1)"><div class="panel-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">

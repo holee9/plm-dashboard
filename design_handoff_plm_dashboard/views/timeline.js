@@ -42,10 +42,17 @@
   }
 
   function renderMilestoneMarkers(milestones, pct) {
+    const laneLast = [-999, -999];
+    const minGapPct = 2.2;
     return milestones.map((m) => {
       const ml = pct(m.date);
       if (ml < 0 || ml > 100) return '';
-      return `<div class="gantt-milestone" data-timeline-milestone="${m.id}" style="left:calc(${ml}% - 8px);background:var(--c-violet, #8B5CF6)" data-tip="${attr(m.tip)}"></div>`;
+      let lane = ml - laneLast[0] >= minGapPct ? 0 : 1;
+      if (lane === 1 && ml - laneLast[1] < minGapPct) lane = laneLast[0] <= laneLast[1] ? 0 : 1;
+      laneLast[lane] = ml;
+      const size = 14;
+      const top = lane === 0 ? 7 : 19;
+      return `<div class="gantt-milestone" data-timeline-milestone="${m.id}" style="left:calc(${ml}% - ${size / 2}px);top:${top}px;width:${size}px;height:${size}px;background:var(--c-violet, #8B5CF6)" data-tip="${attr(m.tip)}"></div>`;
     }).join('');
   }
 

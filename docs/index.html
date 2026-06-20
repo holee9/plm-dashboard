@@ -1034,7 +1034,7 @@ Key files: [관련 파일 목록]</pre>
   <tr>
     <td>P34</td>
     <td><strong>Projects 뷰는 전체폭 카드 나열보다 주/보조 그리드가 스캔성이 높다</strong></td>
-    <td>프로젝트 헤더·KPI·차트·팀·WP를 모두 순차 행으로 쌓으면 Work Packages가 첫 화면 하단으로 밀려 실제 업무 항목을 늦게 보게 된다. 해결: Playwright 캡처와 <code>getBoundingClientRect()</code> 실측으로 현재 y좌표를 확인한 뒤, 황금비 근사 <code>8fr / 5fr</code>(8:5=1.6) 그리드로 좌측 주 영역에 헤더+WP, 우측 보조 영역에 KPI+Team+Status+Burndown을 배치한다. 단, 컬럼 비율만 맞추면 줄이 어긋날 수 있으므로 12px 줄 단위로 desktop row를 <code>276 + 12 + 696</code>에 고정해 좌우 시작선·하단선을 함께 맞춘다. 적용 후 1440px 기준 컬럼 비율 721:451=1.600, WP 시작 y=684px→431px, 좌우 하단 오차 0px (#42).</td>
+    <td>프로젝트 헤더·KPI·차트·팀·WP를 모두 순차 행으로 쌓으면 Work Packages가 첫 화면 하단으로 밀려 실제 업무 항목을 늦게 보게 된다. 해결: Playwright 캡처와 <code>getBoundingClientRect()</code> 실측으로 현재 y좌표를 확인한 뒤, 황금비 근사 <code>8fr / 5fr</code>(8:5=1.6) 그리드로 좌측 주 영역에 헤더+WP, 우측 보조 영역에 KPI+Team+Status+Burndown을 배치한다. 단, 컬럼 비율만 맞추면 줄이 어긋날 수 있으므로 12px 줄 단위로 desktop row를 <code>264 + 12 + 684</code>에 고정해 좌우 시작선·하단선을 함께 맞춘다. 적용 후 1440px 기준 컬럼 비율 721:451=1.600, WP 시작 y=684px→419px, 좌우 하단 오차 0px (#42).</td>
   </tr>
 </table>
 

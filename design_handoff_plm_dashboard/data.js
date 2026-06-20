@@ -424,6 +424,7 @@
     const d = (s) => s ? new Date(s + 'T00:00:00') : null;
     wp._start   = d(wp.startDate);
     wp._due     = d(wp.dueDate);
+    wp._milestoneDate = d(wp.milestoneDate || wp.date);
     wp._created = d(wp.createdAt);
     wp._closed  = d(wp.closedAt);
     return wp;
@@ -455,8 +456,8 @@
         p.memberRoles[id] = 'Member';
       });
     }
-    const starts = [...pvs.map((v) => v._start), ...wps.map((wp) => wp._start)].filter(Boolean);
-    const ends   = [...pvs.map((v) => v._end),   ...wps.map((wp) => wp._due)].filter(Boolean);
+    const starts = [...pvs.map((v) => v._start), ...wps.map((wp) => wp._start || wp._milestoneDate)].filter(Boolean);
+    const ends   = [...pvs.map((v) => v._end),   ...wps.map((wp) => wp._due || wp._milestoneDate)].filter(Boolean);
     p._start = starts.length ? new Date(Math.min(...starts.map((x) => x.getTime()))) : TODAY;
     p._end   = ends.length   ? new Date(Math.max(...ends.map((x) => x.getTime())))   : addDays(TODAY, 30);
     p.startDate = iso(p._start); p.dueDate = iso(p._end);

@@ -168,9 +168,14 @@ async function run() {
         {
           fn: async (page) => {
             const rows  = await page.locator('.tl-row, [class*="tl-"]').count();
+            const ganttRows = await page.locator('.gantt-row').count();
+            const milestones = await page.locator('[data-timeline-milestone]').count();
             const empty = await page.locator('.empty').count();
             const tables = await page.locator('table tr td').count();
-            return { ok: rows > 0 || empty > 0 || tables > 0, detail: `tl-row=${rows}, .empty=${empty}, td=${tables}` };
+            return {
+              ok: rows > 0 || ganttRows > 0 || milestones > 0 || empty > 0 || tables > 0,
+              detail: `tl-row=${rows}, gantt-row=${ganttRows}, milestone=${milestones}, .empty=${empty}, td=${tables}`,
+            };
           },
           desc: '타임라인 행 or 빈상태 메시지',
         },
@@ -229,7 +234,7 @@ async function run() {
   }
 
   /* ======================================================= 인터랙션 */
-  section('AC-UX-09~16: 인터랙션');
+  section('AC-UX-09~17: 인터랙션');
 
   // AC-UX-09: 새로고침 버튼 → API 재호출
   await navigateTo(page, 'overview');
@@ -339,6 +344,34 @@ async function run() {
     }
   } else {
     fail('AC-UX-16', 'Projects KPI 편집 버튼을 찾을 수 없음');
+  }
+
+  // AC-UX-17: OP 마일스톤 date 필드 → Timeline 간트 marker 표시
+  await navigateTo(page, 'timeline');
+  const milestoneInfo = await page.evaluate(() => {
+    const D = window.DB;
+    const isMilestone = (wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
+    const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
+    const dated = D.WORK_PACKAGES.filter((w) => isMilestone(w) && milestoneDate(w));
+    return {
+      dated: dated.length,
+      firstProjectId: dated.length ? dated[0].projectId : null,
+    };
+  });
+  if (milestoneInfo.dated === 0) {
+    warn('AC-UX-17', 'OP에 날짜 있는 마일스톤이 없어 marker 표시 검증 생략');
+  } else {
+    const allMarkerCount = await page.locator('[data-timeline-milestone]').count();
+    const firstTip = allMarkerCount ? await page.locator('[data-timeline-milestone]').first().getAttribute('data-tip') : '';
+    await page.selectOption('[data-tl-project]', String(milestoneInfo.firstProjectId));
+    await page.waitForTimeout(500);
+    const projectMarkerCount = await page.locator('[data-timeline-milestone]').count();
+    const projectTip = projectMarkerCount ? await page.locator('[data-timeline-milestone]').first().getAttribute('data-tip') : '';
+    if (allMarkerCount > 0 && projectMarkerCount > 0 && (firstTip || '').includes('◇') && (projectTip || '').includes('◇')) {
+      ok('AC-UX-17', `Timeline 마일스톤 marker 표시 (all=${allMarkerCount}, project=${projectMarkerCount})`);
+    } else {
+      fail('AC-UX-17', `Timeline 마일스톤 marker 누락 (dated=${milestoneInfo.dated}, all=${allMarkerCount}, project=${projectMarkerCount})`);
+    }
   }
 
   /* ======================================================= 동기화 정책 */

@@ -207,9 +207,11 @@ def run():
                     {
                         "fn": lambda p: (
                             p.locator(".tl-row, [class*='tl-']").count() > 0
+                            or p.locator(".gantt-row").count() > 0
+                            or p.locator("[data-timeline-milestone]").count() > 0
                             or p.locator(".empty").count() > 0
                             or p.locator("table tr td").count() > 0,
-                            f"tl-row={p.locator('.tl-row,[class*=tl-]').count()}, .empty={p.locator('.empty').count()}, td={p.locator('table tr td').count()}",
+                            f"tl-row={p.locator('.tl-row,[class*=tl-]').count()}, gantt-row={p.locator('.gantt-row').count()}, milestone={p.locator('[data-timeline-milestone]').count()}, .empty={p.locator('.empty').count()}, td={p.locator('table tr td').count()}",
                         ),
                         "desc": "타임라인 행 or 빈상태 메시지",
                     }
@@ -265,7 +267,7 @@ def run():
                 warn(v["id"], f"{v['label']}: 화면은 정상이나 콘솔오류={err_count}: {errs_preview}")
 
         # ===================================================== 인터랙션
-        section("AC-UX-09~16: 인터랙션")
+        section("AC-UX-09~17: 인터랙션")
 
         # AC-UX-09: 새로고침 버튼 → API 재호출
         navigate_to(page, "overview")
@@ -366,6 +368,34 @@ def run():
                 fail("AC-UX-16", f"Projects KPI 편집 버튼 가시성/클릭성 실패: {edit_controls}")
         else:
             fail("AC-UX-16", "Projects KPI 편집 버튼을 찾을 수 없음")
+
+        # AC-UX-17: OP 마일스톤 date 필드 → Timeline 간트 marker 표시
+        navigate_to(page, "timeline")
+        milestone_info = page.evaluate(
+            """() => {
+                const D = window.DB;
+                const isMilestone = (wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
+                const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
+                const dated = D.WORK_PACKAGES.filter((w) => isMilestone(w) && milestoneDate(w));
+                return {
+                    dated: dated.length,
+                    firstProjectId: dated.length ? dated[0].projectId : null,
+                };
+            }"""
+        )
+        if milestone_info["dated"] == 0:
+            warn("AC-UX-17", "OP에 날짜 있는 마일스톤이 없어 marker 표시 검증 생략")
+        else:
+            all_marker_count = page.locator("[data-timeline-milestone]").count()
+            first_tip = page.locator("[data-timeline-milestone]").first.get_attribute("data-tip") if all_marker_count else ""
+            page.select_option("[data-tl-project]", str(milestone_info["firstProjectId"]))
+            page.wait_for_timeout(500)
+            project_marker_count = page.locator("[data-timeline-milestone]").count()
+            project_tip = page.locator("[data-timeline-milestone]").first.get_attribute("data-tip") if project_marker_count else ""
+            if all_marker_count > 0 and project_marker_count > 0 and "◇" in (first_tip or "") and "◇" in (project_tip or ""):
+                ok("AC-UX-17", f"Timeline 마일스톤 marker 표시 (all={all_marker_count}, project={project_marker_count})")
+            else:
+                fail("AC-UX-17", f"Timeline 마일스톤 marker 누락 (dated={milestone_info['dated']}, all={all_marker_count}, project={project_marker_count})")
 
         # ===================================================== 동기화 정책
         section("AC-UX-12~13: 데이터 동기화 정책")

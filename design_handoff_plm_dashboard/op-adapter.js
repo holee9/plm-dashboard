@@ -171,6 +171,8 @@
       versionId: refId(wp, 'version'),
       startDate: wp.startDate || null,
       dueDate: wp.dueDate || null,
+      // OP milestone work packages use a single `date` field instead of start/due.
+      milestoneDate: wp.date || null,
       estimatedHours: durationToHours(wp.estimatedTime),   // "PT40H" → 40
       // GOTCHA #3 — `spentTime` is a DERIVED field; absent on some instances/perms.
       //   Safest: aggregate from /time_entries (done in buildDataset below).

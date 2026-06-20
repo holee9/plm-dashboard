@@ -181,6 +181,8 @@ def run():
                 "id": "AC-UX-03",
                 "label": "Resources",
                 "checks": [
+                    {"sel": "[data-resource-readiness]", "min": 1, "desc": "입력 신뢰도 패널 존재"},
+                    {"sel": "[data-resource-input-gaps]", "min": 1, "desc": "OP 입력 유도 패널 존재"},
                     {
                         "fn": lambda p: (
                             p.locator("table tr td").count() > 0
@@ -267,7 +269,7 @@ def run():
                 warn(v["id"], f"{v['label']}: 화면은 정상이나 콘솔오류={err_count}: {errs_preview}")
 
         # ===================================================== 인터랙션
-        section("AC-UX-09~17: 인터랙션")
+        section("AC-UX-09~19: 인터랙션")
 
         # AC-UX-09: 새로고침 버튼 → API 재호출
         navigate_to(page, "overview")
@@ -444,6 +446,60 @@ def run():
                     f"(schedule={schedule_count}, scoped={scoped_schedule_count}, cards={schedule_cards}, "
                     f"activeSprints={has_active_sprints}, target={target_pid}, selected={selected_pid})",
                 )
+
+        # AC-UX-19: Resources는 입력 신뢰도 중심 패널과 8:5 grid 행 정렬을 유지해야 함
+        navigate_to(page, "resources")
+        resource_layout = page.evaluate(
+            """() => {
+                const rect = (sel) => {
+                    const el = document.querySelector(sel);
+                    if (!el) return null;
+                    const r = el.getBoundingClientRect();
+                    return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom };
+                };
+                const grid = document.querySelector('.resource-layout-grid');
+                const readiness = rect('.resource-readiness-panel');
+                const capacity = rect('.resource-capacity-panel');
+                const pressure = rect('.resource-pressure-panel');
+                const input = rect('.resource-input-panel');
+                const overlaps = (a, b) => !!(a && b && !(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y));
+                const cols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').map((v) => parseFloat(v)) : [];
+                const ratio = cols.length >= 2 && cols[1] ? cols[0] / cols[1] : 0;
+                return {
+                    hasGrid: !!grid,
+                    hasPanels: !!(readiness && capacity && pressure && input),
+                    topHeightDelta: readiness && capacity ? Math.abs(readiness.h - capacity.h) : 999,
+                    detailHeightDelta: pressure && input ? Math.abs(pressure.h - input.h) : 999,
+                    topYDelta: readiness && capacity ? Math.abs(readiness.y - capacity.y) : 999,
+                    detailYDelta: pressure && input ? Math.abs(pressure.y - input.y) : 999,
+                    ratio,
+                    readinessCards: document.querySelectorAll('.resource-readiness-panel .resource-card').length,
+                    gapCards: document.querySelectorAll('.resource-input-panel .resource-gap-item').length,
+                    pressureRows: document.querySelectorAll('.resource-pressure-panel tbody tr').length,
+                    overlap: overlaps(readiness, capacity) || overlaps(pressure, input),
+                };
+            }"""
+        )
+        if (
+            resource_layout["hasGrid"]
+            and resource_layout["hasPanels"]
+            and resource_layout["readinessCards"] >= 5
+            and resource_layout["gapCards"] >= 4
+            and resource_layout["pressureRows"] > 0
+            and resource_layout["topHeightDelta"] <= 2
+            and resource_layout["detailHeightDelta"] <= 2
+            and resource_layout["topYDelta"] <= 1
+            and resource_layout["detailYDelta"] <= 1
+            and 1.5 <= resource_layout["ratio"] <= 1.7
+            and not resource_layout["overlap"]
+        ):
+            ok(
+                "AC-UX-19",
+                "Resources 입력 신뢰도/입력 유도/인원 압박 패널 및 8:5 grid 행 정렬 검증 "
+                f"(topΔ={resource_layout['topHeightDelta']:.1f}, detailΔ={resource_layout['detailHeightDelta']:.1f}, ratio={resource_layout['ratio']:.2f})",
+            )
+        else:
+            fail("AC-UX-19", f"Resources grid/패널 정렬 실패: {resource_layout}")
 
         # ===================================================== 동기화 정책
         section("AC-UX-12~13: 데이터 동기화 정책")

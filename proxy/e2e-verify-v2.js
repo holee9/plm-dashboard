@@ -141,6 +141,8 @@ async function run() {
       id: 'AC-UX-03',
       label: 'Resources',
       checks: [
+        { sel: '[data-resource-readiness]', minCount: 1, desc: '입력 신뢰도 패널 존재' },
+        { sel: '[data-resource-input-gaps]', minCount: 1, desc: 'OP 입력 유도 패널 존재' },
         {
           fn: async (page) => {
             const rows = await page.locator('table tr td').count();
@@ -234,7 +236,7 @@ async function run() {
   }
 
   /* ======================================================= 인터랙션 */
-  section('AC-UX-09~17: 인터랙션');
+  section('AC-UX-09~19: 인터랙션');
 
   // AC-UX-09: 새로고침 버튼 → API 재호출
   await navigateTo(page, 'overview');
@@ -416,6 +418,59 @@ async function run() {
         `Timeline 일정 점검/프로젝트 scope 전환 실패 (schedule=${scheduleCount}, scoped=${scopedScheduleCount}, cards=${scheduleCards}, activeSprints=${hasActiveSprints}, target=${targetPid}, selected=${selectedPid})`,
       );
     }
+  }
+
+  // AC-UX-19: Resources는 입력 신뢰도 중심 패널과 8:5 grid 행 정렬을 유지해야 함
+  await navigateTo(page, 'resources');
+  const resourceLayout = await page.evaluate(() => {
+    const rect = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom };
+    };
+    const grid = document.querySelector('.resource-layout-grid');
+    const readiness = rect('.resource-readiness-panel');
+    const capacity = rect('.resource-capacity-panel');
+    const pressure = rect('.resource-pressure-panel');
+    const input = rect('.resource-input-panel');
+    const overlaps = (a, b) => !!(a && b && !(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y));
+    const cols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').map((v) => parseFloat(v)) : [];
+    const ratio = cols.length >= 2 && cols[1] ? cols[0] / cols[1] : 0;
+    return {
+      hasGrid: !!grid,
+      hasPanels: !!(readiness && capacity && pressure && input),
+      topHeightDelta: readiness && capacity ? Math.abs(readiness.h - capacity.h) : 999,
+      detailHeightDelta: pressure && input ? Math.abs(pressure.h - input.h) : 999,
+      topYDelta: readiness && capacity ? Math.abs(readiness.y - capacity.y) : 999,
+      detailYDelta: pressure && input ? Math.abs(pressure.y - input.y) : 999,
+      ratio,
+      readinessCards: document.querySelectorAll('.resource-readiness-panel .resource-card').length,
+      gapCards: document.querySelectorAll('.resource-input-panel .resource-gap-item').length,
+      pressureRows: document.querySelectorAll('.resource-pressure-panel tbody tr').length,
+      overlap: overlaps(readiness, capacity) || overlaps(pressure, input),
+    };
+  });
+  if (
+    resourceLayout.hasGrid &&
+    resourceLayout.hasPanels &&
+    resourceLayout.readinessCards >= 5 &&
+    resourceLayout.gapCards >= 4 &&
+    resourceLayout.pressureRows > 0 &&
+    resourceLayout.topHeightDelta <= 2 &&
+    resourceLayout.detailHeightDelta <= 2 &&
+    resourceLayout.topYDelta <= 1 &&
+    resourceLayout.detailYDelta <= 1 &&
+    resourceLayout.ratio >= 1.5 &&
+    resourceLayout.ratio <= 1.7 &&
+    !resourceLayout.overlap
+  ) {
+    ok(
+      'AC-UX-19',
+      `Resources 입력 신뢰도/입력 유도/인원 압박 패널 및 8:5 grid 행 정렬 검증 (topΔ=${resourceLayout.topHeightDelta.toFixed(1)}, detailΔ=${resourceLayout.detailHeightDelta.toFixed(1)}, ratio=${resourceLayout.ratio.toFixed(2)})`,
+    );
+  } else {
+    fail('AC-UX-19', `Resources grid/패널 정렬 실패: ${JSON.stringify(resourceLayout)}`);
   }
 
   /* ======================================================= 동기화 정책 */

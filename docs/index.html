@@ -1056,6 +1056,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>OP에 직접 필드가 없는 값은 출처를 명시하고 fallback을 남겨야 한다</strong></td>
     <td><code>closedAt</code>은 WP 본문에 직접 없으므로 <code>/work_packages/{id}/activities</code>의 상태 변경 이력에서 닫힘 상태 전환 시각을 계산하고, 이력이 없거나 권한 제한이면 <code>updatedAt</code> fallback을 쓴다. 사용자 주간 가용량도 OP core 원천이 없으므로 토큰과 무관한 공개 운영 메타데이터 <code>user-overrides.js</code>로 관리하고 <code>capacityOverride</code>로 출처를 드러낸다 (#6, AC-OPTIONAL-01/02).</td>
   </tr>
+  <tr>
+    <td>P38</td>
+    <td><strong>Resources에서 Load를 전면에 두기 전 입력 신뢰도를 먼저 보여줘야 한다</strong></td>
+    <td>2026-06-20 운영 OP 실측 결과 Open WP 196건 중 Estimated time 입력은 4건(2%), Time entries는 0건이었다. 이 상태에서 AVG LOAD/OVERLOADED/UNDERUTIL을 핵심 카드로 두면 실제 업무량이 모두 0에 가까워 보이는 착시가 생긴다. 해결: Resources 기본 KPI를 MEMBERS·ASSIGNMENT·ESTIMATE·DUE 21D·UNASSIGNED로 바꾸고, Data Readiness와 Input Actions에서 OP 기존 필드(Assignee, Estimated time, Due date, Time entries) 입력 누락을 주의 표시와 툴팁으로 유도한다. Load는 <code>Load confidence Low</code> 보조 패널로 낮춘다 (#48).</td>
+  </tr>
+  <tr>
+    <td>K15</td>
+    <td><strong>리소스 화면도 8:5 그리드와 행 높이 실측 검증이 필요하다</strong></td>
+    <td>Resources를 좌측 Data Readiness/Person Pressure, 우측 Capacity Signal/Input Actions로 재배치하면서 Projects의 황금비 근사 <code>8fr / 5fr</code> 패턴을 재사용했다. 단순 grid 선언만으로는 줄이 맞는지 보장되지 않으므로 Playwright로 desktop 1440px 기준 컬럼 721:451=1.600, 상단/하단 패널 높이 오차 0px, page/body 가로 overflow 0을 검증했다. <code>AC-UX-19</code>는 패널 존재, 8:5 비율, 행 높이 정렬을 자동 검증한다 (#48).</td>
+  </tr>
 </table>
 
 <div class="note tip">

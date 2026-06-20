@@ -65,7 +65,7 @@ proxy/
 ## E2E 검증
 
 AC-E2E-01..20은 API/데이터 무결성, AC-OPTIONAL-01..02는 #6 선택 기능,
-AC-UX-01..18은 실제 브라우저 UX 검증입니다.
+AC-UX-01..19는 실제 브라우저 UX 검증입니다.
 Playwright 필요.
 
 **Node.js (권장):**
@@ -85,6 +85,9 @@ python3 e2e-verify-v2.py
 - `AC-UX-17`: OP 마일스톤 `date` 필드가 간트 diamond marker와 Project scope에 표시되는지 확인
 - `AC-UX-18`: `Active Sprints`가 제거되고 `Schedule Inspection`이 표시되는지, 마일스톤이 있는 프로젝트 행 클릭 후 Timeline scope와 marker가 함께 갱신되는지 확인
 
+주요 Resources 검증:
+- `AC-UX-19`: Data Readiness/Input Actions/Person Pressure 패널이 표시되고, desktop 8:5 grid 컬럼 비율과 상단·하단 패널 행 높이 정렬이 유지되는지 확인
+
 선택 기능 검증:
 - `AC-OPTIONAL-01`: 닫힌 WP의 `closedAt`이 `/work_packages/{id}/activities` 상태 변경 이력에서 계산되는지 확인하고, 이력이 없는 경우 `updatedAt` fallback을 허용
 - `AC-OPTIONAL-02`: `user-overrides.js`의 관리자 지정 `capacityPerWeek`가 `DB.USERS`와 Resources/Risks 가동률 계산에 반영되는지 확인
@@ -92,6 +95,10 @@ python3 e2e-verify-v2.py
 최근 Timeline 실증 캡처:
 - `/tmp/plm-timeline-schedule-all-bottom-visible.png`
 - `/tmp/plm-timeline-schedule-bluehd-bottom-visible.png`
+
+최근 Resources 실증 캡처:
+- `/tmp/plm-resources-1440.png`
+- `/tmp/plm-resources-390.png`
 
 E2E 실패 이력 및 Anti-pattern은 `E2E-FAILURE-LOG.md` 참조.
 

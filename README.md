@@ -237,6 +237,17 @@ proxy/
 
 API 키는 `~/.hermes/.env`의 `OP_API_KEY`에만 존재하며 브라우저에 노출되지 않습니다.
 
+### 향후 배포 후보: 릴리즈 이미지형 Docker 배포
+
+현재 운영 방식은 `nginx:alpine` 컨테이너가 로컬 워크트리의
+`design_handoff_plm_dashboard/`를 bind mount로 읽는 **운영형 Docker 프록시**입니다.
+이 방식은 서버에서 즉시 반영하기 쉽지만, 릴리즈 산출물을 이미지로 고정하지는 않습니다.
+
+향후 별도 기획 시에는 `Dockerfile`로 대시보드 정적 파일과 nginx 설정을 이미지에 포함하고,
+`OP_API_KEY`/`OP_AUTH_B64` 같은 인증 값은 런타임 환경변수로만 주입하는
+**릴리즈 이미지형 컨테이너 배포**를 검토합니다. 이 작업은 아직 구현하지 않았으며,
+기획 메모는 [Docker 컨테이너 배포 후보 메모](docs/docker-containerization-note.md)에 남겨둡니다.
+
 ### 로컬 개발 / 목업 모드
 
 빌드 없이 정적 서버로 실행합니다.
@@ -311,6 +322,7 @@ python3 -m http.server 8080
 | `design_handoff_plm_dashboard/README.md` | 핸드오프 상세(아키텍처·데이터 계약·연동 절차 전문) |
 | `design_handoff_plm_dashboard/OpenProject 연동 점검.html` | API v3 교차검증 리포트(필드 매핑·함정·배포) |
 | `proxy/README.md` | 프록시 운영 가이드 (기동·토큰 관리·E2E 검증) |
+| `docs/docker-containerization-note.md` | 향후 릴리즈 이미지형 Docker 배포 후보 메모 |
 | `.moai/project/product.md` | 제품 개요 — 배경·사용자·기능 |
 | `.moai/project/tech.md` | 기술 스택 및 운영 |
 | `.moai/project/structure.md` | 디렉터리 및 구조 상세 |

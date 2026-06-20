@@ -196,6 +196,37 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 
 ---
 
+## 2026-06-20 — Timeline Active Sprints 빈 개념 노출 (#46)
+
+**증상:** Timeline 하단에 `Active Sprints` 패널이 있었지만 운영 OP에는 `/versions`가 0건이고
+WP `versionId` 연결도 0건이었다. 결과적으로 Timeline에서 가장 중요한 하단 상세 영역이
+실제 점검 가치가 없는 스프린트 표로 남았다.
+
+**근본 원인:** 상용 Gantt 패턴만 보고 "스프린트/번다운"을 좋은 항목으로 간주했지만,
+운영 OP에 실제 데이터가 있는지 교차검증하지 않았다. 또한 간트 프로젝트 행 클릭이
+Timeline 내부 상세를 갱신하지 않고 Projects 탭으로 이동해 상단 간트와 하단 상세가
+연결되지 않았다.
+
+**수정 내용:**
+- `op-adapter.js`/`data.js`: `/relations`를 `RELATIONS`로 정규화
+- `views/timeline.js`: `Active Sprints` 제거, `Schedule Inspection` 추가
+- `app.js`: `data-tl-scope-project` 클릭 시 Timeline 내부 프로젝트 scope 전환
+- `README.md`, `design_handoff_plm_dashboard/README.md`, `docs/index.html`, `proxy/README.md`: Timeline 설계 기준과 검증 기준 문서화
+- `e2e-verify-v2.py/js`: AC-UX-18 추가
+
+**검증:**
+- 실 OP: `/versions=0`, WP `versionId=0`, 마일스톤 22건, `follows` 3건
+- All Projects: `Schedule Inspection` 카드 5개, 프로젝트 점검 행 10개, `Active Sprints=false`
+- Project scope: 마일스톤 있는 프로젝트 클릭 후 scope 전환 및 marker 표시
+- Playwright 캡처: `/tmp/plm-timeline-schedule-all-bottom-visible.png`, `/tmp/plm-timeline-schedule-bluehd-bottom-visible.png`
+- `python3 proxy/e2e-verify-v2.py`: AC-UX-18 통과
+
+**Anti-pattern:**
+> ❌ WRONG: OP에 없는 데이터 개념을 UI 핵심 패널로 유지
+> ✅ CORRECT: 상용 앱 패턴 후보를 OP 실데이터와 교차검증한 뒤, 실제 존재하는 일정 신호만 채택
+
+---
+
 ## 재발 방지 체크리스트 (E2E 실증 전 필수 확인)
 
 - [ ] E2E 검증은 의미 있는 DOM 선택자를 사용하는가? (`html.length` 금지)
@@ -212,3 +243,6 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 - [ ] 새로고침 버튼이 진행/완료/실패 상태를 사용자가 볼 수 있게 표시하는가?
 - [ ] 레이아웃 변경은 Playwright 스크린샷과 `getBoundingClientRect()` 좌표로 검증했는가? (겹침·화면 밖 요소·텍스트 잘림 0건)
 - [ ] 편집 모드/드롭다운/필터 등 상태 전환 후 주요 버튼이 `elementFromPoint()` 기준 실제 클릭 가능한가?
+- [ ] 새 패널 후보는 OP 실데이터에 실제 원천 필드가 있는지 확인했는가? (`/versions`, `versionId`, `relations`, `date` 등)
+- [ ] 간트/타임라인에서 선택한 항목이 같은 화면의 상세 패널을 갱신하는가?
+- [ ] 다른 창(Risks/Resources/Projects)에 이미 있는 상세 목록을 Timeline에서 중복 노출하지 않는가?

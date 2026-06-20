@@ -82,6 +82,26 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 | **Timeline** | `views/timeline.js` | 간트 차트 + 마일스톤 marker, 선택 프로젝트 drilldown, 일정 점검(Schedule Inspection), 기간 선택 |
 | **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
 
+### Timeline 운영 설계 기준
+
+Timeline은 일정 전용 창입니다. Projects/Risks/Resources에 이미 있는 담당자, 가동률,
+지연 상세 목록을 반복하지 않고, 간트에서 바로 판단해야 하는 일정 신호만 보여줍니다.
+
+현재 운영 OP 실측(2026-06-20):
+- `/versions`: 0건, WP `versionId` 연결 0건 → `Active Sprints`/번다운 섹션 미사용
+- 날짜 있는 마일스톤: 22건 → 간트 diamond marker와 Project Milestones 패널에 표시
+- Open WP: 196건, 7일 내 마감 18건, 14일 내 마감 28건
+- 시작일 없음 23건, 마감일 없음 51건, 시작/마감 둘 다 없음 23건
+- 60일 초과 장기 span 27건
+- OP `relations`: 28건, 그중 `follows` 3건 → critical path 계산 없이 의존성 참고 수치로만 표시
+
+Timeline 하단은 두 패널로 고정합니다.
+- **Project Milestones:** 선택 범위의 마일스톤명, `MM.DD`, 상태, D-day만 표시
+- **Schedule Inspection:** 일정 커버리지, Due 7D/14D, Missing Due, Long Span, Deps 요약
+
+All Projects 간트에서 프로젝트 행을 클릭하면 Projects 탭으로 이동하지 않고 Timeline 내부
+프로젝트 scope로 전환됩니다. 하단 두 패널도 같은 scope로 재계산됩니다.
+
 ---
 
 ## 3. 기술 스택

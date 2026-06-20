@@ -19,6 +19,7 @@
   const hasSchedule = (wp) => !!(wp._start && wp._due);
   const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
   const attr = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;');
+  const shortDate = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 
   function milestoneItems(D, UI, wps) {
     return wps.filter((w) => isMilestone(D, w)).map((w) => {
@@ -27,16 +28,15 @@
       const dateIso = D.iso(date);
       const project = D.P[w.projectId]?.name || 'Unknown project';
       const status = D.S[w.statusId]?.name || 'Unknown status';
-      const assignee = D.U[w.assigneeId]?.name || '미배정';
       return {
         id: w.id,
         label: w.subject,
         date,
         dateIso,
+        dateShort: shortDate(date),
         project,
         status,
-        assignee,
-        tip: `◇ ${w.subject} · ${project} · ${UI.fmtDateY(dateIso)} · ${status} · ${assignee}`,
+        tip: `◇ ${w.subject} · ${shortDate(date)} · ${status}`,
       };
     }).filter(Boolean).sort((a, b) => a.date - b.date);
   }
@@ -166,7 +166,7 @@
       body: `<div class="feed">${milestones.map((m) => { const due = UI.dueLabel(m.dateIso); return `<div class="feed-item">
         <div class="feed-ic" style="background:rgba(139,92,246,.16)"><span style="color:#8B5CF6">◇</span></div>
         <div class="feed-main"><div class="feed-title">${m.label}</div>
-          <div class="feed-meta"><span>${m.project}</span><span class="mono">${UI.fmtDateY(m.dateIso)}</span><span>${m.status}</span><span>${m.assignee}</span></div></div>
+          <div class="feed-meta"><span>${m.project}</span><span class="mono">${m.dateShort}</span><span>${m.status}</span></div></div>
         <span class="kpi-delta ${due.cls}">${due.txt}</span></div>`; }).join('') || '<div class="empty">예정 마일스톤 없음</div>'}</div>`,
       bodyStyle: 'max-height:360px;overflow-y:auto',
     });

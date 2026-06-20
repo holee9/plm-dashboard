@@ -36,7 +36,7 @@
   const SUBTITLE = {
     overview: '전체 과제·인원·리스크 종합 현황',
     projects: '과제별 진행률 · 번다운 · 팀 · WP',
-    resources: '개발자별 가동률 · 잔여 공수 · 할당',
+    resources: '입력 신뢰도 · 일정 압박 · 보조 가동률',
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
     risks: '마감 초과 · 임박 · 과부하 · 공수 초과',
@@ -54,7 +54,7 @@
   /* ---------- state ---------- */
   const DEFAULTS = { view: 'overview', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
-    resSort: 'load', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
+    resSort: 'pressure', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
     projOrder: [], projPmOverrides: {}, projTlOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
     projKpiSections: null, projKpiEditMode: false,
     resKpiSections: null,  resKpiEditMode: false,

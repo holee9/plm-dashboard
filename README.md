@@ -77,10 +77,32 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 |----|------|-----------|
 | **Overview** | `views/overview.js` | 종합 판정(정상/주의/위험) · KPI 스트립(드래그 편집) · **핵심현황**: 과제현황(col-6·스크롤) + 주의항목(col-3·스크롤) + 금주WP(col-3·스크롤) · **추세·분배**: Throughput + 상태 분포 + 팀 가동률 + 활동별 공수 |
 | **Projects** | `views/projects.js` | 프로젝트별 상세 — 8:5 주/보조 그리드, 진행률 헤더, 편집 안전 KPI 레일, 팀/상태, WP 테이블 우선 배치 |
-| **Resources** | `views/resources.js` | 개발자별 부하 — 부하 %, 단기 잔여 시간, 백로그, 담당 프로젝트, 지연 WP |
+| **Resources** | `views/resources.js` | 리소스 입력 신뢰도 — Assignment/Estimate/Due Date 커버리지, OP 입력 유도, 인원별 일정 압박, 보조 Load |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |
 | **Timeline** | `views/timeline.js` | 간트 차트 + 마일스톤 marker, 선택 프로젝트 drilldown, 일정 점검(Schedule Inspection), 기간 선택 |
 | **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
+
+### Resources 운영 설계 기준
+
+Resources는 "누가 과부하인가"를 단정하기 전에 OP 입력이 리소스 판단에 충분한지 먼저 보여줍니다.
+현재 운영 OP는 Estimated time 입력률이 낮아 Load/Overloaded/Underutilized를 1차 판단 지표로 쓰면
+업무량이 과소 표시됩니다.
+
+현재 운영 OP 실측(2026-06-20):
+- 활성 인원 11명, Open WP 196건
+- Assignee 입력 110건(56%), 미배정 86건
+- Estimated time 입력 4건(2%), 미입력 192건
+- Due date 입력 145건(74%), 미입력 51건
+- Time entries 0건, capacity override 4/11명
+
+Resources는 네 영역으로 고정합니다.
+- **Data Readiness:** Assignment/Estimate/Due Date/21D/Capacity 커버리지와 Load confidence
+- **Capacity Signal:** 21일 내 estimated hours ÷ capacity. Estimate 입력률이 낮으면 보조 지표
+- **Person Pressure:** 지연, 7일/21일 내 마감, 입력 누락을 합산한 인원별 점검 표
+- **Input Actions:** OP 기존 필드(Assignee, Estimated time, Due date, Time entries)의 누락 입력 유도
+
+레이아웃은 Projects와 같은 황금비 근사 `8fr / 5fr`를 사용합니다. 1440px 실측 기준
+컬럼 721:451=1.600, 상단/하단 패널 높이 오차 0px로 검증했습니다(`AC-UX-19`).
 
 ### Timeline 운영 설계 기준
 

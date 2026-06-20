@@ -737,8 +737,8 @@ Key files: [관련 파일 목록]</pre>
   <tr><th>#</th><th>함정</th><th>대응</th></tr>
   <tr><td>1</td><td><abbr title="Cross-Origin Resource Sharing">CORS</abbr> · <abbr title="Application Programming Interface">API</abbr> 키 노출 <span class="badge b-hard">치명</span></td><td>same-origin 프록시 필수, 서버측 토큰 주입</td></tr>
   <tr><td>2</td><td>외부 <abbr title="Application Programming Interface">API</abbr> 시간 = ISO8601 기간 문자열 <span class="badge b-hard">치명</span></td><td><code>"PT40H"→40</code> 파싱 필수 (숫자로 착각하면 런타임 오류)</td></tr>
-  <tr><td>3</td><td>spentTime / closedAt 신뢰 곤란</td><td>time_entries 합산 / updatedAt 근사 정책 명시</td></tr>
-  <tr><td>4</td><td>가동률·가용량 원천 없음</td><td>기본값 + 관리자 오버라이드 패턴</td></tr>
+  <tr><td>3</td><td>spentTime / closedAt 신뢰 곤란</td><td>time_entries 합산 / activities 상태 변경 이력 우선, updatedAt fallback</td></tr>
+  <tr><td>4</td><td>가동률·가용량 원천 없음</td><td>기본값 + 공개 운영 메타데이터 관리자 오버라이드 패턴</td></tr>
   <tr><td>5</td><td>상태·유형이 인스턴스마다 다름</td><td>하드코딩 금지, 동적 fetch + 페이지네이션</td></tr>
 </table>
 
@@ -1050,6 +1050,11 @@ Key files: [관련 파일 목록]</pre>
     <td>K14</td>
     <td><strong>간트에서 프로젝트를 클릭하면 같은 Timeline 안의 선택 범위가 바뀌어야 한다</strong></td>
     <td>Microsoft Project split view, Smartsheet, monday, ClickUp의 공통 패턴은 시간축에서 선택한 항목이 같은 화면의 상세 영역을 제어한다는 점이다. Timeline 간트 프로젝트 행 클릭이 Projects 탭으로 이동하면 하단 상세 패널과 연결되지 않는다. 해결: 별도 <code>data-tl-scope-project</code> 이벤트로 Timeline scope만 바꾸고, Projects 상세 이동은 별도 버튼이나 탭에 맡긴다 (#46).</td>
+  </tr>
+  <tr>
+    <td>P37</td>
+    <td><strong>OP에 직접 필드가 없는 값은 출처를 명시하고 fallback을 남겨야 한다</strong></td>
+    <td><code>closedAt</code>은 WP 본문에 직접 없으므로 <code>/work_packages/{id}/activities</code>의 상태 변경 이력에서 닫힘 상태 전환 시각을 계산하고, 이력이 없거나 권한 제한이면 <code>updatedAt</code> fallback을 쓴다. 사용자 주간 가용량도 OP core 원천이 없으므로 토큰과 무관한 공개 운영 메타데이터 <code>user-overrides.js</code>로 관리하고 <code>capacityOverride</code>로 출처를 드러낸다 (#6, AC-OPTIONAL-01/02).</td>
   </tr>
 </table>
 

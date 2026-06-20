@@ -62,7 +62,7 @@ with sync_playwright() as pw:
         ok("AC-E2E-02a", "Token not in HTML source")
 
     token_in_js = False
-    for f in ["op-adapter.js", "data.js", "app.js"]:
+    for f in ["user-overrides.js", "op-adapter.js", "data.js", "app.js"]:
         r = ctx.request.get(f"{BASE}/{f}")
         if TOKEN_RE.search(r.text()):
             fail("AC-E2E-02b", f"Token found in {f}")
@@ -78,8 +78,13 @@ with sync_playwright() as pw:
 
     ok("AC-E2E-03", ":8086 proxy config untouched (scope discipline, not modified)")
 
-    # Wait for live async fetch (up to 12s)
-    page.wait_for_timeout(12000)
+    # Wait for live async fetch. Optional WP activities/journals can add latency
+    # on large OP instances, so wait on the actual loading flag instead of a
+    # fixed sleep.
+    try:
+        page.wait_for_function("() => window.DB && window.DB._loading === false", timeout=30000)
+    except Exception:
+        pass
 
     use_live = page.evaluate("() => window.OPAdapter && window.OPAdapter.USE_LIVE_API")
     if use_live:
@@ -146,14 +151,18 @@ with sync_playwright() as pw:
         });
         if (!closed.length) return { count: 0 };
         const s = closed[0];
-        return { count: closed.length, closedAt: s.closedAt, updatedAt: s.updatedAt };
+        const sources = closed.reduce((a, w) => {
+            a[w.closedAtSource || 'none'] = (a[w.closedAtSource || 'none'] || 0) + 1;
+            return a;
+        }, {});
+        return { count: closed.length, closedAt: s.closedAt, updatedAt: s.updatedAt, sources };
     }""")
     if closed_check is None:
         fail("AC-E2E-10", "DB not available for closedAt check")
     elif closed_check["count"] == 0:
         ok("AC-E2E-10", "No closed WPs in dataset — closedAt proxy graceful (N/A)")
     elif closed_check.get("closedAt"):
-        ok("AC-E2E-10", f"closedAt proxy: {closed_check['count']} closed WPs, sample closedAt={closed_check['closedAt']}")
+        ok("AC-E2E-10", f"closedAt present: {closed_check['count']} closed WPs, sample={closed_check['closedAt']}, sources={closed_check.get('sources')}")
     else:
         fail("AC-E2E-10", f"closedAt missing on closed WP: {closed_check}")
 
@@ -200,6 +209,45 @@ with sync_playwright() as pw:
         ok("AC-E2E-12b", f"WP _due hydration ok (hasDue={hyd_wp['hasDue']})")
     else:
         fail("AC-E2E-12b", f"WP _due: {hyd_wp}")
+
+    # ---------------------------------------------------------------- optional features
+    section("AC-OPTIONAL-01..02: journals closedAt + capacity override")
+
+    journal_closed = page.evaluate("""() => {
+        const DB = window.DB;
+        if (!DB) return null;
+        const closed = DB.WORK_PACKAGES.filter(wp => DB.S[wp.statusId]?.isClosed);
+        const activities = closed.filter(wp => wp.closedAtSource === 'activities');
+        const fallback = closed.filter(wp => wp.closedAtSource === 'updatedAt');
+        return {
+            closed: closed.length,
+            activities: activities.length,
+            fallback: fallback.length,
+            sample: activities[0] ? { id: activities[0].id, closedAt: activities[0].closedAt } : null,
+        };
+    }""")
+    if journal_closed is None:
+        fail("AC-OPTIONAL-01", "DB not available for journals closedAt check")
+    elif journal_closed["closed"] == 0:
+        ok("AC-OPTIONAL-01", "No closed WPs — journals closedAt graceful N/A")
+    elif journal_closed["activities"] > 0:
+        ok("AC-OPTIONAL-01", f"activities/journals closedAt applied: {journal_closed['activities']}/{journal_closed['closed']} closed WPs, fallback={journal_closed['fallback']}, sample={journal_closed['sample']}")
+    else:
+        fail("AC-OPTIONAL-01", f"No closed WP used activities/journals source: {journal_closed}")
+
+    capacity_override = page.evaluate("""() => {
+        const DB = window.DB;
+        if (!DB) return null;
+        const overridden = DB.USERS
+            .filter(u => !u.isGroup && !u.isObserver && !u.isBot && (u.capacityOverride || u.capacityPerWeek !== 40))
+            .map(u => ({ id: u.id, name: u.name, capacityPerWeek: u.capacityPerWeek, capacityOverride: !!u.capacityOverride }));
+        const invalid = DB.USERS.filter(u => !Number.isFinite(Number(u.capacityPerWeek)) || Number(u.capacityPerWeek) <= 0);
+        return { count: overridden.length, overridden: overridden.slice(0, 8), invalid: invalid.length };
+    }""")
+    if capacity_override and capacity_override["count"] > 0 and capacity_override["invalid"] == 0:
+        ok("AC-OPTIONAL-02", f"capacityPerWeek override applied: {capacity_override['count']} users, sample={capacity_override['overridden']}")
+    else:
+        fail("AC-OPTIONAL-02", f"capacity override missing/invalid: {capacity_override}")
 
     # ---------------------------------------------------------------- 6 views
     section("AC-E2E-13..18: 6 views render without console errors")

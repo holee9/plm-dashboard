@@ -101,6 +101,89 @@
     try { return await fetchAll(path, filters); } catch (e) { console.warn('[PLM]', e.message); return []; }
   }
 
+  async function mapLimit(items, limit, iteratee) {
+    const out = new Array(items.length);
+    let next = 0;
+    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+      for (;;) {
+        const index = next;
+        next += 1;
+        if (index >= items.length) return;
+        out[index] = await iteratee(items[index], index);
+      }
+    });
+    await Promise.all(workers);
+    return out;
+  }
+
+  const compactDate = (ts) => (ts || '').slice(0, 10) || null;
+  const normStatus = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  function htmlText(s) {
+    return String(s || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function statusTargetFromDetail(detail) {
+    const raw = String(detail?.raw || '');
+    const html = String(detail?.html || '');
+    if (!/(^|[^\w])(status|상태)([^\w]|$)/i.test(htmlText(raw + ' ' + html))) return null;
+
+    const italicTargets = [...html.matchAll(/<i>([\s\S]*?)<\/i>/g)]
+      .map((m) => htmlText(m[1]))
+      .filter(Boolean);
+    if (italicTargets.length) return italicTargets[italicTargets.length - 1];
+
+    let m = raw.match(/상태.*?에서\s*(.+?)\(으\)로/);
+    if (m) return m[1].trim();
+    m = raw.match(/상태.*?이\(가\)\s*(.+?)\(으\)로\s*설정/);
+    if (m) return m[1].trim();
+    m = raw.match(/status.*?\bto\s+(.+?)(?:\.|$)/i);
+    if (m) return m[1].trim();
+    m = raw.match(/status.*?\bset\s+to\s+(.+?)(?:\.|$)/i);
+    return m ? m[1].trim() : null;
+  }
+
+  function closedAtFromActivities(activities, closedStatusNames) {
+    const closed = new Set(closedStatusNames.map(normStatus));
+    const sorted = [...(activities || [])].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    for (const activity of sorted) {
+      const details = Array.isArray(activity.details) ? activity.details : [];
+      const hit = details.some((detail) => closed.has(normStatus(statusTargetFromDetail(detail))));
+      if (hit) return compactDate(activity.createdAt);
+    }
+    return null;
+  }
+
+  function userOverrideFor(resource, displayName) {
+    const cfg = window.PLM_USER_OVERRIDES || {};
+    const maps = [cfg.byPrincipal, cfg.byId, cfg.byLogin, cfg.byName].filter(Boolean);
+    const keys = [resource?.id, resource?.login, resource?.name, displayName]
+      .filter((v) => v != null && String(v).trim() !== '')
+      .map(String);
+    return keys.reduce((acc, key) => {
+      maps.forEach((map) => { if (map[key]) Object.assign(acc, map[key]); });
+      return acc;
+    }, {});
+  }
+
+  function capacityFor(override) {
+    const cfg = window.PLM_USER_OVERRIDES || {};
+    const candidate = override && override.capacityPerWeek != null
+      ? override.capacityPerWeek
+      : cfg.defaultCapacityPerWeek;
+    const cap = Number(candidate == null ? 40 : candidate);
+    return Number.isFinite(cap) && cap > 0 ? cap : 40;
+  }
+
   /* --------------------------------------------------------------- mappers */
 
   function mapStatus(s) {
@@ -138,21 +221,27 @@
     // NAME_TABLE maps account names → 성+이름 Korean names (see GOTCHA #13 above).
     const raw = u.name || 'Unknown';
     const displayName = NAME_TABLE[raw] || raw;
-    const name = escapeHtml(displayName);
+    const override = userOverrideFor(u, displayName);
+    const finalDisplayName = override.name || displayName;
+    const capacityPerWeek = capacityFor(override);
     // GOTCHA #14 — Locked OP accounts remain in /principals but lose the 'showUser' link.
     // Active users always have _links.showUser; permanently locked accounts do not.
     // E2E verified 2026-06-18: jykim(#25) locked → no showUser; all others have it.
     const isLocked = !u._links?.showUser;
     // initials: first 2 chars works for 3-char Korean names (e.g. 강동근 → 강동)
-    const initials = displayName.slice(0, 2).toUpperCase();
+    const initials = finalDisplayName.slice(0, 2).toUpperCase();
     return {
       id: u.id,
-      name,
+      name: escapeHtml(finalDisplayName),
       initials,
       email: escapeHtml(u.email || ''), avatar: u.avatar || '', login: escapeHtml(u.login || ''),
       // GOTCHA #4 — role / title / weekly capacity DO NOT EXIST in OP core.
-      role: 'Member', title: '', capacityPerWeek: 40,
-      color: '#3B82F6',
+      // capacityPerWeek is public operating metadata from user-overrides.js.
+      role: override.role ? escapeHtml(override.role) : 'Member',
+      title: override.title ? escapeHtml(override.title) : '',
+      capacityPerWeek,
+      capacityOverride: override.capacityPerWeek != null,
+      color: safeColor(override.color, '#3B82F6'),
       isLocked,
     };
   }
@@ -180,10 +269,11 @@
       percentDone: wp.percentageDone || 0,                 // note: OP field is percentageDone
       createdAt: (wp.createdAt || '').slice(0, 10),
       updatedAt: (wp.updatedAt || '').slice(0, 10),
-      // GOTCHA #5 — there is NO `closedAt` field. We approximate it with updatedAt
-      //   when the status is closed. For exact close dates, read the WP journals
-      //   (/api/v3/work_packages/{id}/activities) — heavier, optional.
+      // GOTCHA #5 — there is NO direct `closedAt` field. buildLiveDataset reads
+      //   /work_packages/{id}/activities for exact status-close journals, then
+      //   falls back to updatedAt if activities are unavailable.
       closedAt: null,                                       // filled in buildDataset
+      closedAtSource: null,
     };
   }
 
@@ -236,15 +326,32 @@
     const VERSIONS = versions.map(mapVersion).filter((v) => allowedProjectIds.has(v.projectId));
     const RELATIONS = relations.map(mapRelation)
       .filter((r) => workPackageIds.has(r.fromId) && workPackageIds.has(r.toId));
+    const STATUSES = statuses.map(mapStatus);
 
-    // Aggregate spent hours from time entries (reliable) + approximate closedAt.
-    const statusById = {}; statuses.map(mapStatus).forEach((s) => (statusById[s.id] = s));
+    // Aggregate spent hours from time entries (reliable).
+    const statusById = {}; STATUSES.forEach((s) => (statusById[s.id] = s));
     const spentByWp = {};
     TIME_ENTRIES.forEach((t) => (spentByWp[t.workPackageId] = (spentByWp[t.workPackageId] || 0) + t.hours));
     WORK_PACKAGES.forEach((wp) => {
       if (!wp.spentHours) wp.spentHours = Math.round((spentByWp[wp.id] || 0) * 10) / 10;
+    });
+
+    // Exact closedAt: read WP activities/journals only for closed WPs. If this
+    // optional endpoint is unavailable, keep the updatedAt fallback explicit.
+    const closedStatusNames = statuses.filter((s) => s.isClosed).map((s) => s.name);
+    const closedWps = WORK_PACKAGES.filter((wp) => statusById[wp.statusId]?.isClosed);
+    const closedActivityRows = await mapLimit(closedWps, 32, async (wp) => {
+      const activityRows = await fetchSafe(`/work_packages/${wp.id}/activities`);
+      return [wp.id, closedAtFromActivities(activityRows, closedStatusNames)];
+    });
+    const closedAtByWp = {};
+    closedActivityRows.forEach(([id, closedAt]) => { if (closedAt) closedAtByWp[id] = closedAt; });
+    WORK_PACKAGES.forEach((wp) => {
       const st = statusById[wp.statusId];
-      if (st && st.isClosed) wp.closedAt = wp.updatedAt;   // proxy; see GOTCHA #5
+      if (st && st.isClosed) {
+        wp.closedAt = closedAtByWp[wp.id] || wp.updatedAt;
+        wp.closedAtSource = closedAtByWp[wp.id] ? 'activities' : 'updatedAt';
+      }
     });
 
     // Role mapping (per OP actual roles):
@@ -327,9 +434,19 @@
       if (uid && !userById[uid] && wp._links?.assignee?.title) {
         const raw = wp._links.assignee.title;
         const displayName = NAME_TABLE[raw] || raw;
-        const name = escapeHtml(displayName);
-        const initials = displayName.slice(0, 2).toUpperCase();
-        const u = { id: uid, name, initials, role: '', title: '', capacityPerWeek: 40, color: '#8B93A7' };
+        const override = userOverrideFor({ id: uid, name: raw, login: '' }, displayName);
+        const finalDisplayName = override.name || displayName;
+        const initials = finalDisplayName.slice(0, 2).toUpperCase();
+        const u = {
+          id: uid,
+          name: escapeHtml(finalDisplayName),
+          initials,
+          role: override.role ? escapeHtml(override.role) : '',
+          title: override.title ? escapeHtml(override.title) : '',
+          capacityPerWeek: capacityFor(override),
+          capacityOverride: override.capacityPerWeek != null,
+          color: safeColor(override.color, '#8B93A7'),
+        };
         usersMapped.push(u);
         userById[uid] = u;
       }
@@ -337,7 +454,7 @@
     const USERS = usersMapped;
 
     return {
-      STATUSES: statuses.map(mapStatus),
+      STATUSES,
       TYPES: types.map(mapType),
       PRIORITIES: priorities.map(mapPriority),
       ACTIVITIES: activities.map(mapActivity),

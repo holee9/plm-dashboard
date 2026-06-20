@@ -132,6 +132,7 @@ design_handoff_plm_dashboard/
 │   └── tokens/                 colors·themes·typography·spacing·effects (CSS 변수 정본)
 ├── app.css                 대시보드 컴포넌트/레이아웃 CSS
 ├── data.js                 ★ 데이터 계약(SSOT) — 목업 생성(stable PRNG) + selectors
+├── user-overrides.js       공개 운영 메타데이터 — 사용자별 capacityPerWeek override
 ├── op-adapter.js           ★ OpenProject HAL+JSON → data.js 형태 정규화 어댑터
 ├── charts.js               의존성 없는 SVG 차트(donut/line/columns/hbars/sparkline)
 ├── ui.js                   공통 UI 헬퍼(avatar/statusChip/health/panel/kpi)
@@ -169,11 +170,11 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `estimatedHours` `spentHours` | **number(시간)** | ⚠ OP는 `"PT40H"` 기간 문자열 — 반드시 파싱 |
 | `percentDone` | number(0–100) | ⚠ OP 필드명은 `percentageDone` |
 | `createdAt` `updatedAt` | string | `YYYY-MM-DD` |
-| `closedAt` | string\|null | ⚠ OP 기본 필드 없음 — updatedAt 근사 |
+| `closedAt` `closedAtSource` | string\|null / string\|null | ⚠ OP 기본 필드 없음 — `/work_packages/{id}/activities`에서 닫힘 상태 전환 시각을 계산하고, 불가 시 `updatedAt` fallback |
 
 - **TimeEntry:** `id` · `workPackageId` · `projectId` · `userId` · `activityId` · `hours`(number, OP는 `"PT5H"`) · `spentOn`
 - **Relation:** `id` · `type`(`follows` 등) · `fromId` · `toId` · `delay`. Timeline Schedule Inspection은 `follows` 건수를 의존성 참고 신호로만 사용한다.
-- **User:** `id` · `name` · `initials` · `role` · `title` · `color` · `capacityPerWeek`(⚠ OP에 원천 없음 — 외부 설정)
+- **User:** `id` · `name` · `initials` · `role` · `title` · `color` · `capacityPerWeek` · `capacityOverride`(⚠ OP에 원천 없음 — `user-overrides.js` 공개 운영 메타데이터)
 - **Status/Type/Priority:** 실 연동 시 **하드코딩 금지 — 인스턴스에서 동적 fetch**(`op-adapter.js` 처리)
 
 ### Selectors (뷰가 의존하는 계산 함수 — 시그니처 유지)
@@ -237,13 +238,14 @@ python3 -m http.server 8080
 2. ISO8601 기간 파싱 — `"PT40H" → 40`, `"PT5H30M" → 5.5` (`durationToHours()`)
 3. 페이지네이션 — `fetchAll()` offset 순회 (pageSize=200)
 4. 오류 허용 fetch — `fetchSafe()` (404/권한 오류 시 `[]` 반환)
-5. 파생 필드 — `_start/_due/_end` Date 객체, `memberIds`, `closedAt`(updatedAt 근사)
+5. 파생 필드 — `_start/_due/_end` Date 객체, `memberIds`, `closedAt`(activities/journals 우선, `updatedAt` fallback)
 6. BOARD_COLS — 실 OP 상태 이름에서 카테고리 추론 (`buildBoardColsFromStatuses()`)
 7. **사용자 한국어 이름** — `/principals`는 계정명만 반환(`drake.lee` 등). `op-adapter.js` 상단 `NAME_TABLE`로 성+이름 매핑
 8. **퇴사자/잠금 계정 자동 제외** — 영구잠금 계정은 `_links.showUser` 부재로 감지(`isLocked`), `isBot=true`로 전환해 모든 뷰에서 자동 제외. 코드 변경 없이 OP 관리자 조작만으로 적용
 9. **샘플 데이터 없음** — `USER_DEFS`/`PROJECT_DEFS` 빈 배열. 페이지 로드 즉시 OP 조회, 로딩 중 "로딩 중…" 표시
 10. **🔄 수동 새로고침 버튼** — 자동 폴링 없이 사용자가 명시적으로 갱신. 클릭 시 기존 데이터 화면은 유지한 채 OP 전체를 백그라운드 재조회하고, 버튼 문구가 `새로고침 → 갱신 중... → 갱신 완료 HH:mm:ss` 또는 `갱신 실패`로 바뀜. 갱신 중에는 버튼을 비활성화해 중복 요청 방지 (#40)
 11. **업데이트 시각 칩** — 마지막 렌더 시각 표시 전용. 실제 OP 재조회는 새로고침 버튼 상태 메시지와 E2E 요청 재발생으로 확인
+12. **#6 optional 완료** — 닫힌 WP는 `/work_packages/{id}/activities` 상태 변경 이력에서 `closedAtSource="activities"`를 우선 계산하고, 사용자 주간 가용량은 `user-overrides.js`의 `capacityPerWeek`를 반영. `AC-OPTIONAL-01/02`로 E2E 검증
 
 상세 API 분석: `design_handoff_plm_dashboard/OpenProject 연동 점검.html`
 

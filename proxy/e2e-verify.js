@@ -47,7 +47,7 @@ async function run() {
   else ok('AC-E2E-02', 'Token not found in HTML source');
 
   // Check JS files for token
-  const jsFiles = ['op-adapter.js', 'data.js', 'app.js'];
+  const jsFiles = ['user-overrides.js', 'op-adapter.js', 'data.js', 'app.js'];
   let tokenInJs = false;
   for (const f of jsFiles) {
     const r = await ctx.request.get(`${BASE}/${f}`);
@@ -65,8 +65,11 @@ async function run() {
   // AC-E2E-03: port 8086 proxy config untouched — verify nginx not reconfigured
   ok('AC-E2E-03', ':8086 proxy config not modified (scope discipline enforced)');
 
-  // Wait for live data to load (USE_LIVE_API=true boots async)
-  await page.waitForTimeout(8000); // allow up to 8s for all API calls
+  // Wait for live data to load (USE_LIVE_API=true boots async). Optional WP
+  // activities/journals can add latency, so wait on the actual loading flag.
+  try {
+    await page.waitForFunction(() => window.DB && window.DB._loading === false, { timeout: 30000 });
+  } catch (_) {}
 
   // AC-E2E-04: USE_LIVE_API=true
   const useLiveAPI = await page.evaluate(() => window.OPAdapter && window.OPAdapter.USE_LIVE_API);
@@ -129,7 +132,7 @@ async function run() {
   else
     fail('AC-E2E-09', `HAL id types: ${JSON.stringify(halCheck)}`);
 
-  // AC-E2E-10: closedAt proxy — closed WPs have closedAt = updatedAt
+  // AC-E2E-10: closed WPs have a closedAt value from activities or fallback.
   const closedAtCheck = await page.evaluate(() => {
     const DB = window.DB;
     if (!DB) return null;
@@ -139,10 +142,14 @@ async function run() {
     });
     if (!closed.length) return { count: 0, sample: null };
     const sample = closed[0];
-    return { count: closed.length, closedAt: sample.closedAt, updatedAt: sample.updatedAt };
+    const sources = closed.reduce((a, wp) => {
+      a[wp.closedAtSource || 'none'] = (a[wp.closedAtSource || 'none'] || 0) + 1;
+      return a;
+    }, {});
+    return { count: closed.length, closedAt: sample.closedAt, updatedAt: sample.updatedAt, sources };
   });
   if (closedAtCheck && closedAtCheck.count > 0 && closedAtCheck.closedAt)
-    ok('AC-E2E-10', `closedAt proxy: ${closedAtCheck.count} closed WPs, sample closedAt=${closedAtCheck.closedAt}`);
+    ok('AC-E2E-10', `closedAt present: ${closedAtCheck.count} closed WPs, sample=${closedAtCheck.closedAt}, sources=${JSON.stringify(closedAtCheck.sources)}`);
   else if (closedAtCheck && closedAtCheck.count === 0)
     ok('AC-E2E-10', 'No closed WPs in dataset — closedAt proxy N/A (graceful)');
   else
@@ -199,6 +206,45 @@ async function run() {
     ok('AC-E2E-12b', `WP _due hydration ok (hasDue=${wpHydrateCheck.hasDue})`);
   else
     fail('AC-E2E-12b', `WP _due: ${JSON.stringify(wpHydrateCheck)}`);
+
+  section('AC-OPTIONAL-01..02: journals closedAt + capacity override');
+
+  const journalClosed = await page.evaluate(() => {
+    const DB = window.DB;
+    if (!DB) return null;
+    const closed = DB.WORK_PACKAGES.filter(wp => DB.S[wp.statusId]?.isClosed);
+    const activities = closed.filter(wp => wp.closedAtSource === 'activities');
+    const fallback = closed.filter(wp => wp.closedAtSource === 'updatedAt');
+    return {
+      closed: closed.length,
+      activities: activities.length,
+      fallback: fallback.length,
+      sample: activities[0] ? { id: activities[0].id, closedAt: activities[0].closedAt } : null,
+    };
+  });
+  if (!journalClosed) {
+    fail('AC-OPTIONAL-01', 'DB not available for journals closedAt check');
+  } else if (journalClosed.closed === 0) {
+    ok('AC-OPTIONAL-01', 'No closed WPs — journals closedAt graceful N/A');
+  } else if (journalClosed.activities > 0) {
+    ok('AC-OPTIONAL-01', `activities/journals closedAt applied: ${journalClosed.activities}/${journalClosed.closed} closed WPs, fallback=${journalClosed.fallback}, sample=${JSON.stringify(journalClosed.sample)}`);
+  } else {
+    fail('AC-OPTIONAL-01', `No closed WP used activities/journals source: ${JSON.stringify(journalClosed)}`);
+  }
+
+  const capacityOverride = await page.evaluate(() => {
+    const DB = window.DB;
+    if (!DB) return null;
+    const overridden = DB.USERS
+      .filter(u => !u.isGroup && !u.isObserver && !u.isBot && (u.capacityOverride || u.capacityPerWeek !== 40))
+      .map(u => ({ id: u.id, name: u.name, capacityPerWeek: u.capacityPerWeek, capacityOverride: !!u.capacityOverride }));
+    const invalid = DB.USERS.filter(u => !Number.isFinite(Number(u.capacityPerWeek)) || Number(u.capacityPerWeek) <= 0);
+    return { count: overridden.length, overridden: overridden.slice(0, 8), invalid: invalid.length };
+  });
+  if (capacityOverride && capacityOverride.count > 0 && capacityOverride.invalid === 0)
+    ok('AC-OPTIONAL-02', `capacityPerWeek override applied: ${capacityOverride.count} users, sample=${JSON.stringify(capacityOverride.overridden)}`);
+  else
+    fail('AC-OPTIONAL-02', `capacity override missing/invalid: ${JSON.stringify(capacityOverride)}`);
 
   section('AC-E2E-13..18: 6 views render without console errors');
 

@@ -203,6 +203,18 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .gantt-head { display: grid; grid-template-columns: 200px 1fr; border-bottom: 1px solid var(--border-strong); height: 28px; position: sticky; top: 0; background: var(--panel); z-index: 6; }
 .gantt-months { position: relative; }
 .gantt-month { position: absolute; top: 0; font-size: 10.5px; color: var(--text-faint); font-family: var(--font-mono); padding: 7px 6px; border-left: 1px solid var(--border); }
+.schedule-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.schedule-card { border: 1px solid var(--border); border-radius: var(--r); background: var(--panel-2); padding: 9px 10px; min-width: 0; }
+.schedule-card.tone-amber { box-shadow: inset 3px 0 0 var(--c-amber); }
+.schedule-card.tone-red { box-shadow: inset 3px 0 0 var(--c-red); }
+.schedule-card-label { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; font-family: var(--font-mono); color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.schedule-card-value { font-size: 18px; line-height: 1.2; font-weight: 700; color: var(--text); margin-top: 4px; font-family: var(--font-mono); }
+.schedule-card-foot { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.schedule-detail { min-width: 0; }
+.schedule-table th, .schedule-table td { white-space: nowrap; }
+.schedule-ic { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); background: var(--panel-2); }
+.schedule-ic.tone-amber { color: #FCD34D; background: rgba(245,158,11,.16); }
+.schedule-ic.tone-red { color: #FCA5A5; background: rgba(239,68,68,.16); }
 
 /* ----------  RISK FEED  ---------- */
 .feed { display: flex; flex-direction: column; }

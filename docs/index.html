@@ -1041,6 +1041,16 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>기본 상태만 캡처하면 편집 상태의 버튼 가림을 놓친다</strong></td>
     <td>Projects KPI rail은 기본 상태에서는 정렬되어 보였지만, <code>KPI 편집</code> 진입 후 카드 수가 7개로 늘어나며 <code>취소</code>/<code>KPI 편집 완료</code> 버튼이 Team 패널 뒤로 밀렸다. 해결: edit mode에서 KPI strip은 rail 내부 스크롤로 제한하고 action 영역은 rail 하단에 고정한다. 검증은 단순 스크린샷이 아니라 <code>elementFromPoint()</code>로 버튼 hit-test를 확인하고, 취소/완료 클릭이 실제로 edit mode를 종료하는지까지 E2E에 넣는다 (#42, AC-UX-16).</td>
   </tr>
+  <tr>
+    <td>P36</td>
+    <td><strong>OP에 없는 스프린트 개념을 Timeline 핵심 섹션으로 두면 빈 표만 남는다</strong></td>
+    <td>2026-06-20 운영 OP 실측 결과 <code>/versions</code>는 0건, WP <code>versionId</code> 연결도 0건이었다. 따라서 Timeline 하단의 <code>Active Sprints</code>는 실제 점검 가치가 없고 사용자를 혼란스럽게 한다. 상용 Gantt 패턴과 OP 실데이터를 교차해 Timeline은 마일스톤, 일정 커버리지, 임박 마감, 시작/마감일 누락, 장기 span, <code>follows</code> 관계 수처럼 실제 존재하는 일정 신호만 보여줘야 한다 (#46, AC-UX-18).</td>
+  </tr>
+  <tr>
+    <td>K14</td>
+    <td><strong>간트에서 프로젝트를 클릭하면 같은 Timeline 안의 선택 범위가 바뀌어야 한다</strong></td>
+    <td>Microsoft Project split view, Smartsheet, monday, ClickUp의 공통 패턴은 시간축에서 선택한 항목이 같은 화면의 상세 영역을 제어한다는 점이다. Timeline 간트 프로젝트 행 클릭이 Projects 탭으로 이동하면 하단 상세 패널과 연결되지 않는다. 해결: 별도 <code>data-tl-scope-project</code> 이벤트로 Timeline scope만 바꾸고, Projects 상세 이동은 별도 버튼이나 탭에 맡긴다 (#46).</td>
+  </tr>
 </table>
 
 <div class="note tip">

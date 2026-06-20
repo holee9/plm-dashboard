@@ -13,6 +13,7 @@
      ACTIVITIES   ->  GET /api/v3/time_entries/activities
      WORK_PACKAGES->  GET /api/v3/work_packages (filtered/paginated)
      TIME_ENTRIES ->  GET /api/v3/time_entries
+     RELATIONS    ->  GET /api/v3/relations
 
    To go live: replace buildDataset() with fetches against plm.abyz-lab.work,
    normalise the HAL/_links payloads into these flat shapes, and keep the
@@ -287,11 +288,13 @@
       guard++;
     }
   });
+  const RELATIONS = [];
 
   // =====================  SELECTORS  =========================================
   const byId = (coll) => { const m = {}; coll.forEach((x) => (m[x.id] = x)); return m; };
   const U = byId(USERS), P = byId(PROJECTS), S = byId(STATUSES),
-        T = byId(TYPES), PR = byId(PRIORITIES), V = byId(VERSIONS), A = byId(ACTIVITIES);
+        T = byId(TYPES), PR = byId(PRIORITIES), V = byId(VERSIONS), A = byId(ACTIVITIES),
+        R = byId(RELATIONS);
 
   const isOpen = (wp) => {
     const status = S[wp.statusId];
@@ -491,13 +494,14 @@
     replaceArr(USERS, ds.USERS); replaceArr(PROJECTS, ds.PROJECTS);
     replaceArr(VERSIONS, ds.VERSIONS);
     replaceArr(WORK_PACKAGES, ds.WORK_PACKAGES); replaceArr(TIME_ENTRIES, ds.TIME_ENTRIES);
+    replaceArr(RELATIONS, ds.RELATIONS || []);
     PROJECTS.forEach(hydrateProject);
     replaceArr(BOARD_COLS, buildBoardColsFromStatuses(STATUSES));
     replaceObj(U, byId(USERS)); replaceObj(P, byId(PROJECTS)); replaceObj(S, byId(STATUSES));
     replaceObj(T, byId(TYPES)); replaceObj(PR, byId(PRIORITIES));
-    replaceObj(V, byId(VERSIONS)); replaceObj(A, byId(ACTIVITIES));
+    replaceObj(V, byId(VERSIONS)); replaceObj(A, byId(ACTIVITIES)); replaceObj(R, byId(RELATIONS));
     Object.assign(window.DB, { TODAY, STATUSES, BOARD_COLS, TYPES, PRIORITIES, ACTIVITIES,
-      USERS, PROJECTS, VERSIONS, WORK_PACKAGES, TIME_ENTRIES, U, P, S, T, PR, V, A });
+      USERS, PROJECTS, VERSIONS, WORK_PACKAGES, TIME_ENTRIES, RELATIONS, U, P, S, T, PR, V, A, R });
     window.DB._loading = false; window.DB._error = null;
     if (window.App && window.App.refresh) window.App.refresh();
   }
@@ -506,8 +510,8 @@
   window.DB = {
     TODAY, iso, addDays, startOfWeek,
     STATUSES, BOARD_COLS, TYPES, PRIORITIES, ACTIVITIES, USERS, PROJECTS, VERSIONS,
-    WORK_PACKAGES, TIME_ENTRIES,
-    U, P, S, T, PR, V, A,
+    WORK_PACKAGES, TIME_ENTRIES, RELATIONS,
+    U, P, S, T, PR, V, A, R,
     usersByRole, versionsByProject, currentVersion,
     isOpen, isOverdue, dueWithin,
     statusDistribution, kpis, openCloseTrend, backlogTrend,

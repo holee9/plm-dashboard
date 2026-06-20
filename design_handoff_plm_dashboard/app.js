@@ -38,7 +38,7 @@
     projects: '과제별 진행률 · 번다운 · 팀 · WP',
     resources: '개발자별 가동률 · 잔여 공수 · 할당',
     board: '상태별 칸반 보드 · 필터링',
-    timeline: '간트 차트 · 마일스톤 · 스프린트',
+    timeline: '간트 차트 · 마일스톤 · 일정 점검',
     risks: '마감 초과 · 임박 · 과부하 · 공수 초과',
   };
 
@@ -185,6 +185,8 @@
     const navItem = t.closest('[data-view]');
     if (navItem) { go(navItem.dataset.view); return; }
     if (t.closest('[data-nav]')) { go(t.closest('[data-nav]').dataset.nav); return; }
+    const tlScopeRow = t.closest('[data-tl-scope-project]');
+    if (tlScopeRow) { state.tlProject = tlScopeRow.dataset.tlScopeProject; state.view = 'timeline'; save(); renderShell(); return; }
     const npRow = t.closest('[data-nav-project]');
     if (npRow) { state.projectTab = +npRow.dataset.navProject; state.view = 'projects'; save(); renderShell(); return; }
     const hideProj = t.closest('[data-hide-project]');

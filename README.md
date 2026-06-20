@@ -79,7 +79,7 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 | **Projects** | `views/projects.js` | 프로젝트별 상세 — 8:5 주/보조 그리드, 진행률 헤더, 편집 안전 KPI 레일, 팀/상태, WP 테이블 우선 배치 |
 | **Resources** | `views/resources.js` | 개발자별 부하 — 부하 %, 단기 잔여 시간, 백로그, 담당 프로젝트, 지연 WP |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |
-| **Timeline** | `views/timeline.js` | 간트 차트 + 스프린트 번다운, 마일스톤, WP 바, 기간 선택 |
+| **Timeline** | `views/timeline.js` | 간트 차트 + 마일스톤 marker, 선택 프로젝트 drilldown, 일정 점검(Schedule Inspection), 기간 선택 |
 | **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
 
 ---
@@ -144,7 +144,7 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `id` `subject` | number / string | |
 | `projectId` `typeId` `statusId` `priorityId` | number | 참조 ID |
 | `assigneeId` `authorId` | number\|null | 미할당 시 null |
-| `versionId` | number\|null | 스프린트 |
+| `versionId` | number\|null | OP Version 연결. 현재 운영 OP는 0건이므로 Timeline 핵심 섹션에는 사용하지 않음 |
 | `startDate` `dueDate` | string | `YYYY-MM-DD` |
 | `estimatedHours` `spentHours` | **number(시간)** | ⚠ OP는 `"PT40H"` 기간 문자열 — 반드시 파싱 |
 | `percentDone` | number(0–100) | ⚠ OP 필드명은 `percentageDone` |
@@ -152,6 +152,7 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `closedAt` | string\|null | ⚠ OP 기본 필드 없음 — updatedAt 근사 |
 
 - **TimeEntry:** `id` · `workPackageId` · `projectId` · `userId` · `activityId` · `hours`(number, OP는 `"PT5H"`) · `spentOn`
+- **Relation:** `id` · `type`(`follows` 등) · `fromId` · `toId` · `delay`. Timeline Schedule Inspection은 `follows` 건수를 의존성 참고 신호로만 사용한다.
 - **User:** `id` · `name` · `initials` · `role` · `title` · `color` · `capacityPerWeek`(⚠ OP에 원천 없음 — 외부 설정)
 - **Status/Type/Priority:** 실 연동 시 **하드코딩 금지 — 인스턴스에서 동적 fetch**(`op-adapter.js` 처리)
 

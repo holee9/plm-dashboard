@@ -397,6 +397,54 @@ def run():
             else:
                 fail("AC-UX-17", f"Timeline 마일스톤 marker 누락 (dated={milestone_info['dated']}, all={all_marker_count}, project={project_marker_count})")
 
+        # AC-UX-18: Timeline 하단은 스프린트 빈 표가 아니라 일정 점검 패널이어야 함
+        navigate_to(page, "timeline")
+        page.select_option("[data-tl-project]", "all")
+        page.wait_for_timeout(500)
+        schedule_count = page.locator("[data-schedule-inspection]").count()
+        schedule_cards = page.locator(".schedule-card").count()
+        has_active_sprints = "Active Sprints" in get_content_html(page)
+        target_pid = page.evaluate(
+            """() => {
+                const D = window.DB;
+                const isMilestone = (wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
+                const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
+                const p = D.PROJECTS.find((project) =>
+                    D.WORK_PACKAGES.some((w) => w.projectId === project.id && isMilestone(w) && milestoneDate(w))
+                );
+                return p ? String(p.id) : null;
+            }"""
+        )
+        project_row = page.locator(f'.gantt-row[data-tl-scope-project="{target_pid}"]').first if target_pid else page.locator(".gantt-row[data-tl-scope-project]").first
+        if project_row.count() == 0:
+            fail("AC-UX-18", "Timeline 간트에서 클릭 가능한 프로젝트 행을 찾을 수 없음")
+        else:
+            target_pid = project_row.get_attribute("data-tl-scope-project")
+            project_row.click()
+            page.wait_for_timeout(600)
+            selected_pid = page.locator("[data-tl-project]").evaluate("el => el.value")
+            scoped_schedule_count = page.locator("[data-schedule-inspection]").count()
+            scoped_project_markers = page.locator("[data-timeline-milestone]").count()
+            if (
+                schedule_count > 0
+                and scoped_schedule_count > 0
+                and schedule_cards >= 5
+                and not has_active_sprints
+                and selected_pid == target_pid
+                and scoped_project_markers > 0
+            ):
+                ok(
+                    "AC-UX-18",
+                    f"Timeline 일정 점검 패널 및 프로젝트 행 scope 전환 동작 (project={selected_pid}, markers={scoped_project_markers})",
+                )
+            else:
+                fail(
+                    "AC-UX-18",
+                    "Timeline 일정 점검/프로젝트 scope 전환 실패 "
+                    f"(schedule={schedule_count}, scoped={scoped_schedule_count}, cards={schedule_cards}, "
+                    f"activeSprints={has_active_sprints}, target={target_pid}, selected={selected_pid})",
+                )
+
         # ===================================================== 동기화 정책
         section("AC-UX-12~13: 데이터 동기화 정책")
 

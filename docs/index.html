@@ -858,8 +858,8 @@ Key files: [관련 파일 목록]</pre>
   </tr>
   <tr>
     <td>P13</td>
-    <td><strong>목업 데이터의 "전사 직함(role)"과 "프로젝트 내 역할(PM/PL)"이 동일 필드를 공유해 혼용됨</strong></td>
-    <td>data.js의 <code>user.role</code>은 전사 직무('PM', 'Backend', …)이고, OP 실 API에서는 멤버십 role('Project Manager', 'Developer', …)이 동일 필드에 들어온다 (#21). 결과적으로 "이 사람이 이 프로젝트의 PM인가?"를 <code>user.role === 'PM'</code>으로 판단하면 전사 직함 기준 판단이 된다. 해결책: <code>project.memberRoles[userId]</code> 필드를 별도로 계산해서 관리하라 — 목업에서는 PM 직함 보유자, 실 API에서는 'Project Manager' 멤버십 보유자로 분기.</td>
+    <td><strong>목업 데이터의 "전사 직함(role)"과 "프로젝트 내 역할(PM/TL)"이 동일 필드를 공유해 혼용됨</strong></td>
+    <td>data.js의 <code>user.role</code>은 전사 직무('PM', 'Backend', …)이고, OP 실 API에서는 멤버십 role('PM', 'Tech Lead', …)이 동일 필드에 들어온다 (#21). 결과적으로 "이 사람이 이 프로젝트의 PM인가?"를 <code>user.role === 'PM'</code>으로 판단하면 전사 직함 기준 판단이 된다. 해결책: <code>project.memberRoles[userId]</code>와 <code>project.memberRoleSets[userId]</code>를 별도로 계산해서 프로젝트별 PM/TL 계약을 관리하라.</td>
   </tr>
 </table>
 
@@ -943,8 +943,8 @@ Key files: [관련 파일 목록]</pre>
   </tr>
   <tr>
     <td>P20</td>
-    <td><strong>PM 검출 regex(<code>/project.?manager/i</code>)가 실 OP role 제목과 불일치해 전원 Member로 표기됨</strong></td>
-    <td>실 OP 인스턴스의 role 제목은 <code>"PM"</code>과 <code>"프로젝트 관리자"</code>(한국어)이며, 영문 "Project Manager"는 존재하지 않는다. <code>hydrateProject()</code>의 <code>/project.?manager/i</code> regex가 두 제목 모두에 매칭 실패해 PM/PL 배지가 전혀 표시되지 않았다. 수정: <code>op-adapter.js</code>에서 memberships를 프로젝트별로 순회해 <code>projMemberRoles</code>를 미리 계산하고 project 객체에 pre-populate. 매핑: OP "프로젝트 관리자" → 대시보드 PM, OP "PM" → 대시보드 PL, 나머지 → Member. 동일 uid가 복수 role일 때 우선순위(PM &gt; PL &gt; Member) 적용 (#33).</td>
+    <td><strong>PM/TL 검출 regex(<code>/project.?manager/i</code>)가 실 OP role 제목과 불일치해 전원 Member로 표기됨</strong></td>
+    <td>실 OP 인스턴스의 role 제목은 <code>"PM"</code>, <code>"Tech Lead"</code>, <code>"프로젝트 관리자"</code>(한국어)이며, 영문 "Project Manager"는 존재하지 않는다. <code>hydrateProject()</code>의 <code>/project.?manager/i</code> regex는 실 역할과 맞지 않아 PM/TL 컨트롤이 표시되지 않았다. 수정: <code>op-adapter.js</code>에서 memberships를 프로젝트별로 순회해 <code>projMemberRoles</code>를 미리 계산하고 project 객체에 pre-populate. 최종 매핑: OP "PM" → dashboard PM, OP "Tech Lead" → dashboard TL, OP "프로젝트 관리자" → Member. 동일 uid가 복수 role일 때 우선순위(PM &gt; TL &gt; Member) 적용 (#33, #50).</td>
   </tr>
   <tr>
     <td>P21</td>
@@ -1059,12 +1059,17 @@ Key files: [관련 파일 목록]</pre>
   <tr>
     <td>P38</td>
     <td><strong>Resources에서 Load를 전면에 두기 전 입력 신뢰도를 먼저 보여줘야 한다</strong></td>
-    <td>2026-06-20 운영 OP 실측 결과 Open WP 196건 중 Estimated time 입력은 4건(2%), Time entries는 0건이었다. 이 상태에서 AVG LOAD/OVERLOADED/UNDERUTIL을 핵심 카드로 두면 실제 업무량이 모두 0에 가까워 보이는 착시가 생긴다. 해결: Resources 기본 KPI를 MEMBERS·ASSIGNMENT·ESTIMATE·DUE 21D·UNASSIGNED로 바꾸고, Data Readiness와 Input Actions에서 OP 기존 필드(Assignee, Estimated time, Due date, Time entries) 입력 누락을 주의 표시와 툴팁으로 유도한다. Load는 <code>Load confidence Low</code> 보조 패널로 낮춘다 (#48).</td>
+    <td>2026-06-20 운영 OP 실측 결과 Open WP 194건 중 Estimated time 입력은 4건(2%), Time entries는 0건이었다. 이 상태에서 AVG LOAD/OVERLOADED/UNDERUTIL을 핵심 카드로 두면 실제 업무량이 모두 0에 가까워 보이는 착시가 생긴다. 해결: Resources 기본 KPI를 MEMBERS·ASSIGNMENT·ESTIMATE·DUE 21D·UNASSIGNED로 바꾸고, Data Readiness와 Input Actions에서 OP 기존 필드(Assignee, Estimated time, Due date, Time entries) 입력 누락을 주의 표시와 툴팁으로 유도한다. Load는 <code>Load confidence Low</code> 보조 패널로 낮춘다 (#48).</td>
   </tr>
   <tr>
     <td>K15</td>
     <td><strong>리소스 화면도 8:5 그리드와 행 높이 실측 검증이 필요하다</strong></td>
     <td>Resources를 좌측 Data Readiness/Person Pressure, 우측 Capacity Signal/Input Actions로 재배치하면서 Projects의 황금비 근사 <code>8fr / 5fr</code> 패턴을 재사용했다. 단순 grid 선언만으로는 줄이 맞는지 보장되지 않으므로 Playwright로 desktop 1440px 기준 컬럼 721:451=1.600, 상단/하단 패널 높이 오차 0px, page/body 가로 overflow 0을 검증했다. <code>AC-UX-19</code>는 패널 존재, 8:5 비율, 행 높이 정렬을 자동 검증한다 (#48).</td>
+  </tr>
+  <tr>
+    <td>P39</td>
+    <td><strong>운영 제외 프로젝트는 화면 숨김이 아니라 DB 진입 전 필터다</strong></td>
+    <td><code>인프라 구축</code>은 의도적으로 대시보드 대상에서 제외한 프로젝트인데, 어댑터 제외 목록에 없으면 Projects뿐 아니라 Board, Timeline, Resources 집계에도 들어간다. 해결: <code>op-adapter.js</code>에서 allowed project set을 먼저 만들고 <code>PROJECTS</code>와 <code>WORK_PACKAGES</code>를 같은 기준으로 필터링한다. E2E는 <code>AC-ROLE-01b</code>로 <code>DB.PROJECTS</code>에 제외 프로젝트가 없는지 직접 확인한다 (#50).</td>
   </tr>
 </table>
 

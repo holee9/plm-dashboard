@@ -317,7 +317,10 @@
     const wpsRaw = await fetchAll('/work_packages', []);
     const timeRaw = await fetchSafe('/time_entries');
 
-    const includeProject = (p) => !/DR.*사업본부|사업본부.*미팅/i.test(p.name || '');
+    const includeProject = (p) => {
+      const name = p.name || '';
+      return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$/i.test(name));
+    };
     const allowedProjectIds = new Set(projects.filter(includeProject).map((p) => p.id));
     const WORK_PACKAGES = wpsRaw.map(mapWorkPackage).filter((wp) => allowedProjectIds.has(wp.projectId));
     const workPackageIds = new Set(WORK_PACKAGES.map((wp) => wp.id));
@@ -459,19 +462,15 @@
       PRIORITIES: priorities.map(mapPriority),
       ACTIVITIES: activities.map(mapActivity),
       USERS,
-      // Hard-exclude "DR 사업본부 주관 미팅" type projects — never enter DB.
+      // Hard-exclude meeting/infra projects — never enter DB.
       PROJECTS: projects
         .filter(includeProject)
         .map((p) => {
           const rawRoles    = projMemberRoles[p.id] || {};
           const rawRoleSets = projRoleSets[p.id]    || {};
-          // abyz-lab (isBot) is a real PM only in 인프라 project.
-          const isInfra = /인프라/i.test(p.name);
           const filterBot = ([uid]) => !userById[+uid]?.isBot;
-          const pRoles    = isInfra ? rawRoles
-            : Object.fromEntries(Object.entries(rawRoles).filter(filterBot));
-          const pRoleSets = isInfra ? rawRoleSets
-            : Object.fromEntries(Object.entries(rawRoleSets).filter(filterBot));
+          const pRoles = Object.fromEntries(Object.entries(rawRoles).filter(filterBot));
+          const pRoleSets = Object.fromEntries(Object.entries(rawRoleSets).filter(filterBot));
           // leadId: first PM entry, else first TL, else null
           const pmEntry = Object.entries(pRoles).find(([, r]) => r === 'PM');
           const tlEntry = Object.entries(pRoles).find(([, r]) => r === 'TL');

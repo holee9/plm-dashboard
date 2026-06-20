@@ -36,6 +36,7 @@ proxy/
 ├── e2e-verify-v2.js                v2 Playwright 스크립트 (Node.js)
 ├── e2e-verify.py                   초기 Playwright 검증 (Python)
 ├── e2e-verify-v2.py                v2 Playwright 스크립트 (Python)
+├── e2e-role-check.py               PM/TL 역할 + 제외 프로젝트 정책 검증 (Python)
 └── E2E-FAILURE-LOG.md              E2E 실패 이력 및 Anti-pattern 재발방지 문서
 ```
 
@@ -65,6 +66,7 @@ proxy/
 ## E2E 검증
 
 AC-E2E-01..20은 API/데이터 무결성, AC-OPTIONAL-01..02는 #6 선택 기능,
+AC-ROLE-01..08은 PM/TL 역할과 전역 제외 프로젝트 정책,
 AC-UX-01..19는 실제 브라우저 UX 검증입니다.
 Playwright 필요.
 
@@ -78,8 +80,15 @@ node e2e-verify.js
 **Python:**
 ```bash
 cd ~/workspace/plm-dashboard/proxy
+python3 e2e-role-check.py
+python3 e2e-verify.py
 python3 e2e-verify-v2.py
 ```
+
+주요 역할/전역 제외 검증:
+- `AC-ROLE-01b`: 운영 의도상 제외 대상인 `인프라 구축`이 `DB.PROJECTS`에 남지 않는지 확인
+- `AC-ROLE-05`: bot/observer 사용자가 프로젝트 `memberRoles`에 포함되지 않는지 확인
+- `AC-ROLE-06~08`: Projects PM/TL 컨트롤과 Resources readiness 패널 렌더링 확인
 
 주요 Timeline 검증:
 - `AC-UX-17`: OP 마일스톤 `date` 필드가 간트 diamond marker와 Project scope에 표시되는지 확인

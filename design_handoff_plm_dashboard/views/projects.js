@@ -186,6 +186,7 @@
     /* burndown */
     const bd = curV ? D.burndown(curV) : { points: [], total: 0 };
     const burndown = UI.panel({
+      cls: 'project-burndown-panel',
       title: 'Sprint Burndown · 번다운', sub: curV ? `${curV.name} · 잔여 공수 ${bd.total}h` : '진행 중 스프린트 없음',
       tools: `<div class="legend"><span class="legend-item"><i class="dot" style="background:var(--text-faint)"></i>Ideal</span><span class="legend-item"><i class="dot" style="background:var(--accent)"></i>Remaining</span></div>`,
       bodyStyle: 'min-height:146px',
@@ -199,6 +200,7 @@
 
     /* status breakdown */
     const statusPanel = UI.panel({
+      cls: 'project-status-panel',
       title: 'Status · 상태 분포',
       body: `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
         ${C.donut({ segments: dist.map((d) => ({ value: d.count, color: d.status.color, label: d.status.name })), size: 130, thickness: 20, centerTop: k.total, centerBottom: 'WP' })}
@@ -224,6 +226,7 @@
       return (order[a.projRole] ?? 2) - (order[b.projRole] ?? 2) || b.open - a.open;
     });
     const teamPanel = UI.panel({
+      cls: 'project-team-panel',
       title: 'Team · 팀원별 WP', sub: `${validMembers.length} members`,
       body: `<table class="tbl"><thead><tr><th>Member</th><th>역할</th><th class="num">Open</th><th class="num">Overdue</th><th class="num">Spent</th></tr></thead>
         <tbody>${teamRows.map((r) => `<tr><td><div style="display:flex;align-items:center;gap:8px">${UI.avatar(r.u)}<span class="strong">${r.u.name}</span></div></td>
@@ -235,6 +238,7 @@
     /* recent WP list — all, scrollable */
     const recent = [...wps].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     const wpPanel = UI.panel({
+      cls: 'project-wp-panel',
       title: 'Work Packages · 최근 업데이트',
       tools: `<button class="mini-btn" data-nav="board">보드 →</button>`,
       body: `<table class="tbl"><thead><tr><th>ID</th><th>Subject</th><th>Type</th><th>Status</th><th>Assignee</th><th>Due</th><th class="num">%</th></tr></thead>

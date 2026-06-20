@@ -35,11 +35,11 @@
         <div class="kpi-value" style="font-size:18px;color:var(--text-faint)">+ 추가</div>
       </div>`
     ).join('') : '';
-    return `<div data-kpi-ns="proj" data-kpi-defaults='${JSON.stringify(PROJ_DEFAULT_KEYS)}'>
+    return `<div class="${kpiEdit ? 'kpi-editing' : ''}" data-kpi-ns="proj" data-kpi-defaults='${JSON.stringify(PROJ_DEFAULT_KEYS)}'>
       <div class="kpi-row kpi-strip${kpiEdit ? ' kpi-edit' : ''}" style="--kpi-cols:${totalCols}">
         ${kpiCards}${hiddenCards}
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px">
+      <div class="kpi-actions" style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px">
         ${kpiEdit ? `<button class="mini-btn" data-cancel-kpi-edit>취소</button>` : ''}
         <button class="mini-btn${kpiEdit ? ' on' : ''}" data-toggle-kpi-edit>
           ${kpiEdit ? 'KPI 편집 완료' : 'KPI 편집'}

@@ -345,6 +345,12 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
     display: flex;
     flex-direction: column;
   }
+  .project-kpi-rail [data-kpi-ns="proj"].kpi-editing {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 6px;
+    overflow: hidden;
+  }
   .project-kpi-rail .kpi-strip:not(.kpi-edit) {
     flex: 1;
     min-height: 0;
@@ -356,6 +362,30 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
   }
   .project-kpi-rail .kpi-strip:not(.kpi-edit) .kpi:nth-child(n+4) {
     grid-column: span 3;
+  }
+  .project-kpi-rail .kpi-strip.kpi-edit {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .project-kpi-rail .kpi-strip.kpi-edit .kpi {
+    min-height: 72px;
+    padding: 10px;
+  }
+  .project-kpi-rail .kpi-strip.kpi-edit .kpi-value {
+    font-size: 19px;
+    margin-top: 3px;
+  }
+  .project-kpi-rail .kpi-strip.kpi-edit .kpi-foot {
+    display: none;
+  }
+  .project-kpi-rail .kpi-editing .kpi-actions {
+    margin-top: 0 !important;
+    flex: 0 0 auto;
+    padding-top: 2px;
+    background: var(--bg);
   }
   .project-wp-panel .panel-body,
   .project-team-panel .panel-body {

@@ -168,9 +168,14 @@ async function run() {
         {
           fn: async (page) => {
             const rows  = await page.locator('.tl-row, [class*="tl-"]').count();
+            const ganttRows = await page.locator('.gantt-row').count();
+            const milestones = await page.locator('[data-timeline-milestone]').count();
             const empty = await page.locator('.empty').count();
             const tables = await page.locator('table tr td').count();
-            return { ok: rows > 0 || empty > 0 || tables > 0, detail: `tl-row=${rows}, .empty=${empty}, td=${tables}` };
+            return {
+              ok: rows > 0 || ganttRows > 0 || milestones > 0 || empty > 0 || tables > 0,
+              detail: `tl-row=${rows}, gantt-row=${ganttRows}, milestone=${milestones}, .empty=${empty}, td=${tables}`,
+            };
           },
           desc: '타임라인 행 or 빈상태 메시지',
         },
@@ -229,7 +234,7 @@ async function run() {
   }
 
   /* ======================================================= 인터랙션 */
-  section('AC-UX-09~16: 인터랙션');
+  section('AC-UX-09~17: 인터랙션');
 
   // AC-UX-09: 새로고침 버튼 → API 재호출
   await navigateTo(page, 'overview');
@@ -339,6 +344,78 @@ async function run() {
     }
   } else {
     fail('AC-UX-16', 'Projects KPI 편집 버튼을 찾을 수 없음');
+  }
+
+  // AC-UX-17: OP 마일스톤 date 필드 → Timeline 간트 marker 표시
+  await navigateTo(page, 'timeline');
+  const milestoneInfo = await page.evaluate(() => {
+    const D = window.DB;
+    const isMilestone = (wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
+    const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
+    const dated = D.WORK_PACKAGES.filter((w) => isMilestone(w) && milestoneDate(w));
+    return {
+      dated: dated.length,
+      firstProjectId: dated.length ? dated[0].projectId : null,
+    };
+  });
+  if (milestoneInfo.dated === 0) {
+    warn('AC-UX-17', 'OP에 날짜 있는 마일스톤이 없어 marker 표시 검증 생략');
+  } else {
+    const allMarkerCount = await page.locator('[data-timeline-milestone]').count();
+    const firstTip = allMarkerCount ? await page.locator('[data-timeline-milestone]').first().getAttribute('data-tip') : '';
+    await page.selectOption('[data-tl-project]', String(milestoneInfo.firstProjectId));
+    await page.waitForTimeout(500);
+    const projectMarkerCount = await page.locator('[data-timeline-milestone]').count();
+    const projectTip = projectMarkerCount ? await page.locator('[data-timeline-milestone]').first().getAttribute('data-tip') : '';
+    if (allMarkerCount > 0 && projectMarkerCount > 0 && (firstTip || '').includes('◇') && (projectTip || '').includes('◇')) {
+      ok('AC-UX-17', `Timeline 마일스톤 marker 표시 (all=${allMarkerCount}, project=${projectMarkerCount})`);
+    } else {
+      fail('AC-UX-17', `Timeline 마일스톤 marker 누락 (dated=${milestoneInfo.dated}, all=${allMarkerCount}, project=${projectMarkerCount})`);
+    }
+  }
+
+  // AC-UX-18: Timeline 하단은 스프린트 빈 표가 아니라 일정 점검 패널이어야 함
+  await navigateTo(page, 'timeline');
+  await page.selectOption('[data-tl-project]', 'all');
+  await page.waitForTimeout(500);
+  const scheduleCount = await page.locator('[data-schedule-inspection]').count();
+  const scheduleCards = await page.locator('.schedule-card').count();
+  const hasActiveSprints = (await getContent(page)).includes('Active Sprints');
+  let targetPid = await page.evaluate(() => {
+    const D = window.DB;
+    const isMilestone = (wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
+    const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
+    const p = D.PROJECTS.find((project) =>
+      D.WORK_PACKAGES.some((w) => w.projectId === project.id && isMilestone(w) && milestoneDate(w)));
+    return p ? String(p.id) : null;
+  });
+  const projectRow = targetPid
+    ? page.locator(`.gantt-row[data-tl-scope-project="${targetPid}"]`).first()
+    : page.locator('.gantt-row[data-tl-scope-project]').first();
+  if (await projectRow.count() === 0) {
+    fail('AC-UX-18', 'Timeline 간트에서 클릭 가능한 프로젝트 행을 찾을 수 없음');
+  } else {
+    targetPid = await projectRow.getAttribute('data-tl-scope-project');
+    await projectRow.click();
+    await page.waitForTimeout(600);
+    const selectedPid = await page.locator('[data-tl-project]').evaluate((el) => el.value);
+    const scopedScheduleCount = await page.locator('[data-schedule-inspection]').count();
+    const scopedProjectMarkers = await page.locator('[data-timeline-milestone]').count();
+    if (
+      scheduleCount > 0 &&
+      scopedScheduleCount > 0 &&
+      scheduleCards >= 5 &&
+      !hasActiveSprints &&
+      selectedPid === targetPid &&
+      scopedProjectMarkers > 0
+    ) {
+      ok('AC-UX-18', `Timeline 일정 점검 패널 및 프로젝트 행 scope 전환 동작 (project=${selectedPid}, markers=${scopedProjectMarkers})`);
+    } else {
+      fail(
+        'AC-UX-18',
+        `Timeline 일정 점검/프로젝트 scope 전환 실패 (schedule=${scheduleCount}, scoped=${scopedScheduleCount}, cards=${scheduleCards}, activeSprints=${hasActiveSprints}, target=${targetPid}, selected=${selectedPid})`,
+      );
+    }
   }
 
   /* ======================================================= 동기화 정책 */

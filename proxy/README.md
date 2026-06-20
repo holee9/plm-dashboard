@@ -64,7 +64,8 @@ proxy/
 
 ## E2E 검증
 
-AC-E2E-01..20 전 항목 통과 확인용. Playwright 필요.
+AC-E2E-01..20은 API/데이터 무결성, AC-UX-01..18은 실제 브라우저 UX 검증입니다.
+Playwright 필요.
 
 **Node.js (권장):**
 ```bash
@@ -78,6 +79,14 @@ node e2e-verify.js
 cd ~/workspace/plm-dashboard/proxy
 python3 e2e-verify-v2.py
 ```
+
+주요 Timeline 검증:
+- `AC-UX-17`: OP 마일스톤 `date` 필드가 간트 diamond marker와 Project scope에 표시되는지 확인
+- `AC-UX-18`: `Active Sprints`가 제거되고 `Schedule Inspection`이 표시되는지, 마일스톤이 있는 프로젝트 행 클릭 후 Timeline scope와 marker가 함께 갱신되는지 확인
+
+최근 Timeline 실증 캡처:
+- `/tmp/plm-timeline-schedule-all-bottom-visible.png`
+- `/tmp/plm-timeline-schedule-bluehd-bottom-visible.png`
 
 E2E 실패 이력 및 Anti-pattern은 `E2E-FAILURE-LOG.md` 참조.
 

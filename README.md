@@ -79,8 +79,28 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 | **Projects** | `views/projects.js` | 프로젝트별 상세 — 8:5 주/보조 그리드, 진행률 헤더, 편집 안전 KPI 레일, 팀/상태, WP 테이블 우선 배치 |
 | **Resources** | `views/resources.js` | 개발자별 부하 — 부하 %, 단기 잔여 시간, 백로그, 담당 프로젝트, 지연 WP |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |
-| **Timeline** | `views/timeline.js` | 간트 차트 + 스프린트 번다운, 마일스톤, WP 바, 기간 선택 |
+| **Timeline** | `views/timeline.js` | 간트 차트 + 마일스톤 marker, 선택 프로젝트 drilldown, 일정 점검(Schedule Inspection), 기간 선택 |
 | **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
+
+### Timeline 운영 설계 기준
+
+Timeline은 일정 전용 창입니다. Projects/Risks/Resources에 이미 있는 담당자, 가동률,
+지연 상세 목록을 반복하지 않고, 간트에서 바로 판단해야 하는 일정 신호만 보여줍니다.
+
+현재 운영 OP 실측(2026-06-20):
+- `/versions`: 0건, WP `versionId` 연결 0건 → `Active Sprints`/번다운 섹션 미사용
+- 날짜 있는 마일스톤: 22건 → 간트 diamond marker와 Project Milestones 패널에 표시
+- Open WP: 196건, 7일 내 마감 18건, 14일 내 마감 28건
+- 시작일 없음 23건, 마감일 없음 51건, 시작/마감 둘 다 없음 23건
+- 60일 초과 장기 span 27건
+- OP `relations`: 28건, 그중 `follows` 3건 → critical path 계산 없이 의존성 참고 수치로만 표시
+
+Timeline 하단은 두 패널로 고정합니다.
+- **Project Milestones:** 선택 범위의 마일스톤명, `MM.DD`, 상태, D-day만 표시
+- **Schedule Inspection:** 일정 커버리지, Due 7D/14D, Missing Due, Long Span, Deps 요약
+
+All Projects 간트에서 프로젝트 행을 클릭하면 Projects 탭으로 이동하지 않고 Timeline 내부
+프로젝트 scope로 전환됩니다. 하단 두 패널도 같은 scope로 재계산됩니다.
 
 ---
 
@@ -144,7 +164,7 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `id` `subject` | number / string | |
 | `projectId` `typeId` `statusId` `priorityId` | number | 참조 ID |
 | `assigneeId` `authorId` | number\|null | 미할당 시 null |
-| `versionId` | number\|null | 스프린트 |
+| `versionId` | number\|null | OP Version 연결. 현재 운영 OP는 0건이므로 Timeline 핵심 섹션에는 사용하지 않음 |
 | `startDate` `dueDate` | string | `YYYY-MM-DD` |
 | `estimatedHours` `spentHours` | **number(시간)** | ⚠ OP는 `"PT40H"` 기간 문자열 — 반드시 파싱 |
 | `percentDone` | number(0–100) | ⚠ OP 필드명은 `percentageDone` |
@@ -152,6 +172,7 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `closedAt` | string\|null | ⚠ OP 기본 필드 없음 — updatedAt 근사 |
 
 - **TimeEntry:** `id` · `workPackageId` · `projectId` · `userId` · `activityId` · `hours`(number, OP는 `"PT5H"`) · `spentOn`
+- **Relation:** `id` · `type`(`follows` 등) · `fromId` · `toId` · `delay`. Timeline Schedule Inspection은 `follows` 건수를 의존성 참고 신호로만 사용한다.
 - **User:** `id` · `name` · `initials` · `role` · `title` · `color` · `capacityPerWeek`(⚠ OP에 원천 없음 — 외부 설정)
 - **Status/Type/Priority:** 실 연동 시 **하드코딩 금지 — 인스턴스에서 동적 fetch**(`op-adapter.js` 처리)
 

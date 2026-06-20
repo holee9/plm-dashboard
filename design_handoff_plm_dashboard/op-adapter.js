@@ -171,6 +171,8 @@
       versionId: refId(wp, 'version'),
       startDate: wp.startDate || null,
       dueDate: wp.dueDate || null,
+      // OP milestone work packages use a single `date` field instead of start/due.
+      milestoneDate: wp.date || null,
       estimatedHours: durationToHours(wp.estimatedTime),   // "PT40H" → 40
       // GOTCHA #3 — `spentTime` is a DERIVED field; absent on some instances/perms.
       //   Safest: aggregate from /time_entries (done in buildDataset below).
@@ -197,17 +199,28 @@
     };
   }
 
+  function mapRelation(r) {
+    return {
+      id: r.id,
+      type: r.type,
+      fromId: refId(r, 'from'),
+      toId: refId(r, 'to'),
+      delay: Number(r.delay || 0),
+    };
+  }
+
   /* ------------------------------------------------------------ orchestrator */
 
   async function buildLiveDataset() {
     // Fetch reference data + transactional data in parallel.
     // GOTCHA: /users requires admin — use /principals instead.
     // GOTCHA: /time_entries/activities is 404 on some instances — fetchSafe returns [].
-    const [statuses, types, priorities, activities, users, projects, versions, memberships] =
+    const [statuses, types, priorities, activities, users, projects, versions, memberships, relations] =
       await Promise.all([
         fetchAll('/statuses'), fetchAll('/types'), fetchAll('/priorities'),
         fetchSafe('/time_entries/activities'), fetchAll('/principals'),
         fetchAll('/projects'), fetchAll('/versions'), fetchAll('/memberships'),
+        fetchSafe('/relations'),
       ]);
 
     // Open + closed WPs (default filter only returns open → pass empty array).
@@ -221,6 +234,8 @@
     const TIME_ENTRIES = timeRaw.map(mapTimeEntry)
       .filter((te) => allowedProjectIds.has(te.projectId) && (!te.workPackageId || workPackageIds.has(te.workPackageId)));
     const VERSIONS = versions.map(mapVersion).filter((v) => allowedProjectIds.has(v.projectId));
+    const RELATIONS = relations.map(mapRelation)
+      .filter((r) => workPackageIds.has(r.fromId) && workPackageIds.has(r.toId));
 
     // Aggregate spent hours from time entries (reliable) + approximate closedAt.
     const statusById = {}; statuses.map(mapStatus).forEach((s) => (statusById[s.id] = s));
@@ -359,6 +374,7 @@
           };
         }),
       VERSIONS,
+      RELATIONS,
       WORK_PACKAGES,
       TIME_ENTRIES,
     };

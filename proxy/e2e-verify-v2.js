@@ -229,7 +229,7 @@ async function run() {
   }
 
   /* ======================================================= 인터랙션 */
-  section('AC-UX-09~11: 인터랙션');
+  section('AC-UX-09~16: 인터랙션');
 
   // AC-UX-09: 새로고침 버튼 → API 재호출
   await navigateTo(page, 'overview');
@@ -284,6 +284,61 @@ async function run() {
     }
   } else {
     fail('AC-UX-11', '[data-board-project] 셀렉트를 찾을 수 없음');
+  }
+
+  // AC-UX-16: Projects KPI 편집 컨트롤 가시성/클릭 가능성
+  await navigateTo(page, 'projects');
+  const projKpiEdit = page.locator('[data-kpi-ns="proj"] [data-toggle-kpi-edit]');
+  if (await projKpiEdit.count() > 0) {
+    await projKpiEdit.last().click();
+    await page.waitForTimeout(500);
+    const editControls = await page.evaluate(() => {
+      const rail = document.querySelector('.project-kpi-rail');
+      const actions = document.querySelector('.project-kpi-rail .kpi-actions');
+      const cancel = document.querySelector('[data-cancel-kpi-edit]');
+      const done = Array.from(document.querySelectorAll('[data-toggle-kpi-edit]'))
+        .find((el) => (el.innerText || '').includes('완료'));
+      const box = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height, bottom: r.bottom };
+      };
+      const topMatches = (el) => {
+        const b = box(el);
+        if (!b) return false;
+        const top = document.elementFromPoint(b.x + Math.min(8, Math.max(1, b.w - 1)), b.y + Math.min(8, Math.max(1, b.h - 1)));
+        return top === el || el.contains(top);
+      };
+      const rb = box(rail);
+      const ab = box(actions);
+      return {
+        hasCancel: !!cancel,
+        hasDone: !!done,
+        actionsInsideRail: !!(rb && ab && ab.bottom <= rb.bottom + 1),
+        cancelClickable: topMatches(cancel),
+        doneClickable: topMatches(done),
+      };
+    });
+    const visible = Object.values(editControls).every(Boolean);
+    if (visible) {
+      await page.locator('[data-cancel-kpi-edit]').click();
+      await page.waitForTimeout(300);
+      const cancelClosed = await page.locator('[data-cancel-kpi-edit]').count() === 0;
+      await projKpiEdit.last().click();
+      await page.waitForTimeout(300);
+      await page.locator('button[data-toggle-kpi-edit]', { hasText: '완료' }).click();
+      await page.waitForTimeout(300);
+      const doneClosed = await page.locator('[data-cancel-kpi-edit]').count() === 0;
+      if (cancelClosed && doneClosed) {
+        ok('AC-UX-16', 'Projects KPI 편집 취소/완료 버튼이 가려지지 않고 클릭 가능');
+      } else {
+        fail('AC-UX-16', `Projects KPI 편집 종료 실패 (cancelClosed=${cancelClosed}, doneClosed=${doneClosed})`);
+      }
+    } else {
+      fail('AC-UX-16', `Projects KPI 편집 버튼 가시성/클릭성 실패: ${JSON.stringify(editControls)}`);
+    }
+  } else {
+    fail('AC-UX-16', 'Projects KPI 편집 버튼을 찾을 수 없음');
   }
 
   /* ======================================================= 동기화 정책 */
@@ -348,7 +403,7 @@ async function run() {
   console.log(`  ${FAIL} 실패: ${failed}개`);
   console.log(`  ${WARN} 경고: ${warned}개`);
 
-  if (failed === 0 && warned === 0) console.log('\n  E2E UX 실증 검증 완료 ✓ (15/15)');
+  if (failed === 0 && warned === 0) console.log('\n  E2E UX 실증 검증 완료 ✓');
   else if (failed === 0)            console.log('\n  기능 결함 없음 — 경고 항목 검토 권장');
   else                              console.log(`\n  ${failed}개 실패 항목 수정 필요`);
 

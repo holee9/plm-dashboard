@@ -265,7 +265,7 @@ def run():
                 warn(v["id"], f"{v['label']}: 화면은 정상이나 콘솔오류={err_count}: {errs_preview}")
 
         # ===================================================== 인터랙션
-        section("AC-UX-09~11: 인터랙션")
+        section("AC-UX-09~16: 인터랙션")
 
         # AC-UX-09: 새로고침 버튼 → API 재호출
         navigate_to(page, "overview")
@@ -313,6 +313,59 @@ def run():
                 warn("AC-UX-11", f"Board 필터 옵션 부족 (options={options_count}) — 프로젝트 데이터 확인 필요")
         else:
             fail("AC-UX-11", "[data-board-project] 셀렉트를 찾을 수 없음")
+
+        # AC-UX-16: Projects KPI 편집 컨트롤 가시성/클릭 가능성
+        navigate_to(page, "projects")
+        proj_kpi_edit = page.locator('[data-kpi-ns="proj"] [data-toggle-kpi-edit]')
+        if proj_kpi_edit.count() > 0:
+            proj_kpi_edit.last.click()
+            page.wait_for_timeout(500)
+            edit_controls = page.evaluate(
+                """() => {
+                    const rail = document.querySelector('.project-kpi-rail');
+                    const actions = document.querySelector('.project-kpi-rail .kpi-actions');
+                    const cancel = document.querySelector('[data-cancel-kpi-edit]');
+                    const done = Array.from(document.querySelectorAll('[data-toggle-kpi-edit]'))
+                        .find((el) => (el.innerText || '').includes('완료'));
+                    const box = (el) => {
+                        if (!el) return null;
+                        const r = el.getBoundingClientRect();
+                        return { x: r.x, y: r.y, w: r.width, h: r.height, bottom: r.bottom };
+                    };
+                    const topMatches = (el) => {
+                        const b = box(el);
+                        if (!b) return false;
+                        const top = document.elementFromPoint(b.x + Math.min(8, Math.max(1, b.w - 1)), b.y + Math.min(8, Math.max(1, b.h - 1)));
+                        return top === el || el.contains(top);
+                    };
+                    const rb = box(rail);
+                    const ab = box(actions);
+                    return {
+                        hasCancel: !!cancel,
+                        hasDone: !!done,
+                        actionsInsideRail: !!(rb && ab && ab.bottom <= rb.bottom + 1),
+                        cancelClickable: topMatches(cancel),
+                        doneClickable: topMatches(done),
+                    };
+                }"""
+            )
+            if all(edit_controls.values()):
+                page.locator("[data-cancel-kpi-edit]").click()
+                page.wait_for_timeout(300)
+                cancel_closed = page.locator("[data-cancel-kpi-edit]").count() == 0
+                proj_kpi_edit.last.click()
+                page.wait_for_timeout(300)
+                page.locator('button[data-toggle-kpi-edit]', has_text="완료").click()
+                page.wait_for_timeout(300)
+                done_closed = page.locator("[data-cancel-kpi-edit]").count() == 0
+                if cancel_closed and done_closed:
+                    ok("AC-UX-16", "Projects KPI 편집 취소/완료 버튼이 가려지지 않고 클릭 가능")
+                else:
+                    fail("AC-UX-16", f"Projects KPI 편집 종료 실패 (cancelClosed={cancel_closed}, doneClosed={done_closed})")
+            else:
+                fail("AC-UX-16", f"Projects KPI 편집 버튼 가시성/클릭성 실패: {edit_controls}")
+        else:
+            fail("AC-UX-16", "Projects KPI 편집 버튼을 찾을 수 없음")
 
         # ===================================================== 동기화 정책
         section("AC-UX-12~13: 데이터 동기화 정책")

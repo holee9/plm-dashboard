@@ -751,7 +751,7 @@ Key files: [관련 파일 목록]</pre>
 <section id="lessons">
 <h2><span class="n">13</span>레슨 &amp; 러닝 — PLM Dashboard 프로젝트</h2>
 <p>이 섹션은 <strong>이번 프로젝트를 직접 진행하면서 부딪힌 실제 사례</strong>를 KPT(Keep · Problem · Try) 형식으로 기록합니다. 방법론의 이론이 아니라, 현장에서 나온 raw 레슨입니다.</p>
-<p class="muted" style="font-size:0.88em">원자료: GitHub Issues #1~#40 타임라인 코멘트 + 커밋 히스토리 · 2026-06-19 기준</p>
+<p class="muted" style="font-size:0.88em">원자료: GitHub Issues #1~#42 타임라인 코멘트 + 커밋 히스토리 · 2026-06-20 기준</p>
 
 <h3>Keep — 잘된 것, 다음에도 반드시 유지</h3>
 <table>
@@ -1030,6 +1030,16 @@ Key files: [관련 파일 목록]</pre>
     <td>K13</td>
     <td><strong>이슈 기반 이력 관리가 사후 보강에도 방향을 잃지 않게 해준다</strong></td>
     <td>리뷰 후 발견된 새로고침 UX·날짜·마일스톤·문서화 작업을 #40으로 묶고, 커밋 메시지와 완료 코멘트에 연결했다. 코드 변경뿐 아니라 문서·E2E 결과까지 같은 이슈 타임라인에 남기면 다음 세션은 <code>gh issue view 40</code>만으로 왜 바꿨는지 복원할 수 있다.</td>
+  </tr>
+  <tr>
+    <td>P34</td>
+    <td><strong>Projects 뷰는 전체폭 카드 나열보다 주/보조 그리드가 스캔성이 높다</strong></td>
+    <td>프로젝트 헤더·KPI·차트·팀·WP를 모두 순차 행으로 쌓으면 Work Packages가 첫 화면 하단으로 밀려 실제 업무 항목을 늦게 보게 된다. 해결: Playwright 캡처와 <code>getBoundingClientRect()</code> 실측으로 현재 y좌표를 확인한 뒤, 황금비 근사 <code>8fr / 5fr</code>(8:5=1.6) 그리드로 좌측 주 영역에 헤더+WP, 우측 보조 영역에 KPI+Team+Status+Burndown을 배치한다. 단, 컬럼 비율만 맞추면 줄이 어긋날 수 있으므로 12px 줄 단위로 desktop row를 <code>264 + 12 + 684</code>에 고정해 좌우 시작선·하단선을 함께 맞춘다. 적용 후 1440px 기준 컬럼 비율 721:451=1.600, WP 시작 y=684px→419px, 좌우 하단 오차 0px (#42).</td>
+  </tr>
+  <tr>
+    <td>P35</td>
+    <td><strong>기본 상태만 캡처하면 편집 상태의 버튼 가림을 놓친다</strong></td>
+    <td>Projects KPI rail은 기본 상태에서는 정렬되어 보였지만, <code>KPI 편집</code> 진입 후 카드 수가 7개로 늘어나며 <code>취소</code>/<code>KPI 편집 완료</code> 버튼이 Team 패널 뒤로 밀렸다. 해결: edit mode에서 KPI strip은 rail 내부 스크롤로 제한하고 action 영역은 rail 하단에 고정한다. 검증은 단순 스크린샷이 아니라 <code>elementFromPoint()</code>로 버튼 hit-test를 확인하고, 취소/완료 클릭이 실제로 edit mode를 종료하는지까지 E2E에 넣는다 (#42, AC-UX-16).</td>
   </tr>
 </table>
 

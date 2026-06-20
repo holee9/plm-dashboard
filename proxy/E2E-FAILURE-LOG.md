@@ -171,6 +171,31 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 
 ---
 
+### [2026-06-20] Projects KPI 편집 버튼 가림 — 편집 상태 미검증 (#42)
+
+**문제:** Projects 뷰 우측 KPI 레일의 `KPI 편집`을 누르면 KPI 카드가 7개로 늘어나며
+편집 strip 높이가 rail 높이를 초과했다. `취소`와 `KPI 편집 완료` 버튼이 Team 패널 아래로
+밀려 실제 클릭 지점이 Team panel-body에 잡혔다.
+
+**근본 원인:** 기본 표시 상태만 Playwright 캡처/좌표 검증했고, 편집 모드 전환 후의
+상호작용 상태는 검증하지 않았다. 고정 row 높이를 쓰는 영역에서 편집 모드 콘텐츠 증가량을
+별도로 처리하지 않았다.
+
+**수정 내용:**
+- `views/projects.js`: KPI namespace root에 `kpi-editing`, 액션 영역에 `kpi-actions` 클래스 추가
+- `app.css`: Projects KPI edit mode에서 KPI strip은 rail 내부 스크롤, 취소/완료 액션은 rail 하단 고정
+- `e2e-verify-v2.py/js`: AC-UX-16 추가 — Projects KPI 편집 진입 후 취소/완료 버튼이 rail 내부에 있고 `elementFromPoint()` 기준 실제 클릭 가능하며, 두 버튼 모두 edit mode를 종료하는지 검증
+
+**검증:**
+- Playwright 직접 확인: `topAtCancel=BUTTON`, `topAtDone=BUTTON`, `actionsInsideRail=true`
+- `python3 proxy/e2e-verify-v2.py`: AC-UX-16 통과
+
+**Anti-pattern:**
+> ❌ WRONG: 기본 화면 캡처만으로 “실증 검증 완료” 판단
+> ✅ CORRECT: 편집/필터/드롭다운 등 상태 전환 후 버튼 hit-test와 실제 클릭 종료까지 검증
+
+---
+
 ## 재발 방지 체크리스트 (E2E 실증 전 필수 확인)
 
 - [ ] E2E 검증은 의미 있는 DOM 선택자를 사용하는가? (`html.length` 금지)
@@ -185,3 +210,5 @@ curl http://localhost:8088/op/work_packages/520 | python3 -m json.tool | grep di
 - [ ] 과제 선택(hiddenProjects)이 모든 뷰(Overview/Board/Timeline/Projects)에 연동되어 있는가?
 - [ ] 수동 새로고침 중 기존 데이터가 있는 경우 화면 탐색이 유지되는가?
 - [ ] 새로고침 버튼이 진행/완료/실패 상태를 사용자가 볼 수 있게 표시하는가?
+- [ ] 레이아웃 변경은 Playwright 스크린샷과 `getBoundingClientRect()` 좌표로 검증했는가? (겹침·화면 밖 요소·텍스트 잘림 0건)
+- [ ] 편집 모드/드롭다운/필터 등 상태 전환 후 주요 버튼이 `elementFromPoint()` 기준 실제 클릭 가능한가?

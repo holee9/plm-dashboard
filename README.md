@@ -290,6 +290,20 @@ python3 -m http.server 8080
 12. **#6 optional 완료** — 닫힌 WP는 `/work_packages/{id}/activities` 상태 변경 이력에서 `closedAtSource="activities"`를 우선 계산하고, 사용자 주간 가용량은 `user-overrides.js`의 `capacityPerWeek`를 반영. `AC-OPTIONAL-01/02`로 E2E 검증
 13. **`/op/` 접근 제어 (#54)** — 프록시 자체에는 인증이 없어 도달 가능한 누구나 주입된 OP 자격증명을 쓸 수 있었던 문제를 보완: LAN(`192.168.100.0/24`, `10.20.6.0/24`)·Tailscale(`100.64.0.0/10`)·localhost만 `allow`, 나머지 `deny`. 대시보드는 GET만 사용하므로 `limit_except GET { deny all; }`로 쓰기 메서드 차단
 
+### OpenProject 통합 생태계 내 위치 (2026-07-01 연동 점검)
+
+plm-dashboard는 OpenProject API의 **읽기 전용 소비자 중 하나**이며, 같은 OP 인스턴스를 아래 다른 시스템들도 각자의 방식으로 호출합니다(별도 저장소):
+
+```
+plm-dashboard  ──/op/ 프록시(GET만, LAN·Tailscale 제한)──┐
+forms-stack    ──/api/projects 프록시 + n8n webhook──────┼──> OpenProject API (nginx :8086)
+n8n-stack      ──여러 워크플로우(이슈 등록/조회/RA 분석)───┘
+```
+
+이번 점검에서 다른 저장소(openproject-stack, forms-stack, n8n-stack)의 보안 점검 중 하나의 OP API 토큰이 **plm-dashboard가 모르는 사이에 forms-stack의 nginx 설정에도 동일하게 하드코딩**되어 있던 것이 발견되어, 토큰 폐기 작업이 다른 시스템(forms.abyz-lab.work)에 실제 장애를 일으킨 사례가 있었습니다. plm-dashboard 자체의 `/op/` 프록시는 이번 점검에서 이 문제와 무관함을 확인했지만, **OP API 토큰을 공유하는 여러 소비자가 있다는 점**은 향후 토큰 로테이션 시 항상 염두에 둬야 합니다.
+
+전체 통합 아키텍처 다이어그램은 `openproject-stack/README.md`의 "통합 아키텍처 전체 지도" 섹션 참고.
+
 상세 API 분석: `design_handoff_plm_dashboard/OpenProject 연동 점검.html`
 
 ---

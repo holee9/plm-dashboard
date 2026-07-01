@@ -1071,6 +1071,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>운영 제외 프로젝트는 화면 숨김이 아니라 DB 진입 전 필터다</strong></td>
     <td><code>인프라 구축</code>은 의도적으로 대시보드 대상에서 제외한 프로젝트인데, 어댑터 제외 목록에 없으면 Projects뿐 아니라 Board, Timeline, Resources 집계에도 들어간다. 해결: <code>op-adapter.js</code>에서 allowed project set을 먼저 만들고 <code>PROJECTS</code>와 <code>WORK_PACKAGES</code>를 같은 기준으로 필터링한다. E2E는 <code>AC-ROLE-01b</code>로 <code>DB.PROJECTS</code>에 제외 프로젝트가 없는지 직접 확인한다 (#50).</td>
   </tr>
+  <tr>
+    <td>P40</td>
+    <td><strong>envsubst 템플릿 기반 nginx 컨테이너는 bare `docker compose restart`로 시크릿을 날릴 수 있다</strong></td>
+    <td>`/op/` 프록시 접근 제어 추가(#54) 후 <code>docker compose restart</code>로 반영을 시도했는데, 이 명령을 실행한 셸에 <code>OP_AUTH_B64</code>가 없어 컨테이너가 빈 값("Defaulting to a blank string")으로 재기동됐다. <code>nginx:alpine</code>의 entrypoint는 컨테이너가 재시작될 때마다 <code>default.conf.template</code>에 <code>envsubst</code>를 다시 적용하므로, 이전에 정상 기동됐던 값이 남아있는 게 아니라 그 시점 프로세스 환경변수로 새로 치환된다. 해결: 반드시 <code>proxy/start.sh</code>(<code>~/.hermes/.env</code>에서 <code>OP_API_KEY</code>를 읽어 <code>OP_AUTH_B64</code>를 계산·export 후 <code>docker compose up -d</code>)로 재기동해야 한다 — 템플릿 변수를 쓰는 컨테이너는 "restart"가 안전하다고 가정하면 안 되고, 항상 env를 다시 주입하는 래퍼를 거쳐야 한다.</td>
+  </tr>
 </table>
 
 <div class="note tip">

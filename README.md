@@ -54,6 +54,8 @@ cd ~/workspace/plm-dashboard/proxy
 bash start.sh
 ```
 
+> **주의**: 설정 변경(nginx conf, docker-compose) 후에는 반드시 위 `start.sh`로 재기동할 것. `docker compose restart`를 직접 실행하면 `OP_AUTH_B64`가 셸 환경변수에 없어 빈 값으로 재기동되어 OP 연동이 끊긴다 — `nginx:alpine`의 entrypoint가 재시작 때마다 `default.conf.template`을 현재 셸 환경으로 다시 `envsubst`하기 때문이다.
+
 ---
 
 ## 1. 개요
@@ -286,6 +288,7 @@ python3 -m http.server 8080
 10. **🔄 수동 새로고침 버튼** — 자동 폴링 없이 사용자가 명시적으로 갱신. 클릭 시 기존 데이터 화면은 유지한 채 OP 전체를 백그라운드 재조회하고, 버튼 문구가 `새로고침 → 갱신 중... → 갱신 완료 HH:mm:ss` 또는 `갱신 실패`로 바뀜. 갱신 중에는 버튼을 비활성화해 중복 요청 방지 (#40)
 11. **업데이트 시각 칩** — 마지막 렌더 시각 표시 전용. 실제 OP 재조회는 새로고침 버튼 상태 메시지와 E2E 요청 재발생으로 확인
 12. **#6 optional 완료** — 닫힌 WP는 `/work_packages/{id}/activities` 상태 변경 이력에서 `closedAtSource="activities"`를 우선 계산하고, 사용자 주간 가용량은 `user-overrides.js`의 `capacityPerWeek`를 반영. `AC-OPTIONAL-01/02`로 E2E 검증
+13. **`/op/` 접근 제어 (#54)** — 프록시 자체에는 인증이 없어 도달 가능한 누구나 주입된 OP 자격증명을 쓸 수 있었던 문제를 보완: LAN(`192.168.100.0/24`, `10.20.6.0/24`)·Tailscale(`100.64.0.0/10`)·localhost만 `allow`, 나머지 `deny`. 대시보드는 GET만 사용하므로 `limit_except GET { deny all; }`로 쓰기 메서드 차단
 
 상세 API 분석: `design_handoff_plm_dashboard/OpenProject 연동 점검.html`
 

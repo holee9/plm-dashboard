@@ -14,6 +14,21 @@ server {
     # Proxy /op/* -> OpenProject API v3
     # Authorization header injected server-side; token never reaches the browser.
     location /op/ {
+        # Restrict to known internal networks only (office LAN, wired LAN, Tailscale CGNAT).
+        # This proxy has no per-user auth of its own, so network-level allowlisting is the
+        # only gate keeping the injected OpenProject credential from being open to anyone
+        # who can reach this host.
+        allow 127.0.0.1;
+        allow 192.168.100.0/24;
+        allow 10.20.6.0/24;
+        allow 100.64.0.0/10;
+        deny all;
+
+        # Dashboard only ever issues GET; block write methods outright.
+        limit_except GET {
+            deny all;
+        }
+
         proxy_pass         http://localhost:8086/api/v3/;
         proxy_set_header   Authorization "Basic ${OP_AUTH_B64}";
         proxy_set_header   Accept "application/hal+json";

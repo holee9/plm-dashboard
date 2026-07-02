@@ -37,6 +37,8 @@ http://plm-dash.work/
 C:\Windows\System32\drivers\etc\hosts
 ```
 
+또는 Windows에서 이 저장소의 `add-plm-dash-hosts.bat`을 실행하면 현재 망을 자동 감지해 `plm-dash.work` 항목을 추가합니다.
+
 **Mac / Linux:**
 ```bash
 sudo nano /etc/hosts

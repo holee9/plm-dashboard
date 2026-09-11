@@ -101,7 +101,7 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 | **Resources** | `views/resources.js` | 리소스 입력 신뢰도 — Assignment/Estimate/Due Date 커버리지, OP 입력 유도, 인원별 일정 압박, 보조 Load |
 | **Board** | `views/board.js` | 상태별 칸반(New → In Progress → Review → Testing → On Hold → Done), 프로젝트/담당자 필터 |
 | **Timeline** | `views/timeline.js` | 간트 차트 + 마일스톤 marker, 선택 프로젝트 drilldown, 일정 점검(Schedule Inspection), 기간 선택 |
-| **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **매트릭스 패널**(2×2 impact×urgency, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
+| **Risks** | `views/risks.js` | KPI 스트립(OVERDUE·DUE SOON·UNASSIGNED·ON HOLD·OVER BUDGET·OVERLOADED 6종) · **과제별 리스크 건수 표**(지연·임박·미배정·보류·마감미설정·방치, col-6) + 동반 패널(DUE SOON·방치 WP, col-6) · **Zone A(즉각 조치)**: 마감초과·미배정 WP · **Zone B(주의)**: OnHold·기한 없음 WP · **Zone C(방치·공수)**: 예산초과·과부하 WP |
 
 ### 대시보드 대상 데이터
 
@@ -216,7 +216,7 @@ OpenProject HAL+JSON → op-adapter.js(정규화) → window.DB(평탄 형태 + 
 | `projectId` `typeId` `statusId` `priorityId` | number | 참조 ID |
 | `assigneeId` `authorId` | number\|null | 미할당 시 null |
 | `versionId` | number\|null | OP Version 연결. 현재 운영 OP는 0건이므로 Timeline 핵심 섹션에는 사용하지 않음 |
-| `startDate` `dueDate` | string | `YYYY-MM-DD` |
+| `startDate` `dueDate` | string\|null | 유효한 `YYYY-MM-DD`, 누락/잘못된 날짜는 null |
 | `estimatedHours` `spentHours` | **number(시간)** | ⚠ OP는 `"PT40H"` 기간 문자열 — 반드시 파싱 |
 | `percentDone` | number(0–100) | ⚠ OP 필드명은 `percentageDone` |
 | `createdAt` `updatedAt` | string | `YYYY-MM-DD` |
@@ -349,7 +349,7 @@ open http://127.0.0.1:8080/
 8. **퇴사자/잠금 계정 자동 제외** — 영구잠금 계정은 `_links.showUser` 부재로 감지(`isLocked`), `isBot=true`로 전환해 모든 뷰에서 자동 제외. 코드 변경 없이 OP 관리자 조작만으로 적용
 9. **샘플 데이터 없음** — `USER_DEFS`/`PROJECT_DEFS` 빈 배열. 페이지 로드 즉시 OP 조회, 로딩 중 "로딩 중…" 표시
 10. **🔄 수동 새로고침 버튼** — 자동 폴링 없이 사용자가 명시적으로 갱신. 클릭 시 기존 데이터 화면은 유지한 채 OP 전체를 백그라운드 재조회하고, 버튼 문구가 `새로고침 → 갱신 중... → 갱신 완료 HH:mm:ss` 또는 `갱신 실패`로 바뀜. 갱신 중에는 버튼을 비활성화해 중복 요청 방지 (#40)
-11. **업데이트 시각 칩** — 마지막 렌더 시각 표시 전용. 실제 OP 재조회는 새로고침 버튼 상태 메시지와 E2E 요청 재발생으로 확인
+11. **업데이트 시각 칩** — 데이터셋을 성공적으로 수신·적용한 시각(`DB.lastReceivedAt`) 표시 전용. 메뉴/테마 변경·갱신 실패 시 유지하고, 실제 재조회 성공 시에만 변경 (#60).
 12. **#6 optional 완료** — 닫힌 WP는 `/work_packages/{id}/activities` 상태 변경 이력에서 `closedAtSource="activities"`를 우선 계산하고, 사용자 주간 가용량은 `user-overrides.js`의 `capacityPerWeek`를 반영. `AC-OPTIONAL-01/02`로 E2E 검증
 13. **`/op/` 접근 제어 (#54)** — 프록시 자체에는 인증이 없어 도달 가능한 누구나 주입된 OP 자격증명을 쓸 수 있었던 문제를 보완: LAN(`192.168.100.0/24`, `10.20.6.0/24`)·Tailscale(`100.64.0.0/10`)·localhost만 `allow`, 나머지 `deny`. 대시보드는 GET만 사용하므로 `limit_except GET { deny all; }`로 쓰기 메서드 차단
 
@@ -373,13 +373,13 @@ n8n-stack      ──여러 워크플로우(이슈 등록/조회/RA 분석)─�
 
 ## 8. 디자인 토큰
 
-`styles.css`의 `:root` / `[data-theme]` 정의가 정본. 외관은 HTML 속성 조합으로 결정:
+`styles.css`가 가져오는 `tokens/*.css`의 `:root` / `[data-theme]` 정의가 정본. 외관은 HTML 속성 조합으로 결정:
 
 - **테마**(`data-theme`): dark / light
 - **밀도**(`data-density`): compact / cozy / comfortable
 - **스타일**(`data-style`): telemetry(r=8) / console(r=3, 각진) / studio(r=16, 그림자)
 - **액센트**(`--accent`): blue / violet / teal / amber / rose (Tweaks 패널에서 전환)
-- **상태색:** New `#8B93A7` · In progress `#3B82F6` · In review `#8B5CF6` · In testing `#06B6D4` · On hold `#F59E0B` · Closed `#22C55E` · Rejected `#EF4444`
+- **라이브 상태색:** OP `/statuses`의 색을 검증해 사용하며, 유효하지 않으면 `#8B93A7`로 대체. `tokens/colors.css`의 공통 시맨틱 팔레트와 구분한다.
 - **폰트:** IBM Plex Sans KR(본문·라벨), IBM Plex Mono(수치·코드). 한글 줄바꿈 `word-break: keep-all`
 
 ---

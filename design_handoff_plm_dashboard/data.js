@@ -47,7 +47,14 @@
   let TODAY = new Date('2026-05-29T00:00:00');
   const DAY = 86400000;
   const addDays = (d, n) => new Date(d.getTime() + n * DAY);
-  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const iso = (d) => d && Number.isFinite(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : null;
+  function parseDate(s) {
+    if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const d = new Date(s + 'T00:00:00');
+    return iso(d) === s ? d : null;
+  }
+  const scheduleState = (start, end, invalid = false) => invalid || (start && end && end < start)
+    ? 'invalid' : start && end ? 'complete' : start || end ? 'partial' : 'missing';
   const startOfWeek = (d) => { const x = new Date(d); const day = (x.getDay() + 6) % 7; return addDays(x, -day); };
 
   // =====================  STATIC ENUMS  ======================================
@@ -388,6 +395,7 @@
 
   // burndown for a version: remaining estimated hours vs ideal line
   function burndown(version) {
+    if (!version || scheduleState(version._start, version._end) !== 'complete' || version.scheduleState === 'invalid') return { points: [], total: 0 };
     const wps = WORK_PACKAGES.filter((wp) => wp.versionId === version.id);
     const total = wps.reduce((a, wp) => a + wp.estimatedHours, 0);
     // current actual remaining = unfinished portion of every WP
@@ -424,34 +432,39 @@
 
   // =====================  LIVE DATA HYDRATION + RELOAD  =======================
   function hydrateWP(wp) {
-    const d = (s) => s ? new Date(s + 'T00:00:00') : null;
-    wp._start   = d(wp.startDate);
-    wp._due     = d(wp.dueDate);
-    wp._milestoneDate = d(wp.milestoneDate || wp.date);
-    wp._created = d(wp.createdAt);
-    wp._closed  = d(wp.closedAt);
+    wp._start = parseDate(wp.startDate);
+    wp._due = parseDate(wp.dueDate);
+    wp._milestoneDate = parseDate(wp.milestoneDate || wp.date);
+    wp._created = parseDate(wp.createdAt);
+    wp._closed = parseDate(wp.closedAt);
+    wp.scheduleState = scheduleState(wp._start, wp._due,
+      !!((wp.startDate && !wp._start) || (wp.dueDate && !wp._due)));
+    // All views must see invalid calendar dates as missing, not rolled-over dates.
+    wp.startDate = iso(wp._start); wp.dueDate = iso(wp._due);
     return wp;
   }
 
   function hydrateTE(te) { te._on = te.spentOn ? new Date(te.spentOn + 'T00:00:00') : null; return te; }
 
   function hydrateVersion(v) {
-    v._start = v.startDate ? new Date(v.startDate + 'T00:00:00') : null;
-    v._end   = v.dueDate   ? new Date(v.dueDate   + 'T00:00:00') : null;
+    v._start = parseDate(v.startDate);
+    v._end = parseDate(v.dueDate);
+    v.scheduleState = scheduleState(v._start, v._end,
+      !!((v.startDate && !v._start) || (v.dueDate && !v._end)));
     return v;
   }
 
-  function hydrateProject(p) {
-    const wps = WORK_PACKAGES.filter((wp) => wp.projectId === p.id);
-    const pvs = VERSIONS.filter((v) => v.projectId === p.id);
+  function hydrateProject(p, ds) {
+    const wps = ds.WORK_PACKAGES.filter((wp) => wp.projectId === p.id);
+    const pvs = ds.VERSIONS.filter((v) => v.projectId === p.id);
     p.memberIds = [...new Set(wps.map((wp) => wp.assigneeId).filter(Boolean))];
-    if (!p.health) p.health  = 'on_track';
+    if (!['on_track', 'at_risk', 'off_track'].includes(p.health)) p.health = 'unknown';
     if (!p.nameKo) p.nameKo  = p.name;
     if (!p.leadId) p.leadId  = p.memberIds[0] || null;
     if (!p.memberRoles) {
       p.memberRoles = {};
       p.memberIds.forEach((id) => {
-        const u = USERS.find((u) => u.id === id);
+        const u = ds.USERS.find((u) => u.id === id);
         if (id === p.leadId) { p.memberRoles[id] = 'PL'; return; }
         if (u && /project.?manager/i.test(u.role) && !Object.values(p.memberRoles).includes('PM')) {
           p.memberRoles[id] = 'PM'; return;
@@ -459,10 +472,24 @@
         p.memberRoles[id] = 'Member';
       });
     }
-    const starts = [...pvs.map((v) => v._start), ...wps.map((wp) => wp._start || wp._milestoneDate)].filter(Boolean);
-    const ends   = [...pvs.map((v) => v._end),   ...wps.map((wp) => wp._due || wp._milestoneDate)].filter(Boolean);
-    p._start = starts.length ? new Date(Math.min(...starts.map((x) => x.getTime()))) : TODAY;
-    p._end   = ends.length   ? new Date(Math.max(...ends.map((x) => x.getTime())))   : addDays(TODAY, 30);
+    const typeById = byId(ds.TYPES);
+    const work = wps.filter((wp) => !/milestone|마일스톤/i.test(typeById[wp.typeId]?.name || ''));
+    const sources = [...pvs.map((v) => ({ start: v._start, end: v._end, state: v.scheduleState })),
+      ...work.map((wp) => ({ start: wp._start, end: wp._due, state: wp.scheduleState }))];
+    const valid = sources.filter((s) => s.state !== 'invalid');
+    const complete = valid.filter((s) => s.state === 'complete');
+    const bounds = complete.length ? complete : valid;
+    const starts = bounds.map((s) => s.start).filter(Boolean);
+    const ends = bounds.map((s) => s.end).filter(Boolean);
+    p._start = starts.length ? new Date(Math.min(...starts.map(Number))) : null;
+    p._end = ends.length ? new Date(Math.max(...ends.map(Number))) : null;
+    // Independent one-sided dates must never fabricate a complete interval.
+    p.scheduleState = valid.some((s) => s.state === 'complete') ? 'complete'
+      : sources.some((s) => s.state === 'invalid') ? 'invalid'
+      : starts.length || ends.length ? 'partial' : 'missing';
+    p.scheduledWorkCount = work.filter((wp) => wp.scheduleState === 'complete').length;
+    p.scheduleWorkCount = work.length;
+    p.invalidScheduleCount = sources.filter((s) => s.state === 'invalid').length;
     p.startDate = iso(p._start); p.dueDate = iso(p._end);
     return p;
   }
@@ -485,30 +512,39 @@
   function reload(ds) {
     function replaceArr(t, s) { t.length = 0; s.forEach((x) => t.push(x)); }
     function replaceObj(t, s) { Object.keys(t).forEach((k) => delete t[k]); Object.assign(t, s); }
-    TODAY = localMidnight();
+    // Prepare the entire snapshot before replacing the last accepted dataset.
+    const prepared = {};
+    for (const key of ['STATUSES','TYPES','PRIORITIES','ACTIVITIES','USERS','PROJECTS','VERSIONS','WORK_PACKAGES','TIME_ENTRIES','RELATIONS']) {
+      const rows = key === 'RELATIONS' ? (ds[key] || []) : ds[key];
+      if (!Array.isArray(rows) || rows.some((row) => !row || typeof row !== 'object')) throw new Error(`Invalid dataset: ${key}`);
+      prepared[key] = rows.map((row) => ({ ...row }));
+    }
+    ds = prepared;
     ds.WORK_PACKAGES.forEach(hydrateWP);
     ds.TIME_ENTRIES.forEach(hydrateTE);
     ds.VERSIONS.forEach(hydrateVersion);
+    ds.PROJECTS.forEach((p) => hydrateProject(p, ds));
+    TODAY = localMidnight();
     replaceArr(STATUSES, ds.STATUSES); replaceArr(TYPES, ds.TYPES);
     replaceArr(PRIORITIES, ds.PRIORITIES); replaceArr(ACTIVITIES, ds.ACTIVITIES);
     replaceArr(USERS, ds.USERS); replaceArr(PROJECTS, ds.PROJECTS);
     replaceArr(VERSIONS, ds.VERSIONS);
     replaceArr(WORK_PACKAGES, ds.WORK_PACKAGES); replaceArr(TIME_ENTRIES, ds.TIME_ENTRIES);
     replaceArr(RELATIONS, ds.RELATIONS || []);
-    PROJECTS.forEach(hydrateProject);
     replaceArr(BOARD_COLS, buildBoardColsFromStatuses(STATUSES));
     replaceObj(U, byId(USERS)); replaceObj(P, byId(PROJECTS)); replaceObj(S, byId(STATUSES));
     replaceObj(T, byId(TYPES)); replaceObj(PR, byId(PRIORITIES));
     replaceObj(V, byId(VERSIONS)); replaceObj(A, byId(ACTIVITIES)); replaceObj(R, byId(RELATIONS));
     Object.assign(window.DB, { TODAY, STATUSES, BOARD_COLS, TYPES, PRIORITIES, ACTIVITIES,
       USERS, PROJECTS, VERSIONS, WORK_PACKAGES, TIME_ENTRIES, RELATIONS, U, P, S, T, PR, V, A, R });
+    window.DB.lastReceivedAt = new Date().toISOString();
     window.DB._loading = false; window.DB._error = null;
     if (window.App && window.App.refresh) window.App.refresh();
   }
 
   // expose
   window.DB = {
-    TODAY, iso, addDays, startOfWeek,
+    TODAY, iso, parseDate, scheduleState, addDays, startOfWeek, lastReceivedAt: null,
     STATUSES, BOARD_COLS, TYPES, PRIORITIES, ACTIVITIES, USERS, PROJECTS, VERSIONS,
     WORK_PACKAGES, TIME_ENTRIES, RELATIONS,
     U, P, S, T, PR, V, A, R,

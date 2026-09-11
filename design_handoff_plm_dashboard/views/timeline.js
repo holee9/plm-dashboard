@@ -16,7 +16,7 @@
   }
 
   const isMilestone = (D, wp) => /milestone|마일스톤/i.test(D.T[wp.typeId]?.name || '');
-  const hasSchedule = (wp) => !!(wp._start && wp._due);
+  const hasSchedule = (wp) => wp.scheduleState === 'complete';
   const milestoneDate = (wp) => wp._milestoneDate || wp._due || wp._start || null;
   const attr = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;');
   const shortDate = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
@@ -63,7 +63,8 @@
 
   function scheduleStats(D, wps) {
     const work = wps.filter((w) => D.isOpen(w) && !isMilestone(D, w));
-    const scheduled = work.filter((w) => w._start && w._due);
+    const scheduled = work.filter(hasSchedule);
+    const invalid = work.filter((w) => w.scheduleState === 'invalid');
     const missingStart = work.filter((w) => !w._start);
     const missingDue = work.filter((w) => !w._due);
     const missingBoth = work.filter((w) => !w._start && !w._due);
@@ -75,6 +76,7 @@
     return {
       work,
       scheduled,
+      invalid,
       coverage: work.length ? Math.round((scheduled.length / work.length) * 100) : 100,
       missingStart,
       missingDue,
@@ -128,6 +130,7 @@
         items.push({ w, kind, tone, meta: meta(w) });
       });
     }
+    add(stats.invalid, 'Invalid schedule', 'amber', () => '시작일·종료일 확인 필요');
     add(stats.overdue, 'Overdue', 'red', (w) => `${UI.fmtDate(w.dueDate)} · ${UI.dueLabel(w.dueDate).txt}`);
     add(stats.due7, 'Due 7D', 'amber', (w) => `${UI.fmtDate(w.dueDate)} · ${UI.dueLabel(w.dueDate).txt}`);
     add(stats.missingDue, 'Missing due', 'amber', () => '마감일 없음');
@@ -145,7 +148,7 @@
   function renderSchedulePanel(D, UI, scope, scopeWps, projects, hp) {
     const stats = scheduleStats(D, scopeWps);
     const metricRow = `<div class="schedule-metrics">
-      ${metricCard('Coverage', `${stats.coverage}%`, `${stats.scheduled.length}/${stats.work.length} open WP`, stats.coverage < 80 ? 'amber' : '', '시작일과 마감일이 모두 있는 Open WP 비율')}
+      ${metricCard('Coverage', `${stats.coverage}%`, `${stats.scheduled.length}/${stats.work.length} open WP · 확인 필요 ${stats.invalid.length}`, stats.coverage < 80 ? 'amber' : '', '유효한 시작일과 마감일이 있고 종료일이 시작일 이상인 Open WP 비율')}
       ${metricCard('Due 7D', stats.due7.length, `14D ${stats.due14.length}`, stats.due7.length ? 'amber' : '', '오늘부터 7일 이내 마감 예정인 Open WP')}
       ${metricCard('Missing Due', stats.missingDue.length, `Both ${stats.missingBoth.length}`, stats.missingDue.length ? 'amber' : '', '마감일이 없어 일정 리스크 집계에서 빠지는 Open WP')}
       ${metricCard('Long Span', stats.longSpan.length, '>60 days', stats.longSpan.length ? 'amber' : '', '시작일과 마감일 간격이 60일을 초과하는 Open WP')}
@@ -179,7 +182,7 @@
         const prog = wps.length ? Math.round(wps.reduce((a, w) => a + w.percentDone, 0) / wps.length) : 0;
         const ms = milestoneItems(D, UI, wps);
         return { id: p.id, label: p.name, ko: p.nameKo, start: p._start, end: p._end, progress: prog,
-          color: p.health === 'on_track' ? 'var(--c-blue)' : p.health === 'at_risk' ? 'var(--c-amber)' : 'var(--c-red)',
+          color: UI.healthColor(p.health), scheduleState: p.scheduleState, scheduleLabel: UI.scheduleLabel(p),
           milestones: ms, health: p.health, nav: p.id };
       });
     } else {
@@ -187,15 +190,20 @@
       const projectWps = D.WORK_PACKAGES.filter((w) => w.projectId === p.id);
       scopeWps = projectWps;
       projectMilestones = milestoneItems(D, UI, projectWps);
-      const wps = projectWps.filter((w) => !isMilestone(D, w) && hasSchedule(w))
-        .sort((a, b) => a._start - b._start).slice(0, 22);
-      rows = wps.map((w) => ({ label: `#${w.id}`, ko: w.subject, start: w._start, end: w._due, progress: w.percentDone,
+      const wps = projectWps.filter((w) => !isMilestone(D, w))
+        .sort((a, b) => Number(hasSchedule(b)) - Number(hasSchedule(a)) || (a._start || a._due || Infinity) - (b._start || b._due || Infinity)).slice(0, 22);
+      rows = wps.map((w) => ({ label: w.displayId || String(w.id), wp: w, ko: w.subject, start: w._start, end: w._due, progress: w.percentDone,
+        scheduleState: w.scheduleState, scheduleLabel: UI.scheduleLabel(w),
         color: D.S[w.statusId].color, milestones: [], assignee: w.assigneeId, overdue: D.isOverdue(w) }));
     }
 
     const datePoints = [];
-    rows.forEach((r) => { if (r.start) datePoints.push(r.start); if (r.end) datePoints.push(r.end); });
+    rows.forEach((r) => {
+      if (r.scheduleState !== 'invalid') { if (r.start) datePoints.push(r.start); if (r.end) datePoints.push(r.end); }
+      (r.milestones || []).forEach((m) => datePoints.push(m.date));
+    });
     projectMilestones.forEach((m) => datePoints.push(m.date));
+    const hasDates = datePoints.length > 0;
     const allStart = datePoints.length ? new Date(Math.min(...datePoints.map((d) => +d))) : D.TODAY;
     const allEnd = datePoints.length ? new Date(Math.max(...datePoints.map((d) => +d))) : D.TODAY;
     rangeStart = D.addDays(D.startOfWeek(allStart), -3);
@@ -218,24 +226,25 @@
     const todayLeft = pct(D.TODAY);
 
     const ganttRows = rows.map((r) => {
-      const left = Math.max(0, pct(r.start));
-      const width = Math.max(1.5, pct(r.end) - pct(r.start));
+      const complete = r.scheduleState === 'complete';
+      const left = complete ? Math.max(0, pct(r.start)) : 0;
+      const width = complete ? Math.max(1.5, pct(r.end) - pct(r.start)) : 0;
       const ms = renderMilestoneMarkers(r.milestones || [], pct);
       const rowAttr = r.nav ? `data-tl-scope-project="${r.nav}" style="cursor:pointer"` : '';
       return `<div class="gantt-row" ${rowAttr}>
         <div class="gantt-label">
           ${r.health ? `<i class="dot" style="background:${r.color}"></i>` : ''}
           ${r.assignee ? UI.avatar(D.U[r.assignee]) : ''}
-          <div style="overflow:hidden"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px">${r.label}</div>
+          <div style="overflow:hidden"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px">${r.wp ? UI.wpLink(r.wp) : r.label}</div>
           ${r.ko ? `<div class="muted" style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.ko}</div>` : ''}</div>
         </div>
         <div class="gantt-track">
-          ${gridLines}
-          <div class="gantt-bar" style="left:${left}%;width:${width}%;background:${r.color}${r.overdue ? ';outline:1.5px solid var(--c-red)' : ''}"
-            data-tip="${r.label} · ${UI.fmtDateY(D.iso(r.start))} → ${UI.fmtDateY(D.iso(r.end))} · ${r.progress}%">
+          ${hasDates ? gridLines : ''}
+          ${complete ? `<div class="gantt-bar" style="left:${left}%;width:${width}%;background:${r.color}${r.overdue ? ';outline:1.5px solid var(--c-red)' : ''}"
+            data-tip="${attr(r.label)} · ${UI.fmtDateY(D.iso(r.start))} → ${UI.fmtDateY(D.iso(r.end))} · ${r.progress}%">
             <div class="gantt-fill" style="width:${r.progress}%"></div>
             <span style="position:relative;z-index:2">${r.progress}%</span>
-          </div>
+          </div>` : `<span class="gantt-unregistered">${r.scheduleLabel}${r.milestones?.length ? ' · 마일스톤만 표시' : ''}</span>`}
           ${ms}
         </div>
       </div>`;
@@ -252,12 +261,12 @@
 
     const gantt = UI.panel({
       title: 'Gantt · ' + (scope === 'all' ? '과제 일정' : D.P[+scope].name + ' WP 일정'),
-      sub: `${UI.fmtDateY(D.iso(rangeStart))} → ${UI.fmtDateY(D.iso(rangeEnd))}`,
+      sub: hasDates ? `${UI.fmtDateY(D.iso(rangeStart))} → ${UI.fmtDateY(D.iso(rangeEnd))} · 등록된 하위 일정 범위` : '등록된 일정 없음',
       tools: `<span class="legend" style="margin-right:8px"><span class="legend-item"><i style="width:14px;height:3px;background:var(--accent);display:inline-block;border-radius:2px"></i>Today</span><span class="legend-item"><span class="gantt-milestone" style="position:static;width:11px;height:11px;border:none;background:#8B5CF6"></span>Milestone</span></span>`,
-      body: `<div class="gantt">
-        <div class="gantt-head"><div></div><div class="gantt-months" style="position:relative">${months}</div></div>
+      body: `<div class="gantt ${hasDates ? '' : 'gantt-empty-grid'}">
+        ${hasDates ? `<div class="gantt-head"><div></div><div class="gantt-months" style="position:relative">${months}</div></div>` : '<div class="empty">일정을 등록하면 간트에 표시됩니다.</div>'}
         <div style="position:relative">
-          <div class="gantt-today" style="left:calc(200px + (100% - 200px) * ${todayLeft / 100})" data-tip="Today · ${UI.fmtDateY(D.iso(D.TODAY))}"></div>
+          ${hasDates && todayLeft >= 0 && todayLeft <= 100 ? `<div class="gantt-today" style="left:calc(200px + (100% - 200px) * ${todayLeft / 100})" data-tip="Today · ${UI.fmtDateY(D.iso(D.TODAY))}"></div>` : ''}
           ${milestoneLane}
           ${ganttRows}
         </div>

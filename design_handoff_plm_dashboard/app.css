@@ -809,3 +809,24 @@ a.wp-id:hover { background: color-mix(in oklch, var(--accent), transparent 75%);
 .ms-item:hover { background: var(--hover); }
 .ms-item input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
 .ms-none { font-size: 12px; color: var(--text-faint); padding: 5px 12px; font-style: italic; }
+
+/* Missing assessments are neutral; retain room for their explicit counts. */
+.health.unknown { color: var(--text-dim); }
+.headline.tone-neutral::before { background: var(--text-dim); }
+.headline.tone-neutral .status-badge { color: var(--text-dim); background: var(--panel-2); }
+.headline.tone-neutral .status-verdict .v { color: var(--text-dim); }
+.status-sentence { white-space: normal; overflow-wrap: anywhere; }
+.headline-status { min-width: 0; }
+.project-fact-value { white-space: normal; }
+.gantt-unregistered { display: block; padding: 8px 12px; color: var(--text-dim); font-size: 11px; }
+.gantt-empty-grid .gantt-row { grid-template-columns: minmax(140px, 200px) minmax(0, 1fr); }
+
+.live-dot.error { background: var(--c-red); animation: none; box-shadow: none; }
+.live-dot.loading { background: var(--c-amber); animation: none; box-shadow: none; }
+.live-dot.unknown { background: var(--text-dim); animation: none; box-shadow: none; }
+@media (max-width: 760px) {
+  .headline { gap: 16px; }
+  .headline-status { flex: 1 1 100%; }
+  .headline-status > div:last-child { min-width: 0; }
+  .headline-callouts { flex: 1 1 100%; }
+}

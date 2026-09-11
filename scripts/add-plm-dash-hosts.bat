@@ -137,7 +137,7 @@ exit /b 0
 
 :usage
 echo Usage:
-echo   add-plm-dash-hosts.bat [office25g ^| wired ^| tailscale]
+echo   %~nx0 [office25g ^| wired ^| tailscale]
 echo.
 echo No argument: auto-detect network, then prompt if needed.
 echo office25g : map %HOST_NAME% to 192.168.100.50

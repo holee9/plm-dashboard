@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableExtensions
 
-set "REPO_ROOT=%~dp0"
-set "SERVER_PATH=%REPO_ROOT%proxy\local-dashboard-server.py"
+for %%I in ("%~dp0..") do set "REPO_ROOT=%%~fI\"
+set "SERVER_PATH=%REPO_ROOT%scripts\local-dashboard-server.py"
 if not defined PLM_DASHBOARD_PORT set "PLM_DASHBOARD_PORT=8080"
 if not defined PLM_DASHBOARD_UPSTREAM call :detect_upstream
 if not defined PLM_DASHBOARD_UPSTREAM set "PLM_DASHBOARD_UPSTREAM=http://100.110.194.101"

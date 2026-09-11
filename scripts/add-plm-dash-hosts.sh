@@ -10,7 +10,7 @@ DRY_RUN=0
 
 usage() {
   cat <<EOF
-Usage: $0 [office25g|wired|tailscale] [--dry-run]
+Usage: ${0##*/} [office25g|wired|tailscale] [--dry-run]
 
 No profile: auto-detect the network, then prompt if needed.
 office25g : map ${HOST_NAME} to 192.168.100.50

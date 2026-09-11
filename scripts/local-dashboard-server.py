@@ -23,6 +23,7 @@ HOP_BY_HOP_HEADERS = {
     "transfer-encoding",
     "upgrade",
 }
+HEALTH_SERVICE_NAME = "plm-dashboard-local"
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -54,7 +55,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def send_health_response(self, method):
         body = json.dumps(
-            {"service": "plm-dashboard-local", "upstream": self.upstream}
+            {"service": HEALTH_SERVICE_NAME, "upstream": self.upstream}
         ).encode("utf-8")
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "application/json; charset=utf-8")

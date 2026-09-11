@@ -35,21 +35,21 @@ http://plm-dash.work/
 **Windows 자동 설정:**
 
 ```bat
-add-plm-dash-hosts.bat
+scripts\add-plm-dash-hosts.bat
 ```
 
 BAT 파일을 더블클릭하면 관리자 권한을 요청하고 현재 망을 자동 감지한 뒤 브라우저를 엽니다.
-자동 감지가 어려우면 `add-plm-dash-hosts.bat tailscale`처럼 망을 지정합니다.
+자동 감지가 어려우면 `scripts\add-plm-dash-hosts.bat tailscale`처럼 망을 지정합니다.
 
 **Mac / Linux 자동 설정:**
 
 ```bash
-chmod +x add-plm-dash-hosts.sh
-./add-plm-dash-hosts.sh
+chmod +x scripts/add-plm-dash-hosts.sh
+./scripts/add-plm-dash-hosts.sh
 ```
 
 필요할 때 `sudo` 암호를 요청하며, 설정 후 기본 브라우저를 엽니다. 망을 직접 지정하려면
-`./add-plm-dash-hosts.sh office25g`, `wired`, `tailscale` 중 하나를 사용합니다.
+`./scripts/add-plm-dash-hosts.sh office25g`, `wired`, `tailscale` 중 하나를 사용합니다.
 
 **수동 설정 — Windows:** 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
 ```
@@ -289,14 +289,14 @@ Tailscale 연결이 필요합니다. Docker, Node.js, OpenProject API 토큰은 
 **Windows:**
 
 ```bat
-run-local-dashboard.bat
+scripts\run-local-dashboard.bat
 ```
 
 **Mac / Linux:**
 
 ```bash
-chmod +x run-local-dashboard.sh
-./run-local-dashboard.sh
+chmod +x scripts/run-local-dashboard.sh
+./scripts/run-local-dashboard.sh
 ```
 
 스크립트는 현재 망을 감지해 운영 프록시를 선택하고 `http://127.0.0.1:8080/`을 엽니다.
@@ -310,15 +310,15 @@ Tailscale로 운영 프록시(`100.110.194.101`)에 접근할 수 있는 macOS�
 설치하며, 서비스는 루프백 주소에만 바인딩됩니다.
 
 ```bash
-./proxy/local-macos-service.sh install
+./scripts/local-macos-service.sh install
 open http://127.0.0.1:8080/
 ```
 
 상태 확인과 제거:
 
 ```bash
-./proxy/local-macos-service.sh status
-./proxy/local-macos-service.sh uninstall
+./scripts/local-macos-service.sh status
+./scripts/local-macos-service.sh uninstall
 ```
 
 다른 운영 프록시나 포트를 사용하려면 설치 전에 `PLM_DASHBOARD_UPSTREAM` 또는

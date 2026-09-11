@@ -58,7 +58,7 @@ echo Updating %HOSTS_FILE%
 echo %HOST_NAME% -^> %TARGET_IP% [%NETWORK_LABEL%]
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $hostsPath=Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'; $backupPath=Join-Path $env:TEMP 'hosts.plm-dash.backup'; $hostName='%HOST_NAME%'; $targetIp='%TARGET_IP%'; $pattern='(^|\s)'+[regex]::Escape($hostName)+'(\s|$)'; $lines=if(Test-Path -LiteralPath $hostsPath){Copy-Item -LiteralPath $hostsPath -Destination $backupPath -Force; Get-Content -LiteralPath $hostsPath}else{@()}; $updated=@($lines | Where-Object { $_ -notmatch $pattern }); $updated += ('{0}  {1}' -f $targetIp,$hostName); Set-Content -LiteralPath $hostsPath -Value $updated -Encoding ASCII"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0update-plm-dash-hosts.ps1" -TargetIp "%TARGET_IP%" -HostName "%HOST_NAME%"
 if errorlevel 1 (
   echo Failed to update hosts file.
   pause
@@ -72,7 +72,8 @@ echo Backup: %TEMP%\hosts.plm-dash.backup
 echo.
 findstr /I /L /C:"%HOST_NAME%" "%HOSTS_FILE%"
 echo.
-echo Open http://%HOST_NAME%/ in your browser.
+echo Opening http://%HOST_NAME%/
+start "" "http://%HOST_NAME%/"
 pause
 exit /b 0
 

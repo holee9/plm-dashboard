@@ -32,14 +32,31 @@ http://plm-dash.work/
 | 사무실 유선 (`10.20.6.x`) | `10.20.6.187  plm-dash.work` |
 | Tailscale (원격) | `100.110.194.101  plm-dash.work` |
 
-**Windows** — 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
+**Windows 자동 설정:**
+
+```bat
+add-plm-dash-hosts.bat
+```
+
+BAT 파일을 더블클릭하면 관리자 권한을 요청하고 현재 망을 자동 감지한 뒤 브라우저를 엽니다.
+자동 감지가 어려우면 `add-plm-dash-hosts.bat tailscale`처럼 망을 지정합니다.
+
+**Mac / Linux 자동 설정:**
+
+```bash
+chmod +x add-plm-dash-hosts.sh
+./add-plm-dash-hosts.sh
+```
+
+필요할 때 `sudo` 암호를 요청하며, 설정 후 기본 브라우저를 엽니다. 망을 직접 지정하려면
+`./add-plm-dash-hosts.sh office25g`, `wired`, `tailscale` 중 하나를 사용합니다.
+
+**수동 설정 — Windows:** 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
 ```
 C:\Windows\System32\drivers\etc\hosts
 ```
 
-또는 Windows에서 이 저장소의 `add-plm-dash-hosts.bat`을 실행하면 현재 망을 자동 감지해 `plm-dash.work` 항목을 추가합니다.
-
-**Mac / Linux:**
+**수동 설정 — Mac / Linux:**
 ```bash
 sudo nano /etc/hosts
 ```
@@ -263,6 +280,50 @@ python3 -m http.server 8080
 ```
 
 `op-adapter.js`의 `USE_LIVE_API`를 `false`로 변경하면 목업 데이터로 동작합니다.
+
+### 다른 PC에서 로컬 라이브 실행
+
+저장소의 파일을 직접 실행하려면 Python 3.8 이상과 운영 프록시에 도달할 수 있는 사내망 또는
+Tailscale 연결이 필요합니다. Docker, Node.js, OpenProject API 토큰은 필요하지 않습니다.
+
+**Windows:**
+
+```bat
+run-local-dashboard.bat
+```
+
+**Mac / Linux:**
+
+```bash
+chmod +x run-local-dashboard.sh
+./run-local-dashboard.sh
+```
+
+스크립트는 현재 망을 감지해 운영 프록시를 선택하고 `http://127.0.0.1:8080/`을 엽니다.
+터미널을 닫거나 `Ctrl+C`를 누르면 종료됩니다. 직접 지정하려면 실행 전에
+`PLM_DASHBOARD_UPSTREAM` 또는 `PLM_DASHBOARD_PORT` 환경변수를 설정합니다.
+
+### macOS 로그인 자동 실행
+
+Tailscale로 운영 프록시(`100.110.194.101`)에 접근할 수 있는 macOS에서는 로컬 정적 파일과
+실데이터를 함께 확인할 수 있습니다. 다음 명령은 로그인 시 자동 실행되는 LaunchAgent를
+설치하며, 서비스는 루프백 주소에만 바인딩됩니다.
+
+```bash
+./proxy/local-macos-service.sh install
+open http://127.0.0.1:8080/
+```
+
+상태 확인과 제거:
+
+```bash
+./proxy/local-macos-service.sh status
+./proxy/local-macos-service.sh uninstall
+```
+
+다른 운영 프록시나 포트를 사용하려면 설치 전에 `PLM_DASHBOARD_UPSTREAM` 또는
+`PLM_DASHBOARD_PORT`를 지정합니다. LaunchAgent 로그는
+`~/Library/Logs/plm-dashboard/`에 저장됩니다.
 
 ---
 

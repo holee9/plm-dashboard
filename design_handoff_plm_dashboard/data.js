@@ -477,8 +477,10 @@
     const sources = [...pvs.map((v) => ({ start: v._start, end: v._end, state: v.scheduleState })),
       ...work.map((wp) => ({ start: wp._start, end: wp._due, state: wp.scheduleState }))];
     const valid = sources.filter((s) => s.state !== 'invalid');
-    const starts = valid.map((s) => s.start).filter(Boolean);
-    const ends = valid.map((s) => s.end).filter(Boolean);
+    const complete = valid.filter((s) => s.state === 'complete');
+    const bounds = complete.length ? complete : valid;
+    const starts = bounds.map((s) => s.start).filter(Boolean);
+    const ends = bounds.map((s) => s.end).filter(Boolean);
     p._start = starts.length ? new Date(Math.min(...starts.map(Number))) : null;
     p._end = ends.length ? new Date(Math.max(...ends.map(Number))) : null;
     // Independent one-sided dates must never fabricate a complete interval.

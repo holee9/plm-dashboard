@@ -95,3 +95,11 @@ test('initial failure updates shell without inventing previous data',()=>{
   assert.match(els.app.innerHTML,/연동 오류/);assert.doesNotMatch(els.app.innerHTML,/Live · 연동 완료|이전 데이터/);
   assert.equal(c.DB.lastReceivedAt,null);
 });
+
+test('partial endpoints cannot extend a complete project interval',()=>{
+  const {c}=setup();
+  c.DB.reload(dataset([{startDate:'2026-09-10',dueDate:'2026-09-20'}, {startDate:'2026-01-01'}, {dueDate:'2027-12-31'}]));
+  const p=c.DB.PROJECTS[0];
+  assert.equal(p.startDate,'2026-09-10');assert.equal(p.dueDate,'2026-09-20');
+  assert.equal(p.scheduledWorkCount,1);assert.equal(p.scheduleWorkCount,3);
+});

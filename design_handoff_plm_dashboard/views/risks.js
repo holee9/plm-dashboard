@@ -102,7 +102,7 @@
       overBudget: (!hasEstimate || !hasTimeEntry)
         ? { v: '–', u: '', tone: '', foot: '<span style="color:var(--c-amber);font-size:10px;font-weight:600">OP 입력 필요 ↑</span>' }
         : { v: overBudget.length, u: '', tone: overBudget.length > 0 ? 'red' : '', foot: '<span class="muted">공수 초과</span>' },
-      overloaded: !hasEstimate
+      overloaded: !util.length || util.some((u) => !u.loadKnown)
         ? { v: '–', u: '', tone: '', foot: '<span style="color:var(--c-amber);font-size:10px;font-weight:600">OP 입력 필요 ↑</span>' }
         : { v: overloaded.length, u: '', tone: overloaded.length > 0 ? 'red' : '', foot: '<span class="muted">인원 과부하</span>' },
     };
@@ -290,7 +290,7 @@
             <th style="width:44px">Owner</th>
             <th style="width:100px">Project</th>
           </tr></thead>
-          <tbody>${noDueDate.slice(0, 80).map((w) => `<tr>
+          <tbody>${noDueDate.map((w) => `<tr>
             <td>${UI.wpLink(w)}</td>
             <td class="strong clamp">${UI.priorityDot(w.priorityId)} ${w.subject}</td>
             <td>${UI.avatar(D.U[w.assigneeId])}</td>
@@ -361,9 +361,9 @@
     );
     const overloadPanel = UI.panel({
       title: 'Overloaded Members · 과부하 인원',
-      sub: `근시일 부하 100% 초과 ${overloaded.length}명`,
+      sub: `확인된 과부하 ${overloaded.length}명 · 산출 불가 ${util.filter((u) => !u.loadKnown).length}명`,
       tools: INFO_TIP('담당자별 예상 잔여 공수를 3주 근무 용량(capacityPerWeek×3)으로 나눈 가동률이 100% 초과인 인원입니다. OP에서 담당자와 예상 시간을 입력해야 활성화됩니다.'),
-      body: !hasEstimate ? overloadNotice : overloaded.length
+      body: (util.some((u) => !u.loadKnown) ? overloadNotice : '') + (overloaded.length
         ? `<div class="feed" style="max-height:300px;overflow-y:auto">${overloaded.map((u) => `<div class="feed-item">
           ${UI.avatar(u.user, 'lg')}
           <div class="feed-main">
@@ -377,7 +377,7 @@
             <div class="loadbar"><span style="left:0;width:${Math.min(100, (u.load / 160) * 100)}%;background:var(--c-red)"></span><i class="cap" style="left:${(100 / 160) * 100}%"></i></div>
           </div>
         </div>`).join('')}</div>`
-        : '<div class="empty">과부하 인원 없음</div>',
+        : `<div class="empty">${util.some((u) => !u.loadKnown) ? '입력 부족 인원은 과부하 여부를 판정할 수 없습니다.' : '과부하 인원 없음'}</div>`),
       bodyStyle: 'min-height:145px',
     });
 

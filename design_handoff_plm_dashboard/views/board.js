@@ -62,8 +62,7 @@
         .sort((a, b) => a._due - b._due);
       const headStatus = col.statusIds.length > 0 ? D.S[col.statusIds[0]] : null;
       const headColor = headStatus ? headStatus.color : 'var(--text-faint)';
-      const CAP = 30;
-      const shown = items.slice(0, CAP);
+      const shown = items;
       const cards = shown.map((w) => {
         const due = UI.dueLabel(w.dueDate);
         const overdue = D.isOverdue(w);
@@ -81,7 +80,7 @@
           <div class="pbar thin" style="margin-top:8px"><span style="width:${w.percentDone}%"></span></div>
         </div>`;
       }).join('') || '<div class="empty" style="padding:16px">–</div>';
-      const more = items.length > CAP ? `<div class="muted mono" style="text-align:center;font-size:11px;padding:8px">+${items.length - CAP} more</div>` : '';
+      const more = `<div class="muted mono" style="text-align:center;padding:8px">전체 ${items.length}건 표시</div>`;
       return `<div class="board-col">
         <div class="board-col-head"><i class="dot" style="background:${headColor}"></i><b>${col.label}</b><span class="cnt">${items.length}</span></div>
         <div class="board-cards">${cards}${more}</div>

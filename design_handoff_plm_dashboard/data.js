@@ -367,18 +367,21 @@
     return USERS.filter((u) => !u.isGroup && !u.isObserver && !u.isBot).map((u) => {
       const assigned = WORK_PACKAGES.filter((wp) => wp.assigneeId === u.id);
       const open = assigned.filter(isOpen);
-      const imminent = open.filter((wp) => wp._due && wp._due <= horizonEnd); // incl. overdue, excludes unscheduled work
+      const effortWork = open.filter((wp) => !/milestone|마일스톤/i.test(T[wp.typeId]?.name || ''));
+      const imminent = effortWork.filter((wp) => wp._due && wp._due <= horizonEnd); // incl. overdue, excludes unscheduled work
       const nearTerm = imminent.reduce((a, wp) => a + wp.estimatedHours * (1 - wp.percentDone / 100), 0);
       const backlog = open.reduce((a, wp) => a + wp.estimatedHours * (1 - wp.percentDone / 100), 0);
       const spent = assigned.reduce((a, wp) => a + wp.spentHours, 0);
       const overdue = assigned.filter(isOverdue).length;
-      const load = Math.round((nearTerm / (u.capacityPerWeek * 3)) * 100);
+      const loadKnown = Number.isFinite(u.capacityPerWeek) && u.capacityPerWeek > 0
+        && effortWork.every((wp) => wp._due && wp.scheduleState !== 'invalid' && Number.isFinite(wp.estimatedHours) && wp.estimatedHours > 0);
+      const load = loadKnown ? Math.round((nearTerm / (u.capacityPerWeek * 3)) * 100) : null;
       return {
         user: u, openCount: open.length, totalCount: assigned.length,
         remaining: Math.round(nearTerm),   // near-term remaining (drives load)
         backlog: Math.round(backlog),      // total open backlog
         spent: Math.round(spent), overdue,
-        load, projects: [...new Set(open.map((wp) => wp.projectId))],
+        load, loadKnown, projects: [...new Set(open.map((wp) => wp.projectId))],
       };
     }).sort((a, b) => b.load - a.load);
   }

@@ -98,8 +98,8 @@
       if (v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }
       const badge = v.key === 'risks' ? `<span class="nav-badge alert">${overdueTotal}</span>`
         : v.key === 'overview' ? `<span class="nav-badge">${D.WORK_PACKAGES.length}</span>` : '';
-      nav += `<div class="nav-item ${state.view === v.key ? 'active' : ''}" data-view="${v.key}">
-        ${svg(v.ic)}<span class="nav-label">${v.en}</span>${badge}</div>`;
+      nav += `<button type="button" class="nav-item ${state.view === v.key ? 'active' : ''}" data-view="${v.key}" aria-label="${v.en} · ${v.ko}" ${state.view === v.key ? 'aria-current="page"' : ''}>
+        ${svg(v.ic)}<span class="nav-label">${v.en}</span>${badge}</button>`;
     });
 
     const received = D.lastReceivedAt ? new Date(D.lastReceivedAt) : null;
@@ -126,13 +126,12 @@
       </aside>
       <div class="main">
         <header class="topbar">
-          <button class="tb-icon" data-toggle-sidebar>${svg(IC.menu)}</button>
+          <button class="tb-icon" data-toggle-sidebar aria-label="사이드바 접기/펼치기" aria-expanded="${!state.collapsed}">${svg(IC.menu)}</button>
           <div class="view-title"><b>${cur.en} · ${cur.ko}</b><span>${SUBTITLE[state.view]}</span></div>
           <div class="topbar-spacer"></div>
-          <button class="tb-chip" data-noop>${svg(IC.cal)}<span>Last 90d</span></button>
           <button class="tb-chip" data-noop data-tip="대시보드가 데이터를 수신해 적용한 시각입니다. 원본 수정 시각이 아니며 선택 API 일부는 누락될 수 있습니다. 새로고침은 오른쪽 버튼을 사용하세요."><span class="live-dot ${!D.lastReceivedAt ? 'unknown' : D._loading ? 'loading' : refreshStatus === 'error' ? 'error' : ''}"></span>업데이트 <b>${receivedText}</b></button>
           <button class="tb-chip" data-refresh${refreshTone}${refreshBusy} data-tip="OpenProject에서 전체 데이터를 다시 조회합니다. 완료 후 모든 뷰가 최신 상태로 갱신됩니다.">${svg(IC.refresh)}<span>${refreshMessage}</span></button>
-          <button class="tb-icon" data-theme-toggle>${svg(state.theme === 'dark' ? IC.sun : IC.moon)}</button>
+          <button class="tb-icon" data-theme-toggle aria-label="${state.theme === 'dark' ? '라이트' : '다크'} 테마로 전환">${svg(state.theme === 'dark' ? IC.sun : IC.moon)}</button>
         </header>
         <div class="content" id="content"></div>
       </div>`;
@@ -186,7 +185,7 @@
   document.addEventListener('click', (e) => {
     const t = e.target;
     const navItem = t.closest('[data-view]');
-    if (navItem) { go(navItem.dataset.view); return; }
+    if (navItem) { const view = navItem.dataset.view; go(view); document.querySelector(`[data-view="${view}"]`)?.focus(); return; }
     if (t.closest('[data-nav]')) { go(t.closest('[data-nav]').dataset.nav); return; }
     const tlScopeRow = t.closest('[data-tl-scope-project]');
     if (tlScopeRow) { state.tlProject = tlScopeRow.dataset.tlScopeProject; state.view = 'timeline'; save(); renderShell(); return; }

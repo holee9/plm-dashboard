@@ -5,8 +5,18 @@
   'use strict';
   const D = window.DB;
 
-  const HEALTH = { on_track: '정상', at_risk: '주의', off_track: '지연' };
-  const HEALTH_EN = { on_track: 'On track', at_risk: 'At risk', off_track: 'Off track' };
+  const HEALTH = { on_track: '정상', at_risk: '주의', off_track: '지연', unknown: '미평가' };
+  const HEALTH_EN = { on_track: 'On track', at_risk: 'At risk', off_track: 'Off track', unknown: 'Not assessed' };
+  const healthKey = (h) => Object.hasOwn(HEALTH, h) ? h : 'unknown';
+  const healthColor = (h) => ({ on_track: 'var(--c-green)', at_risk: 'var(--c-amber)', off_track: 'var(--c-red)', unknown: 'var(--text-dim)' })[healthKey(h)];
+  function scheduleLabel(item) {
+    if (item.scheduleState === 'invalid') return '일정 확인 필요';
+    if (item.scheduleState === 'complete') return `${fmtDateY(item.startDate)} → ${fmtDateY(item.dueDate)}`;
+    if (item.startDate && item.dueDate) return `${fmtDateY(item.startDate)} / ${fmtDateY(item.dueDate)} · 개별 날짜만 등록`;
+    if (item.startDate) return `${fmtDateY(item.startDate)} · 종료일 미등록`;
+    if (item.dueDate) return `${fmtDateY(item.dueDate)} · 시작일 미등록`;
+    return '일정 미등록';
+  }
 
   function avatar(user, cls = '') {
     if (!user) return `<div class="avatar ${cls}" style="background:var(--text-faint)">–</div>`;
@@ -23,6 +33,7 @@
     return `<span class="chip-status"><i class="dot" style="background:${s.color}"></i>${s.name}</span>`;
   }
   function healthChip(h) {
+    h = healthKey(h);
     return `<span class="health ${h}"><i class="dot" style="background:currentColor"></i>${HEALTH_EN[h]} · ${HEALTH[h]}</span>`;
   }
   function typeTag(typeId) {
@@ -84,7 +95,7 @@
   }
 
   window.UI = {
-    HEALTH, HEALTH_EN, avatar, avatarStack, statusChip, healthChip, typeTag, priorityDot,
+    HEALTH, HEALTH_EN, healthKey, healthColor, scheduleLabel, avatar, avatarStack, statusChip, healthChip, typeTag, priorityDot,
     progressBar, fmtDate, fmtDateY, daysFromToday, dueLabel, panel, kpi, wpLink,
   };
 })();

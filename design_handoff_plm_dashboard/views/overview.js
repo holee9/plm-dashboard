@@ -76,14 +76,16 @@
     const offTrack = health.filter((h) => h.project.health === 'off_track');
     const atRisk = health.filter((h) => h.project.health === 'at_risk');
     const onTrack = health.filter((h) => h.project.health === 'on_track');
+    const unknown = health.filter((h) => UI.healthKey(h.project.health) === 'unknown');
     const overloaded = util.filter((u) => u.load > 100);
 
     let verdict, vtone, vglyph;
     if (offTrack.length >= 3 || k.overdue > 40 || overloaded.length >= 3) { verdict = '위험'; vtone = 'red'; vglyph = '!'; }
     else if (offTrack.length >= 1 || atRisk.length >= 2 || overloaded.length >= 1 || k.overdue > 15) { verdict = '주의'; vtone = 'amber'; vglyph = '!'; }
+    else if (unknown.length || !health.length) { verdict = '미평가'; vtone = 'neutral'; vglyph = '–'; }
     else { verdict = '정상'; vtone = 'green'; vglyph = '✓'; }
 
-    const sentence = `활성 과제 <b>${health.length}</b>개 · 정상 ${onTrack.length} / 주의 ${atRisk.length} / 지연 ${offTrack.length} · 전체 진행률 <b>${avgProgress}%</b>`;
+    const sentence = `대상 과제 <b>${health.length}</b>개 · 정상 ${onTrack.length} / 주의 ${atRisk.length} / 지연 ${offTrack.length} / 미평가 ${unknown.length} · 전체 진행률 <b>${avgProgress}%</b>`;
 
     const callouts = [
       { n: k.overdue, t: '마감 초과', tone: 'red', nav: 'risks', show: k.overdue > 0 },
@@ -91,7 +93,7 @@
       { n: offTrack.length, t: '지연 과제', tone: 'amber', nav: 'projects', show: offTrack.length > 0 },
       { n: k.dueThisWeek, t: '이번 주 마감', tone: 'amber', nav: 'timeline', show: k.dueThisWeek > 0 },
     ].filter((c) => c.show).slice(0, 4);
-    if (!callouts.length) callouts.push({ n: '✓', t: '주의 항목 없음', tone: 'ok', nav: '', show: true });
+    if (!callouts.length) callouts.push({ n: unknown.length || !health.length ? '–' : '✓', t: unknown.length || !health.length ? '건강도 평가 필요' : '주의 항목 없음', tone: unknown.length || !health.length ? '' : 'ok', nav: '', show: true });
 
     const headline = `<div class="headline tone-${vtone}">
       <div class="headline-status">

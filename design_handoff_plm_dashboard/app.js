@@ -102,12 +102,15 @@
         ${svg(v.ic)}<span class="nav-label">${v.en}</span>${badge}</div>`;
     });
 
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0'), mm = String(now.getMinutes()).padStart(2, '0');
+    const received = D.lastReceivedAt ? new Date(D.lastReceivedAt) : null;
+    const receivedText = received ? (received.toDateString() === new Date().toDateString() ? '' : `${UI.fmtDateY(D.iso(received))} `)
+      + `${String(received.getHours()).padStart(2, '0')}:${String(received.getMinutes()).padStart(2, '0')}` : '수신 이력 없음';
+    const syncLabel = D._loading ? '연동 중…' : refreshStatus === 'error' ? (D.lastReceivedAt ? '갱신 실패 · 이전 데이터' : '연동 오류')
+      : D._error ? '연동 오류' : D.lastReceivedAt ? 'Live · 연동 완료' : '수신 이력 없음';
     const cur = VIEWS.find((v) => v.key === state.view);
     const refreshTone = refreshStatus === 'loading' ? ' data-refresh-loading="true"'
       : refreshStatus === 'error' ? ' data-refresh-error="true"' : '';
-    const refreshBusy = refreshStatus === 'loading' ? ' disabled aria-busy="true"' : '';
+    const refreshBusy = D._loading || refreshStatus === 'loading' ? ' disabled aria-busy="true"' : '';
 
     document.getElementById('app').innerHTML = `
       <aside class="sidebar ${state.collapsed ? 'collapsed' : ''}">
@@ -117,8 +120,8 @@
         </div>
         <nav class="nav">${nav}</nav>
         <div class="side-foot">
-          <span class="live-dot ${D._loading ? 'loading' : (D._error ? 'error' : '')}"></span>
-          <div class="side-foot-text"><b>${D._loading ? '연동 중…' : D._error ? '연동 오류' : 'Live · 연동 완료'}</b>OpenProject v3</div>
+          <span class="live-dot ${D._loading ? 'loading' : (D._error || refreshStatus === 'error' ? 'error' : '')}"></span>
+          <div class="side-foot-text"><b>${syncLabel}</b>OpenProject v3</div>
         </div>
       </aside>
       <div class="main">
@@ -127,7 +130,7 @@
           <div class="view-title"><b>${cur.en} · ${cur.ko}</b><span>${SUBTITLE[state.view]}</span></div>
           <div class="topbar-spacer"></div>
           <button class="tb-chip" data-noop>${svg(IC.cal)}<span>Last 90d</span></button>
-          <button class="tb-chip" data-noop data-tip="마지막으로 OpenProject 데이터를 성공적으로 수신한 시각입니다. 클릭 기능 없음 — 새로고침은 오른쪽 버튼을 사용하세요."><span class="live-dot"></span>업데이트 <b>${hh}:${mm}</b></button>
+          <button class="tb-chip" data-noop data-tip="대시보드가 데이터를 수신해 적용한 시각입니다. 원본 수정 시각이 아니며 선택 API 일부는 누락될 수 있습니다. 새로고침은 오른쪽 버튼을 사용하세요."><span class="live-dot ${!D.lastReceivedAt ? 'unknown' : D._loading ? 'loading' : refreshStatus === 'error' ? 'error' : ''}"></span>업데이트 <b>${receivedText}</b></button>
           <button class="tb-chip" data-refresh${refreshTone}${refreshBusy} data-tip="OpenProject에서 전체 데이터를 다시 조회합니다. 완료 후 모든 뷰가 최신 상태로 갱신됩니다.">${svg(IC.refresh)}<span>${refreshMessage}</span></button>
           <button class="tb-icon" data-theme-toggle>${svg(state.theme === 'dark' ? IC.sun : IC.moon)}</button>
         </header>
@@ -298,6 +301,7 @@
     if (t.closest('[data-theme-toggle]')) { state.theme = state.theme === 'dark' ? 'light' : 'dark'; save(); applyChrome(); renderShell(); return; }
     if (t.closest('[data-refresh]')) {
       // Re-fetch live data if adapter is available; otherwise just re-render.
+      if (D._loading) return;
       if (window.OPAdapter && window.OPAdapter.USE_LIVE_API && window.DB && window.DB.reload) {
         refreshStatus = 'loading';
         refreshMessage = '갱신 중...';
@@ -305,7 +309,7 @@
         renderShell();
         window.OPAdapter.buildLiveDataset().then(function (ds) {
           window.DB.reload(ds);
-          const done = new Date();
+          const done = new Date(D.lastReceivedAt);
           refreshStatus = 'success';
           refreshMessage = `갱신 완료 ${String(done.getHours()).padStart(2, '0')}:${String(done.getMinutes()).padStart(2, '0')}:${String(done.getSeconds()).padStart(2, '0')}`;
           renderShell();
@@ -317,8 +321,8 @@
           renderShell();
         });
       } else {
-        refreshStatus = 'success';
-        refreshMessage = '갱신 완료';
+        refreshStatus = 'idle';
+        refreshMessage = '라이브 연동 없음';
         renderShell();
       }
       return;
@@ -483,8 +487,9 @@
     getState() { return state; },
     refresh() { renderShell(); },
     showError(msg) {
-      const el = document.getElementById('content');
-      if (el) el.innerHTML = `<div class="empty" style="color:var(--c-red)">연동 오류: ${escapeHtml(msg)}</div>`;
+      D._error = msg;
+      D._loading = false;
+      renderShell();
     },
   };
 

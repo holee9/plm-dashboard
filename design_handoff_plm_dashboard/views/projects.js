@@ -85,7 +85,7 @@
         const wc = D.WORK_PACKAGES.filter((w) => w.projectId === pp.id);
         const od = wc.filter(D.isOverdue).length;
         return `<button class="subtab ${pp.id === pid ? 'on' : ''}" data-project-tab="${pp.id}">
-          <i class="dot" style="background:var(--c-${pp.health === 'on_track' ? 'green' : pp.health === 'at_risk' ? 'amber' : 'red'})"></i>
+          <i class="dot" style="background:${UI.healthColor(pp.health)}"></i>
           ${pp.name}${od ? `<span class="nav-badge alert">${od}</span>` : ''}
           <span class="subtab-hide" data-hide-project="${pp.id}" title="이 과제 숨김">×</span>
         </button>`;
@@ -160,7 +160,7 @@
         <div class="project-fact-grid">
           ${pmBlock}
           ${tlBlock}
-          <div class="project-fact project-fact-wide"><div class="kpi-label">TIMELINE</div><div class="mono project-fact-value">${UI.fmtDateY(p.startDate)} → ${UI.fmtDateY(p.dueDate)}</div></div>
+          <div class="project-fact project-fact-wide"><div class="kpi-label">TIMELINE · 등록된 하위 일정</div><div class="mono project-fact-value">${UI.scheduleLabel(p)}</div><div class="muted">일정 등록 ${p.scheduledWorkCount}/${p.scheduleWorkCount} WP${p.invalidScheduleCount ? ` · 확인 필요 ${p.invalidScheduleCount}건` : ''}</div></div>
           <div class="project-fact"><div class="kpi-label">SPRINT</div><div class="mono project-fact-value">${curV ? curV.name : '–'}</div></div>
           <div class="project-fact"><div class="kpi-label">TEAM</div><div class="project-fact-value">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'TL' && roles[id] !== 'PM'), 6)}</div></div>
         </div>

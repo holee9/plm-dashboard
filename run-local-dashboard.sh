@@ -37,10 +37,23 @@ open_dashboard() {
   esac
 }
 
-if command -v curl >/dev/null 2>&1 && curl -fs -o /dev/null "$URL"; then
-  echo "PLM Dashboard is already running: ${URL}"
-  open_dashboard
-  exit 0
+dashboard_is_running() {
+  local health
+  health="$(curl -fs "${URL}__plm_health" 2>/dev/null)" || return 1
+  [[ "$health" == *'"service": "plm-dashboard-local"'* ]] &&
+    [[ "$health" == *"\"upstream\": \"${UPSTREAM}\""* ]]
+}
+
+if command -v curl >/dev/null 2>&1; then
+  if dashboard_is_running; then
+    echo "PLM Dashboard is already running: ${URL}"
+    open_dashboard
+    exit 0
+  fi
+  if curl -fs -o /dev/null "$URL" 2>/dev/null; then
+    echo "ERROR: port ${PORT} is used by another service or upstream configuration." >&2
+    exit 1
+  fi
 fi
 
 if [[ -z "$PYTHON_PATH" ]]; then
@@ -65,7 +78,7 @@ trap cleanup EXIT INT TERM
 if command -v curl >/dev/null 2>&1; then
   READY=0
   for _ in {1..20}; do
-    if curl -fs -o /dev/null "$URL"; then
+    if dashboard_is_running; then
       READY=1
       break
     fi

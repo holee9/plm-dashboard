@@ -2,7 +2,7 @@
 set -euo pipefail
 
 HOST_NAME="plm-dash.work"
-HOSTS_FILE="/etc/hosts"
+HOSTS_FILE="${PLM_DASHBOARD_HOSTS_FILE:-/etc/hosts}"
 TARGET_IP=""
 NETWORK_LABEL=""
 PROFILE=""
@@ -127,8 +127,44 @@ fi
 
 TEMP_FILE="$(mktemp)"
 trap 'rm -f "$TEMP_FILE"' EXIT
-PATTERN="(^|[[:space:]])${HOST_NAME//./\\.}([[:space:]]|$)"
-grep -Ev "$PATTERN" "$HOSTS_FILE" >"$TEMP_FILE" || true
+awk -v target="$HOST_NAME" '
+  {
+    original = $0
+    content = $0
+    comment = ""
+    comment_at = index(content, "#")
+    if (comment_at > 0) {
+      comment = substr(content, comment_at)
+      content = substr(content, 1, comment_at - 1)
+    }
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", content)
+    if (content == "") {
+      print original
+      next
+    }
+
+    field_count = split(content, fields, /[[:space:]]+/)
+    found = 0
+    alias_count = 0
+    rebuilt = fields[1]
+    for (field_index = 2; field_index <= field_count; field_index++) {
+      if (tolower(fields[field_index]) == tolower(target)) {
+        found = 1
+      } else {
+        rebuilt = rebuilt "  " fields[field_index]
+        alias_count++
+      }
+    }
+
+    if (!found) {
+      print original
+    } else if (alias_count > 0) {
+      print rebuilt (comment == "" ? "" : "  " comment)
+    } else if (comment != "") {
+      print comment
+    }
+  }
+' "$HOSTS_FILE" >"$TEMP_FILE"
 printf '%s  %s\n' "$TARGET_IP" "$HOST_NAME" >>"$TEMP_FILE"
 
 echo "${HOST_NAME} -> ${TARGET_IP} [${NETWORK_LABEL}]"

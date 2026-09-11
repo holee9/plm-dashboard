@@ -29,6 +29,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     upstream = ""
 
     def do_GET(self):
+        if self.path == "/__plm_health":
+            self.send_health_response("GET")
+            return
         if self.path == "/":
             self.send_response(HTTPStatus.FOUND)
             self.send_header("Location", "/PLM%20Dashboard.html")
@@ -41,10 +44,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_HEAD(self):
+        if self.path == "/__plm_health":
+            self.send_health_response("HEAD")
+            return
         if self.path == "/op" or self.path.startswith("/op/"):
             self.proxy_request("HEAD")
             return
         super().do_HEAD()
+
+    def send_health_response(self, method):
+        body = json.dumps(
+            {"service": "plm-dashboard-local", "upstream": self.upstream}
+        ).encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        if method != "HEAD":
+            self.wfile.write(body)
 
     def proxy_request(self, method):
         upstream_url = f"{self.upstream}{self.path}"

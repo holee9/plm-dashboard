@@ -29,6 +29,25 @@ bash start.sh
 2. `OP_AUTH_B64=$(printf "apikey:%s" "$OP_API_KEY" | base64 -w 0)` 생성
 3. `docker compose up -d` 실행
 
+## macOS 로컬 라이브 서비스
+
+Docker와 로컬 API 토큰 없이 Tailscale 운영 프록시를 사용하는 macOS 클라이언트는 다음처럼
+로그인 자동 시작 서비스를 설치할 수 있습니다. 서비스는 `127.0.0.1`에만 바인딩됩니다.
+
+```bash
+cd ~/workspace/plm-dashboard
+./proxy/local-macos-service.sh install
+open http://127.0.0.1:8080/
+```
+
+```bash
+./proxy/local-macos-service.sh status
+./proxy/local-macos-service.sh uninstall
+```
+
+기본 upstream은 `http://100.110.194.101`입니다. 다른 주소는 설치 시
+`PLM_DASHBOARD_UPSTREAM=http://...` 환경변수로 지정합니다.
+
 ## 파일 구성
 
 ```
@@ -36,6 +55,8 @@ proxy/
 ├── docker-compose.yml              nginx:alpine 서비스 (network_mode: host)
 ├── nginx/default.conf.template     nginx 설정 템플릿 (envsubst로 처리)
 ├── start.sh                        토큰 로드 + 컨테이너 기동
+├── local-dashboard-server.py       로컬 정적 서버 + 운영 /op 프록시 (Python 3)
+├── local-macos-service.sh          macOS 로그인 자동 실행 서비스 관리
 ├── e2e-verify.js                   AC-E2E-01..20 Playwright 검증 (Node.js, 최신)
 ├── e2e-verify-v2.js                v2 Playwright 스크립트 (Node.js)
 ├── e2e-verify.py                   초기 Playwright 검증 (Python)

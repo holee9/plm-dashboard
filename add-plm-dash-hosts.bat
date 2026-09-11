@@ -72,7 +72,8 @@ echo Backup: %TEMP%\hosts.plm-dash.backup
 echo.
 findstr /I /L /C:"%HOST_NAME%" "%HOSTS_FILE%"
 echo.
-echo Open http://%HOST_NAME%/ in your browser.
+echo Opening http://%HOST_NAME%/
+start "" "http://%HOST_NAME%/"
 pause
 exit /b 0
 

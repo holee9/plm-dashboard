@@ -1,7 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
     [string]$TargetIp,
     [Parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
     [string]$HostName
 )
 

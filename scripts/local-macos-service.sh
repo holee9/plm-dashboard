@@ -6,7 +6,7 @@ DOMAIN="gui/$(id -u)"
 PLIST_PATH="${HOME}/Library/LaunchAgents/${LABEL}.plist"
 LOG_DIR="${HOME}/Library/Logs/plm-dashboard"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVER_PATH="${REPO_ROOT}/proxy/local-dashboard-server.py"
+SERVER_PATH="${REPO_ROOT}/scripts/local-dashboard-server.py"
 PYTHON_PATH="$(command -v python3)"
 PORT="${PLM_DASHBOARD_PORT:-8080}"
 UPSTREAM="${PLM_DASHBOARD_UPSTREAM:-http://100.110.194.101}"
@@ -101,7 +101,7 @@ case "${1:-install}" in
     show_status
     ;;
   *)
-    echo "Usage: $0 [install|uninstall|status]" >&2
+    echo "Usage: ${0##*/} [install|uninstall|status]" >&2
     exit 2
     ;;
 esac

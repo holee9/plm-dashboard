@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVER_PATH="${REPO_ROOT}/proxy/local-dashboard-server.py"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SERVER_PATH="${REPO_ROOT}/scripts/local-dashboard-server.py"
 HOST="127.0.0.1"
 PORT="${PLM_DASHBOARD_PORT:-8080}"
 UPSTREAM="${PLM_DASHBOARD_UPSTREAM:-}"

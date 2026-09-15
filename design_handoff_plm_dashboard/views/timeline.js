@@ -191,7 +191,7 @@
       scopeWps = projectWps;
       projectMilestones = milestoneItems(D, UI, projectWps);
       const wps = projectWps.filter((w) => !isMilestone(D, w))
-        .sort((a, b) => Number(hasSchedule(b)) - Number(hasSchedule(a)) || (a._start || a._due || Infinity) - (b._start || b._due || Infinity)).slice(0, 22);
+        .sort((a, b) => Number(hasSchedule(b)) - Number(hasSchedule(a)) || (a._start || a._due || Infinity) - (b._start || b._due || Infinity));
       rows = wps.map((w) => ({ label: w.displayId || String(w.id), wp: w, ko: w.subject, start: w._start, end: w._due, progress: w.percentDone,
         scheduleState: w.scheduleState, scheduleLabel: UI.scheduleLabel(w),
         color: D.S[w.statusId].color, milestones: [], assignee: w.assigneeId, overdue: D.isOverdue(w) }));
@@ -236,7 +236,7 @@
           ${r.health ? `<i class="dot" style="background:${r.color}"></i>` : ''}
           ${r.assignee ? UI.avatar(D.U[r.assignee]) : ''}
           <div style="overflow:hidden"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px">${r.wp ? UI.wpLink(r.wp) : r.label}</div>
-          ${r.ko ? `<div class="muted" style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.ko}</div>` : ''}</div>
+          ${r.ko && r.ko !== r.label ? `<div class="muted" style="font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.ko}</div>` : ''}</div>
         </div>
         <div class="gantt-track">
           ${hasDates ? gridLines : ''}
@@ -261,7 +261,7 @@
 
     const gantt = UI.panel({
       title: 'Gantt · ' + (scope === 'all' ? '과제 일정' : D.P[+scope].name + ' WP 일정'),
-      sub: hasDates ? `${UI.fmtDateY(D.iso(rangeStart))} → ${UI.fmtDateY(D.iso(rangeEnd))} · 등록된 하위 일정 범위` : '등록된 일정 없음',
+      sub: (hasDates ? `${UI.fmtDateY(D.iso(rangeStart))} → ${UI.fmtDateY(D.iso(rangeEnd))} · 등록된 하위 일정 범위` : '등록된 일정 없음') + ` · 전체 ${rows.length}행 표시`,
       tools: `<span class="legend" style="margin-right:8px"><span class="legend-item"><i style="width:14px;height:3px;background:var(--accent);display:inline-block;border-radius:2px"></i>Today</span><span class="legend-item"><span class="gantt-milestone" style="position:static;width:11px;height:11px;border:none;background:#8B5CF6"></span>Milestone</span></span>`,
       body: `<div class="gantt ${hasDates ? '' : 'gantt-empty-grid'}">
         ${hasDates ? `<div class="gantt-head"><div></div><div class="gantt-months" style="position:relative">${months}</div></div>` : '<div class="empty">일정을 등록하면 간트에 표시됩니다.</div>'}
@@ -283,7 +283,7 @@
         <div class="feed-main"><div class="feed-title">${m.label}</div>
           <div class="feed-meta"><span>${m.project}</span><span class="mono">${m.dateShort}</span><span>${m.status}</span></div></div>
         <span class="kpi-delta ${due.cls}">${due.txt}</span></div>`; }).join('') || '<div class="empty">예정 마일스톤 없음</div>'}</div>`,
-      bodyStyle: 'max-height:360px;overflow-y:auto;min-height:360px',
+      bodyStyle: milestones.length ? 'max-height:360px;overflow-y:auto' : '',
     });
 
     const schedulePanel = renderSchedulePanel(D, UI, scope, scopeWps, projects, hp);

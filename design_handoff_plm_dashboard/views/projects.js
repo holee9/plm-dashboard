@@ -156,12 +156,12 @@
         <div class="project-title-row">
           <h2 style="margin:0;font-size:20px;white-space:nowrap">${p.name}</h2>${UI.healthChip(p.health)}
         </div>
-        <div class="muted" style="margin-top:4px;font-size:13px">${p.nameKo} · <span class="mono">${p.identifier}</span></div>
+        <div class="muted" style="margin-top:4px;font-size:13px">${p.nameKo && p.nameKo !== p.name ? p.nameKo + ' · ' : ''}<span class="mono">${p.identifier}</span></div>
         <div class="project-fact-grid">
           ${pmBlock}
           ${tlBlock}
           <div class="project-fact project-fact-wide"><div class="kpi-label">TIMELINE · 등록된 하위 일정</div><div class="mono project-fact-value">${UI.scheduleLabel(p)}</div><div class="muted">일정 등록 ${p.scheduledWorkCount}/${p.scheduleWorkCount} WP${p.invalidScheduleCount ? ` · 확인 필요 ${p.invalidScheduleCount}건` : ''}</div></div>
-          <div class="project-fact"><div class="kpi-label">SPRINT</div><div class="mono project-fact-value">${curV ? curV.name : '–'}</div></div>
+          ${curV ? `<div class="project-fact"><div class="kpi-label">SPRINT</div><div class="mono project-fact-value">${curV.name}</div></div>` : ''}
           <div class="project-fact"><div class="kpi-label">TEAM</div><div class="project-fact-value">${UI.avatarStack(p.memberIds.filter((id) => roles[id] !== 'TL' && roles[id] !== 'PM'), 6)}</div></div>
         </div>
       </div>
@@ -186,16 +186,16 @@
     /* burndown */
     const bd = curV ? D.burndown(curV) : { points: [], total: 0 };
     const burndown = UI.panel({
-      cls: 'project-burndown-panel',
+      cls: 'project-burndown-panel' + (bd.points.length ? '' : ' empty-analysis'),
       title: 'Sprint Burndown · 번다운', sub: curV ? `${curV.name} · 잔여 공수 ${bd.total}h` : '진행 중 스프린트 없음',
-      tools: `<div class="legend"><span class="legend-item"><i class="dot" style="background:var(--text-faint)"></i>Ideal</span><span class="legend-item"><i class="dot" style="background:var(--accent)"></i>Remaining</span></div>`,
-      bodyStyle: 'min-height:146px',
+      tools: bd.points.length ? `<div class="legend"><span class="legend-item"><i class="dot" style="background:var(--text-faint)"></i>Ideal</span><span class="legend-item"><i class="dot" style="background:var(--accent)"></i>Remaining</span></div>` : '',
+      bodyStyle: bd.points.length ? 'min-height:146px' : '',
       body: bd.points.length ? C.lines({
         series: [
           { name: 'Ideal', color: 'var(--text-faint)', dashed: true, values: bd.points.map((pt) => pt.ideal) },
           { name: 'Remaining', color: 'var(--accent)', values: bd.points.map((pt) => pt.remaining) },
         ], labels: bd.points.map((pt) => pt.label), h: 220, area: true, yLabel: 'h',
-      }) : '<div class="empty">데이터 없음</div>',
+      }) : '<div class="empty">번다운을 보려면 OpenProject에서 Version과 시작·종료일을 등록하세요.</div>',
     });
 
     /* status breakdown */

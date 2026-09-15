@@ -113,8 +113,8 @@
     const kpiVals = {
       total:       { v: k.total,        u: '',   tone: '',                          foot: `<span class="muted">${health.length}개 과제</span>` },
       open:        { v: k.open,         u: '',   tone: '',                          foot: `<span class="muted">완료 ${k.closed}</span>` },
-      spent:       { v: spentRatio,     u: '%',  tone: 'accent',                    foot: `<span class="mono muted">${k.spent}/${k.estimated}h</span>` },
-      closeRate:   { v: k.closeRate,    u: '%',  tone: '',                          foot: `<span class="kpi-delta up">▲ 4%</span>` },
+      spent:       { v: k.estimated > 0 && D.TIME_ENTRIES.length ? spentRatio : '–',     u: k.estimated > 0 && D.TIME_ENTRIES.length ? '%' : '',  tone: 'accent',                    foot: `<span class="mono muted">${k.spent}/${k.estimated}h</span>` },
+      closeRate:   { v: k.closeRate,    u: '%',  tone: '',                          foot: `<span class="muted">현재 완료 비율</span>` },
       dueWeek:     { v: k.dueThisWeek, u: '',   tone: k.dueThisWeek > 5 ? 'amber' : '', foot: `<span class="muted">이번 주 마감</span>` },
       overdue:     { v: k.overdue,      u: '',   tone: k.overdue > 0 ? 'red' : '', foot: `<span class="muted">마감 초과</span>` },
       remaining:   { v: remaining,      u: 'h',  tone: '',                          foot: `<span class="muted">잔여 공수</span>` },
@@ -165,7 +165,7 @@
       .map((h) => {
         const p = h.project;
         return `<tr data-nav-project="${p.id}" style="cursor:pointer">
-          <td class="strong"><div style="display:flex;flex-direction:column"><span>${p.name}</span><span class="muted" style="font-size:11px">${p.nameKo}</span></div></td>
+          <td class="strong"><div style="display:flex;flex-direction:column"><span>${p.name}</span>${p.nameKo && p.nameKo !== p.name ? `<span class="muted" style="font-size:12px">${p.nameKo}</span>` : ''}</div></td>
           <td>${UI.healthChip(p.health)}</td>
           <td style="width:130px"><div style="display:flex;align-items:center;gap:8px">${UI.progressBar(h.progress, 'neutral')}<span class="mono" style="font-size:11px;color:var(--text)">${h.progress}%</span></div></td>
           <td class="num">${h.kpi.open}</td>
@@ -255,9 +255,9 @@
     /* -------- ⑧ 지원 패널: Team Load + Effort -------- */
     const utilRows = util.slice(0, 8).map((u) => ({
       label: `<div style="width:110px;display:flex;align-items:center;gap:6px;overflow:hidden">${UI.avatar(u.user)}<span style="overflow:hidden;text-overflow:ellipsis">${u.user.name}</span></div>`,
-      value: Math.min(140, u.load), max: 140,
+      value: u.loadKnown ? Math.min(140, u.load) : 0, max: 140,
       color: u.load > 100 ? 'var(--c-red)' : u.load > 80 ? 'var(--c-amber)' : 'var(--c-green)',
-      capPct: (100 / 140) * 100, right: u.load + '%',
+      capPct: (100 / 140) * 100, right: u.loadKnown ? u.load + '%' : '산출 불가',
     }));
     const utilPanel = UI.panel({
       title: 'Team Load · 인원별 가동률', sub: '향후 3주 마감 기준 · 100% = 기준선',

@@ -103,3 +103,37 @@ test('partial endpoints cannot extend a complete project interval',()=>{
   assert.equal(p.startDate,'2026-09-10');assert.equal(p.dueDate,'2026-09-20');
   assert.equal(p.scheduledWorkCount,1);assert.equal(p.scheduleWorkCount,3);
 });
+
+test('load distinguishes incomplete inputs from a real zero without time entries',()=>{
+  const {c}=setup();
+  const load=(wps,capacity=40)=>{const ds=dataset(wps.map(w=>({assigneeId:7,...w})));ds.USERS=[{id:7,name:'Tester',role:'Engineer',capacityPerWeek:capacity}];c.DB.reload(ds);return c.DB.userUtilization()[0];};
+  assert.equal(load([{dueDate:'2026-09-15'}]).load,null);
+  assert.equal(load([{estimatedHours:12}]).load,null);
+  assert.equal(load([{dueDate:'2026-09-15',estimatedHours:12}],0).load,null);
+  assert.equal(load([{dueDate:'2026-09-15',estimatedHours:12}]).load,10);
+  assert.equal(load([{dueDate:'2026-12-15',estimatedHours:12}]).load,0);
+  assert.equal(load([]).load,0);
+  assert.equal(load([{typeId:2,milestoneDate:'2026-09-20'}]).load,0);
+  assert.equal(load([{startDate:'2026-10-01',dueDate:'2026-09-01',estimatedHours:12}]).load,null);
+  load([{dueDate:'2026-09-15'}]);
+  for (const v of ['overview','resources','risks']) assert.match(c.Views[v]({}),/산출 불가|판정할 수 없습니다/);
+});
+test('all filtered work remains reachable beyond former display limits',()=>{
+  const {c}=setup();c.DB.reload(dataset(Array.from({length:90},(_,i)=>({id:i+1,displayId:`LAST-${i+1}`}))));
+  for(const [v,state] of [['board',{}],['timeline',{tlProject:1}],['risks',{}]]) assert.match(c.Views[v](state),/LAST-90/);
+  assert.doesNotMatch(c.Views.board({boardProject:999}),/LAST-90/);
+});
+test('shell has named semantic navigation and no fictional reporting period',()=>{
+  const {c,els}=setup();c.DB.reload(dataset());c.App.refresh();
+  assert.doesNotMatch(els.app.innerHTML,/Last 90d/);
+  assert.equal((els.app.innerHTML.match(/<button type="button" class="nav-item/g)||[]).length,6);
+  assert.match(els.app.innerHTML,/aria-current="page"/);
+  assert.match(els.app.innerHTML,/aria-label="사이드바/);
+  assert.doesNotMatch(c.Views.overview({}),/▲ 4%/);
+});
+test('duplicate translations are suppressed and empty analysis is compact',()=>{
+  const {c}=setup();c.DB.reload(dataset([],[{id:1,name:'Same',nameKo:'Same'}]));
+  assert.doesNotMatch(c.Views.overview({}),/<span class="muted"[^>]*>Same<\/span>/);
+  assert.match(c.Views.projects({projectTab:1}),/empty-analysis/);
+  assert.match(c.Views.projects({projectTab:1}),/Version과 시작/);
+});

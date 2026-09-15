@@ -200,7 +200,9 @@
     const { sort, sorted } = sortPeople(stats.people, state.resSort || 'pressure');
 
     const overloaded = util.filter((u) => u.load > 100).length;
-    const under = util.filter((u) => u.load < 50).length;
+    const knownUtil = util.filter((u) => u.loadKnown);
+    const allLoadKnown = util.length > 0 && knownUtil.length === util.length;
+    const under = knownUtil.filter((u) => u.load < 50).length;
     const avgLoad = util.length ? Math.round(util.reduce((a, u) => a + u.load, 0) / util.length) : 0;
     const totalSpent = Math.round(util.reduce((a, u) => a + u.spent, 0));
     const avgRemaining = util.length ? Math.round(util.reduce((a, u) => a + u.remaining, 0) / util.length) : 0;
@@ -222,11 +224,11 @@
       due21:        { v: stats.due21.length, u: '', tone: stats.overdue.length ? 'red' : stats.due7.length ? 'amber' : '', foot: `<span class="muted">overdue ${stats.overdue.length}</span>` },
       unassigned:   { v: stats.unassigned.length, u: '', tone: stats.unassigned.length ? 'amber' : '', foot: `<span class="muted">Assignee 입력 필요</span>` },
       missingDue:   { v: stats.missingDue.length, u: '', tone: stats.missingDue.length ? 'amber' : '', foot: `<span class="muted">Due date 없음</span>` },
-      avgLoad:      { v: avgLoad, u: '%', tone: avgLoad > 100 ? 'red' : confidenceTone, foot: `<span class="muted">신뢰도 ${confidenceLabel}</span>` },
-      overloaded:   { v: overloaded, u: '', tone: overloaded ? 'red' : '', foot: `<span class="muted">100% 초과</span>` },
-      under:        { v: under, u: '', tone: 'amber', foot: `<span class="muted">Estimate 낮으면 과소</span>` },
-      totalSpent:   { v: totalSpent.toLocaleString(), u: 'h', tone: stats.timeEntries.length ? 'accent' : 'amber', foot: `<span class="muted">entries ${stats.timeEntries.length}</span>` },
-      avgRemaining: { v: avgRemaining, u: 'h', tone: '', foot: `<span class="muted">21D 인당 잔여</span>` },
+      avgLoad:      { v: allLoadKnown ? avgLoad : '–', u: allLoadKnown ? '%' : '', tone: avgLoad > 100 ? 'red' : confidenceTone, foot: `<span class="muted">${allLoadKnown ? '신뢰도 ' + confidenceLabel : '입력 필요'}</span>` },
+      overloaded:   { v: allLoadKnown ? overloaded : '–', u: '', tone: overloaded ? 'red' : '', foot: `<span class="muted">산출 가능 ${knownUtil.length}/${util.length}명 · 확인된 과부하 ${overloaded}명</span>` },
+      under:        { v: allLoadKnown ? under : '–', u: '', tone: 'amber', foot: `<span class="muted">${allLoadKnown ? '50% 미만' : '입력 필요'}</span>` },
+      totalSpent:   { v: stats.timeEntries.length ? totalSpent.toLocaleString() : '–', u: stats.timeEntries.length ? 'h' : '', tone: stats.timeEntries.length ? 'accent' : 'amber', foot: `<span class="muted">entries ${stats.timeEntries.length}</span>` },
+      avgRemaining: { v: allLoadKnown ? avgRemaining : '–', u: allLoadKnown ? 'h' : '', tone: '', foot: `<span class="muted">21D 인당 잔여</span>` },
     };
     const kpiRow = renderKpiStrip(UI, kpiVals, activeSections.length ? activeSections : RES_DEFAULT_KEYS, hiddenDefs, kpiEdit);
 
@@ -253,15 +255,15 @@
 
     const loadRows = sorted.slice(0, 7).map((u) => ({
       label: `<div class="resource-load-label">${UI.avatar(u.user)}<span>${esc(u.user.name)}</span></div>`,
-      value: Math.min(150, u.load),
+      value: u.loadKnown ? Math.min(150, u.load) : 0,
       max: 150,
       color: stats.loadConfidence === 'low' ? 'var(--text-faint)' : u.load > 100 ? 'var(--c-red)' : u.load > 80 ? 'var(--c-amber)' : 'var(--c-green)',
       capPct: (100 / 150) * 100,
-      right: `${u.load}%`,
+      right: u.loadKnown ? `${u.load}%` : '산출 불가',
     }));
     const capacityPanel = UI.panel({
       title: 'Capacity Signal · 보조 가동률',
-      sub: `21D estimated hours ÷ capacity · estimate ${stats.estimateCoverage}%`,
+      sub: `21D · 산출 가능 ${knownUtil.length}/${util.length}명 · estimate ${stats.estimateCoverage}%`,
       cls: 'resource-capacity-panel',
       bodyStyle: 'overflow:hidden',
       hint: 'Estimate 입력률이 낮은 상태에서는 부하율을 확정 판단으로 쓰지 않고 일정 압박과 입력 누락을 함께 봅니다.',
@@ -284,7 +286,7 @@
         <td class="num" style="color:${u.missingEstimate ? 'var(--c-amber)' : 'var(--text-faint)'}">${u.missingEstimate || '-'}</td>
         <td class="num" style="color:${u.missingDue ? 'var(--c-amber)' : 'var(--text-faint)'}">${u.missingDue || '-'}</td>
         <td class="num">${u.projects.length || '-'}</td>
-        <td class="num" style="color:${loadColor}" data-tip="${esc(`Load confidence ${confidenceLabel} · estimate coverage ${stats.estimateCoverage}%`)}">${u.load}%</td>
+        <td class="num" style="color:${loadColor}" data-tip="${esc(`Load confidence ${confidenceLabel} · estimate coverage ${stats.estimateCoverage}%`)}">${u.loadKnown ? u.load + '%' : '산출 불가'}</td>
       </tr>`;
     }).join('');
     const pressurePanel = UI.panel({

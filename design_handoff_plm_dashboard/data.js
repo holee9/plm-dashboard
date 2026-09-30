@@ -308,8 +308,15 @@
     return !status || !status.isClosed;
   };
   const hasDueDate = (wp) => !!wp._due;
-  const isOverdue = (wp) => isOpen(wp) && hasDueDate(wp) && wp._due < TODAY;
-  const dueWithin = (wp, days) => isOpen(wp) && hasDueDate(wp) && wp._due >= TODAY && wp._due <= addDays(TODAY, days);
+  // Same scope as Hermes op_exception_rules.py (spec §7) so every view, the Health
+  // snapshot and the weekly review count overdue/due-soon work identically:
+  // open lifecycle status, not a milestone, not a "[...]" grouping title.
+  const OPEN_WORK_STATUSES = ['Ticketed', 'Open', 'Confirmed', 'In Progress', 'In Review', 'On Hold'];
+  const isOpenWork = (wp) => OPEN_WORK_STATUSES.includes(S[wp.statusId]?.name)
+    && (T[wp.typeId]?.name || '') !== '마일스톤'
+    && !/^\[[^\]]+\]/.test(wp.subject || '');
+  const isOverdue = (wp) => isOpenWork(wp) && hasDueDate(wp) && wp._due < TODAY;
+  const dueWithin = (wp, days) => isOpenWork(wp) && hasDueDate(wp) && wp._due >= TODAY && wp._due <= addDays(TODAY, days);
 
   function statusDistribution(wps) {
     const d = {};
@@ -552,7 +559,7 @@
     WORK_PACKAGES, TIME_ENTRIES, RELATIONS,
     U, P, S, T, PR, V, A, R,
     usersByRole, versionsByProject, currentVersion,
-    isOpen, isOverdue, dueWithin,
+    isOpen, isOpenWork, isOverdue, dueWithin,
     statusDistribution, kpis, openCloseTrend, backlogTrend,
     userUtilization, projectHealth, burndown, activityBreakdown,
     reload,

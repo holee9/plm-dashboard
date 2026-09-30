@@ -791,6 +791,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>KPI 편집 기능은 <code>data-kpi-ns</code> 네임스페이스로 뷰별 분리</strong></td>
     <td>Overview의 KPI 편집(드래그, 추가/제거)을 다른 뷰에도 동일하게 적용할 때, 상태 키(<code>state.kpiSections</code>)를 공유하면 한 뷰에서 KPI를 변경할 때 다른 뷰에도 영향을 준다 (#22). 해결책: 컨테이너에 <code>data-kpi-ns="proj"</code> attribute를 부여하고 이벤트 핸들러에서 <code>ns ? ns+"KpiSections" : "kpiSections"</code>로 분기하면 기존 Overview 코드를 건드리지 않고 뷰별 독립 상태를 관리할 수 있다.</td>
   </tr>
+  <tr>
+    <td>K8</td>
+    <td><strong>판정은 한 곳, 대시보드는 표시만 (#71)</strong></td>
+    <td>운영 건강도 화면은 브라우저에서 규칙을 다시 계산하지 않고, Hermes의 예외 규칙·목표 진행률 모듈이 30분마다 만든 <code>data/health.json</code>만 읽는다. 주간 리뷰와 대시보드가 같은 코드로 판정하므로 숫자가 어긋나지 않는다. 검증은 DB 직접 집계와 스냅샷 값을 대조해서 했다(열린 일감·마감 지남·보류·임박·미관리·프로젝트별 수치 모두 일치). 새 메뉴는 기존 섹션 순서 안에 넣어야 한다 — 끝에 붙였더니 사이드바에 MONITOR 제목이 두 번 나왔다.</td>
+  </tr>
 </table>
 
 <h3>Problem — 막힌 것, 예상과 달랐던 것</h3>

@@ -236,3 +236,6 @@ _workspace_prev/
 nginx-secret*.conf
 *.key
 *.token
+
+# Hermes health snapshot (generated every 30 min by op_health_snapshot.py, #71)
+design_handoff_plm_dashboard/data/

@@ -12,6 +12,7 @@
     resources: '<circle cx="9" cy="7" r="3"/><path d="M3 21v-1a6 6 0 0 1 12 0v1M16 11a3 3 0 1 0 0-6M22 21v-1a6 6 0 0 0-4-5.6"/>',
     board: '<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="15" rx="1"/>',
     timeline: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    health: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     risks: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',
@@ -29,6 +30,7 @@
     { key: 'overview',  en: 'Overview',  ko: '전체 현황',  ic: IC.overview,  section: 'MONITOR' },
     { key: 'projects',  en: 'Projects',  ko: '과제별',      ic: IC.projects,  section: 'MONITOR' },
     { key: 'resources', en: 'Resources', ko: '리소스',      ic: IC.resources, section: 'MONITOR' },
+    { key: 'health',    en: 'Health',    ko: '운영 건강도',  ic: IC.health,    section: 'MONITOR' },
     { key: 'board',     en: 'Board',     ko: 'WP 보드',     ic: IC.board,     section: 'WORK' },
     { key: 'timeline',  en: 'Timeline',  ko: '일정',        ic: IC.timeline,  section: 'WORK' },
     { key: 'risks',     en: 'Risks',     ko: '리스크',      ic: IC.risks,     section: 'WORK' },
@@ -39,6 +41,7 @@
     resources: '입력 신뢰도 · 일정 압박 · 보조 가동률',
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
+    health: '프로젝트 · 목표 · 운영 규율 (Hermes 스냅샷)',
     risks: '마감 초과 · 임박 · 과부하 · 공수 초과',
   };
 

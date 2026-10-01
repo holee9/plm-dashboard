@@ -137,18 +137,6 @@
         <td>${esc(i.assignee || '없음')}</td><td><b>${esc(ownerOf(i))}</b></td><td>${nextMeeting()}</td><td>${ageOf(i) ?? 0}일</td></tr>`).join('') || '<tr><td colspan="8" class="muted">없음</td></tr>'}</tbody></table>` });
   }
 
-  /* ---- people (participation first) ---- */
-  function people() {
-    const UI = window.UI;
-    const rows = I.people.slice().sort((a, b) => b.wip - a.wip);
-    return UI.panel({ title: 'Q5 사람 — 참여도 먼저, 부하는 신뢰도 ok일 때만', sub: '갱신율 = 열린 일감 중 7일 내 수정 비율 · 완성도 = 담당자·마감일 입력 비율 · 신뢰 기준: 갱신 50%↑ 또는 완성 80%↑ 둘 다',
-      body: `<table class="tbl"><thead><tr><th>담당자</th><th>갱신율</th><th>완성도</th><th>신뢰</th><th>열린</th><th>겸임</th><th>마감 지남</th><th>4주 처리</th><th>판단</th></tr></thead><tbody>
-      ${rows.map((p) => { const low = p.trust === 'low';
-        const judge = low ? '⚪ 입력 부족 — 부하 판단 보류 (리더가 입력 요청)' : p.wip >= 20 || p.projects >= 5 ? '🔴 과부하·겸임 과다' : p.flow < 0.1 && p.wip >= 10 ? '🟡 흐름 정체' : '🟢 양호';
-        return `<tr style="${low ? 'color:var(--text-dim)' : ''}"><td><b>${esc(p.name)}</b></td><td>${Math.round(p.updated_7d_rate * 100)}%</td><td>${Math.round(p.complete_rate * 100)}%</td><td>${low ? '낮음' : 'ok'}</td>
-          <td class="num">${p.wip}</td><td class="num">${p.projects}</td><td class="num">${p.overdue}</td><td class="num">${p.closed_4w}</td><td style="font-size:12px">${judge}</td></tr>`; }).join('')}</tbody></table>` });
-  }
-
   function goals() {
     const UI = window.UI; const g = H.goal_health;
     if (!g.objectives.length) return '';
@@ -170,7 +158,7 @@
       ${strip(stats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 데이터 신뢰도 낮아 판단 보류 (지난주 대비 추이는 10-08부터)</div>
       ${UI.panel({ title: 'Q1·Q2·Q4 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 로드맵에서 해당 제품군 강조', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
-      <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div><div class="col-12">${people()}</div></div>`;
+      <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div></div>`;
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-exec-reload]')) { H = null; I = null; load(); }

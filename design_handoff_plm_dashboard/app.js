@@ -28,13 +28,13 @@
 
   // Spec §6 layout (2026-10-01): Health first, goals, projects, people; board/timeline for daily work.
   // Legacy views (overview, resources, risks) stay loadable by key but are not in the menu.
+  // Dashboard v2 (managers only, 2026-10-01): status → why → who decides.
+  // Step 1·2 scope: 현황 + 로드맵. 운영 규율(health)·목표(goals) kept for the owner's audit view.
   const VIEWS = [
-    { key: 'health',    en: 'Health',    ko: '운영 건강도',  ic: IC.health,    section: 'MONITOR' },
-    { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',   ic: IC.overview,  section: 'MONITOR' },
-    { key: 'projects',  en: 'Projects',  ko: '과제',         ic: IC.projects,  section: 'MONITOR' },
-    { key: 'people',    en: 'People',    ko: '담당자',       ic: IC.resources, section: 'MONITOR' },
-    { key: 'board',     en: 'Board',     ko: '보드',         ic: IC.board,     section: 'WORK' },
-    { key: 'timeline',  en: 'Timeline',  ko: '일정',         ic: IC.timeline,  section: 'WORK' },
+    { key: 'exec',      en: 'Status',    ko: '사업본부 현황', ic: IC.overview,  section: 'MANAGEMENT' },
+    { key: 'roadmap',   en: 'Roadmap',   ko: '로드맵',        ic: IC.timeline,  section: 'MANAGEMENT' },
+    { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: 'MANAGEMENT' },
+    { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: 'OWNER' },
   ];
   const SUBTITLE = {
     overview: '전체 과제·인원·리스크 종합 현황',
@@ -42,7 +42,9 @@
     resources: '입력 신뢰도 · 일정 압박 · 보조 가동률',
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
-    health: '프로젝트 · 결정 필요 · 예외 · 추이 (Hermes 스냅샷)',
+    exec: '일정 · 결정 · 목표 · 인허가 · 참여도 — 한 화면 (관리자용)',
+    roadmap: '제품군별 마일스톤 · 첫 계획 대비 현재 · 인허가 마감',
+    health: '예외 전체 · 추이 · 갱신율 (주간 운영 리뷰 대조용)',
     goals: 'Objective · Key Result · 연결 일감 (OKR 2026)',
     people: '담당자별 열린 일감 · 마감 지남 · 담당자 없는 일감',
     risks: '마감 초과 · 임박 · 과부하 · 공수 초과',
@@ -58,7 +60,7 @@
   };
 
   /* ---------- state ---------- */
-  const DEFAULTS = { view: 'health', theme: 'dark', density: 'cozy', style: 'telemetry',
+  const DEFAULTS = { view: 'exec', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
     resSort: 'pressure', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
     projOrder: [], projPmOverrides: {}, projTlOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
@@ -102,10 +104,10 @@
     let nav = '', lastSection = '';
     VIEWS.forEach((v) => {
       if (v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }
-      const badge = v.key === 'health' ? `<span class="nav-badge alert">${overdueTotal}</span>`
+      const badge = v.key === 'exec' ? `<span class="nav-badge alert">${overdueTotal}</span>`
         : v.key === 'overview' ? `<span class="nav-badge">${D.WORK_PACKAGES.length}</span>` : '';
       nav += `<button type="button" class="nav-item ${state.view === v.key ? 'active' : ''}" data-view="${v.key}" aria-label="${v.en} · ${v.ko}" ${state.view === v.key ? 'aria-current="page"' : ''}>
-        ${svg(v.ic)}<span class="nav-label">${v.en}</span>${badge}</button>`;
+        ${svg(v.ic)}<span class="nav-label">${v.ko}</span>${badge}</button>`;
     });
 
     const received = D.lastReceivedAt ? new Date(D.lastReceivedAt) : null;
@@ -113,7 +115,7 @@
       + `${String(received.getHours()).padStart(2, '0')}:${String(received.getMinutes()).padStart(2, '0')}` : '수신 이력 없음';
     const syncLabel = D._loading ? '연동 중…' : refreshStatus === 'error' ? (D.lastReceivedAt ? '갱신 실패 · 이전 데이터' : '연동 오류')
       : D._error ? '연동 오류' : D.lastReceivedAt ? 'Live · 연동 완료' : '수신 이력 없음';
-    if (!VIEWS.some((v) => v.key === state.view)) { state.view = 'health'; save(); }
+    if (!VIEWS.some((v) => v.key === state.view)) { state.view = 'exec'; save(); }
     const cur = VIEWS.find((v) => v.key === state.view);
     const refreshTone = refreshStatus === 'loading' ? ' data-refresh-loading="true"'
       : refreshStatus === 'error' ? ' data-refresh-error="true"' : '';
@@ -492,6 +494,7 @@
     get(key) { return state[key]; },
     getState() { return state; },
     refresh() { renderShell(); },
+    go,
     showError(msg) {
       D._error = msg;
       D._loading = false;

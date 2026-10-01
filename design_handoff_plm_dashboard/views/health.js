@@ -12,9 +12,9 @@
 
   const FLAG_LABELS = {
     overdue: '마감 지남', missing_update: '마감 후 갱신 없음', blocked_aging: '보류 장기화',
-    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정', bulk_date: '월말 일괄 날짜(실제 날짜 필요)',
+    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정', bulk_date: '월말 일괄 날짜(실제 날짜 필요)', triage_overdue: '이슈 분류 지연',
   };
-  const FLAG_ORDER = ['overdue', 'missing_update', 'bulk_date', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
+  const FLAG_ORDER = ['overdue', 'missing_update', 'triage_overdue', 'bulk_date', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
 
   let snap = null;
   let history = [];
@@ -161,7 +161,7 @@
   // no update after due) or no owner — same rule as op_meeting_agenda.py.
   function decisionPanel(UI) {
     const crit = snap.items.filter((i) => i.flags.some((f) => f === 'blocked_aging' || f === 'missing_update') || !i.assignee)
-      .filter((i) => i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f)));
+      .filter((i) => i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging', 'triage_overdue'].includes(f)));
     const byProj = {};
     crit.forEach((i) => { (byProj[i.project] = byProj[i.project] || []).push(i); });
     const blocks = Object.entries(byProj).sort((a, b) => b[1].length - a[1].length).map(([proj, items]) => `

@@ -44,7 +44,8 @@
     const next = ms.filter((m) => m.date && m.date >= today()).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
     const blockedAging = items.filter((i) => i.flags.includes('blocked_aging'));
     const oldestBlock = Math.max(0, ...blockedAging.map((i) => i.blocked_since ? days(today(), i.blocked_since.slice(0, 10)) : 0));
-    const noOwner = items.filter((i) => !i.assignee && i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f)));
+    const triage = items.filter((i) => i.flags.includes('triage_overdue'));
+    const noOwner = items.filter((i) => !i.assignee && !i.flags.includes('triage_overdue') && i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f)));
     const people = I.people.filter((p) => true); // participation measured at line level below
     // participation at line level: share of open WPs touched in 7 days (from project_health weekly rates is global; use items proxy)
     const lineProjects = ph.map((p) => p.project);
@@ -60,13 +61,14 @@
     slips.slice(0, 1).forEach((m) => why.push(`${esc(m.subject.slice(0, 16))}: 계획 ${m.first_planned.slice(0, 7)} → ${m.date.slice(0, 7)} (${m.slip_days > 0 ? m.slip_days + '일 지연' : Math.abs(m.slip_days) + '일 당김'}, ${m.changes}회 변경)`));
     if (oldestBlock) why.push(`보류 최장 ${oldestBlock}일 (${blockedAging.sort((a, b) => (a.blocked_since || '').localeCompare(b.blocked_since || ''))[0].display_id})`);
     if (overdue) why.push(`마감 지남 ${overdue}건 / 열린 ${open}건`);
+    if (triage.length) why.push(`이슈 분류 지연 ${triage.length}건 (접수 후 ${Math.max(...triage.map((i) => days(today(), i.created)))}일 최장)`);
     if (noOwner.length) why.push(`담당자 없는 결정 ${noOwner.length}건`);
     if (!why.length) why.push(`열린 ${open}건, 예외 없음`);
     const krIds = new Set(H.goal_health.objectives.flatMap((o) => o.key_results.flatMap((k) => (k.related || []).map((r) => r.id))));
     const krMs = ms.filter((m) => krIds.has(m.id));
     if (krMs.length) why.push(`★ OKR 연결 마일스톤: ${krMs.map((m) => esc(m.subject.slice(0, 14)) + (m.date ? ' ' + m.date.slice(5) : '')).join(', ')}`);
     else if (!ms.length) why.push('마일스톤 없음 — 날짜 약속 없음 (관리 이슈)');
-    const decide = blockedAging[0] ? `${blockedAging[0].display_id} 재개/중단` : noOwner[0] ? `${noOwner[0].display_id} 담당 지정` : msOver[0] ? `${esc(msOver[0].subject.slice(0, 12))} 일정 재설정` : overdue ? '마감 재설정' : '—';
+    const decide = triage[0] ? `${triage[0].display_id} 이슈 분류` : blockedAging[0] ? `${blockedAging[0].display_id} 재개/중단` : noOwner[0] ? `${noOwner[0].display_id} 담당 지정` : msOver[0] ? `${esc(msOver[0].subject.slice(0, 12))} 일정 재설정` : overdue ? '마감 재설정' : '—';
     return { line, status, open, overdue, msOver, next, oldestBlock, noOwner, why, decide, items, ms, slips };
   }
 
@@ -110,15 +112,15 @@
   /* ---- decisions top 5 ---- */
   function decisions(stats) {
     const UI = window.UI;
-    const crit = H.items.filter((i) => i.flags.some((f) => f === 'blocked_aging' || f === 'missing_update') || (!i.assignee && i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f))));
-    const score = (i) => (i.flags.includes('blocked_aging') ? 1000 + (i.blocked_since ? days(today(), i.blocked_since.slice(0, 10)) : 0) : 0) + (i.flags.includes('missing_update') ? 100 + (i.due ? days(today(), i.due) : 0) : 0) + (!i.assignee ? 50 : 0);
+    const crit = H.items.filter((i) => i.flags.some((f) => f === 'blocked_aging' || f === 'missing_update' || f === 'triage_overdue') || (!i.assignee && i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f))));
+    const score = (i) => (i.flags.includes('blocked_aging') ? 1000 + (i.blocked_since ? days(today(), i.blocked_since.slice(0, 10)) : 0) : 0) + (i.flags.includes('missing_update') ? 100 + (i.due ? days(today(), i.due) : 0) : 0) + (i.flags.includes('triage_overdue') ? 80 + days(today(), i.created) : 0) + (!i.assignee ? 50 : 0);
     const top = crit.sort((a, b) => score(b) - score(a)).slice(0, 5);
     const ownerOf = (i) => { const ident = (I.project_status.find((p) => p.project === i.project) || {}).identifier; const l = I.product_lines.find((x) => x.projects.includes(ident)); return l ? l.owner : '–'; };
     const ageOf = (i) => i.age_days ?? (I.items.find((x) => x.id === i.id) || {}).age_days;
     return UI.panel({ title: '이번 주 결정 TOP 5', sub: `결정 필요 ${crit.length}건 중 가장 오래된 것 · 목요일 회의 안건과 같은 기준 · 결정은 OP에서 담당자·마감일을 고치면 기록`,
       body: `<table class="tbl"><thead><tr><th>#</th><th>일감</th><th>제품군/과제</th><th>왜</th><th>담당자</th><th>결정 주체</th><th>발견 후</th></tr></thead><tbody>
       ${top.map((i, n) => `<tr><td>${n + 1}</td><td>${wp(i)} ${esc(i.subject.slice(0, 40))}</td><td>${esc(i.project)}</td>
-        <td style="font-size:12px">${i.flags.includes('blocked_aging') ? `보류 ${days(today(), (i.blocked_since || today()).slice(0, 10))}일` : i.flags.includes('missing_update') ? `마감 ${days(today(), i.due)}일 지남, 갱신 없음` : '담당자 없음'}</td>
+        <td style="font-size:12px">${i.flags.includes('blocked_aging') ? `보류 ${days(today(), (i.blocked_since || today()).slice(0, 10))}일` : i.flags.includes('triage_overdue') ? `이슈 분류 대기 ${days(today(), i.created)}일 (접수 ${i.created.slice(5)})` : i.flags.includes('missing_update') ? `마감 ${days(today(), i.due)}일 지남, 갱신 없음` : '담당자 없음'}</td>
         <td>${esc(i.assignee || '없음')}</td><td><b>${esc(ownerOf(i))}</b></td><td>${ageOf(i) ?? 0}일</td></tr>`).join('') || '<tr><td colspan="7" class="muted">없음</td></tr>'}</tbody></table>` });
   }
 

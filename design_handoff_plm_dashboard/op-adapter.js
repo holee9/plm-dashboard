@@ -320,10 +320,15 @@
     const includeProject = (p) => {
       const name = p.name || '';
       // Not managed work (owner decisions 2026-09-30 / 2026-10-01); same list as Hermes op_exception_rules.EXCLUDED_PROJECTS.
-      return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$|^\s*인허가 요청 업무 테스트\s*$|^\s*Claude Test\b|^\s*인수인계 업무/i.test(name));
+      return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$|^\s*인허가 요청 업무 테스트\s*$|^\s*Claude Test\b|^\s*인수인계 업무|^\s*시료 관리\s*$|^\s*개발운영/i.test(name));
     };
     const allowedProjectIds = new Set(projects.filter(includeProject).map((p) => p.id));
-    const WORK_PACKAGES = wpsRaw.map(mapWorkPackage).filter((wp) => allowedProjectIds.has(wp.projectId));
+    // Samples (시료) are inventory and goals (Objective / Key Result) are reviewed in Health,
+    // not work: drop them from every view (same rule as Hermes op_exception_rules.EXCLUDED_TYPES).
+    const EXCLUDED_TYPE_NAMES = /^(시료|Objective|Key Result)$/;
+    const excludedTypeIds = new Set(types.filter((t) => EXCLUDED_TYPE_NAMES.test((t.name || '').trim())).map((t) => t.id));
+    const WORK_PACKAGES = wpsRaw.map(mapWorkPackage)
+      .filter((wp) => allowedProjectIds.has(wp.projectId) && !excludedTypeIds.has(wp.typeId));
     const workPackageIds = new Set(WORK_PACKAGES.map((wp) => wp.id));
     const TIME_ENTRIES = timeRaw.map(mapTimeEntry)
       .filter((te) => allowedProjectIds.has(te.projectId) && (!te.workPackageId || workPackageIds.has(te.workPackageId)));

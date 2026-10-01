@@ -318,6 +318,7 @@
     const timeRaw = await fetchSafe('/time_entries');
 
     const includeProject = (p) => {
+      if (p.active === false) return false; // archived projects stay out of every view (admin API keys still receive them)
       const name = p.name || '';
       // Not managed work (owner decisions 2026-09-30 / 2026-10-01); same list as Hermes op_exception_rules.EXCLUDED_PROJECTS.
       return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$|^\s*인허가 요청 업무 테스트\s*$|^\s*Claude Test\b|^\s*인수인계 업무|^\s*시료 관리\s*$|^\s*개발운영/i.test(name));

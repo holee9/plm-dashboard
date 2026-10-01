@@ -12,9 +12,9 @@
 
   const FLAG_LABELS = {
     overdue: '마감 지남', missing_update: '마감 후 갱신 없음', blocked_aging: '보류 장기화',
-    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정',
+    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정', bulk_date: '월말 일괄 날짜(실제 날짜 필요)',
   };
-  const FLAG_ORDER = ['overdue', 'missing_update', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
+  const FLAG_ORDER = ['overdue', 'missing_update', 'bulk_date', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
 
   let snap = null;
   let history = [];
@@ -157,6 +157,31 @@
     });
   }
 
+  // Decisions for the weekly meeting: spec §6 critical exceptions (blocked aging,
+  // no update after due) or no owner — same rule as op_meeting_agenda.py.
+  function decisionPanel(UI) {
+    const crit = snap.items.filter((i) => i.flags.some((f) => f === 'blocked_aging' || f === 'missing_update') || !i.assignee)
+      .filter((i) => i.flags.some((f) => ['overdue', 'missing_update', 'blocked_aging'].includes(f)));
+    const byProj = {};
+    crit.forEach((i) => { (byProj[i.project] = byProj[i.project] || []).push(i); });
+    const blocks = Object.entries(byProj).sort((a, b) => b[1].length - a[1].length).map(([proj, items]) => `
+      <div style="margin-bottom:8px"><div class="panel-sub" style="margin:4px 0"><b>${esc(proj)}</b> · ${items.length}건${items.some((i) => !i.assignee) ? ` · 담당자 없음 ${items.filter((i) => !i.assignee).length}` : ''}</div>
+      <table class="tbl"><tbody>${items.map((i) => `<tr><td style="width:90px">${link(i)}</td><td class="clamp">${esc(i.subject)}</td>
+        <td style="width:100px">${esc(i.assignee || '담당자 없음')}</td><td style="width:220px;font-size:11px">${esc(i.flags.map((f) => FLAG_LABELS[f]).join(', '))}</td></tr>`).join('')}</tbody></table></div>`).join('');
+    return UI.panel({ title: 'Decisions · 이번 주 결정 필요', sub: `${crit.length}건 — 목요일 회의 안건과 같은 목록 · 결정은 OP에서 담당자·마감일을 고치면 기록됨`,
+      body: blocks || '<div class="empty">없음</div>' });
+  }
+
+  // OP project status says finished but open work remains (dashboard data, not the snapshot).
+  function mismatchPanel(UI) {
+    const D = window.DB;
+    const bad = (D.PROJECTS || []).filter((p) => p.statusMismatch);
+    if (!bad.length) return '';
+    return UI.panel({ title: 'Project Status · 상태 불일치', sub: `${bad.length}곳 — OP 프로젝트 상태가 "마침"인데 열린 일감이 남아 있음 (팀장이 상태 또는 일감을 정리)`,
+      body: `<table class="tbl"><thead><tr><th>과제</th><th>OP 상태</th><th class="num">열린 일감</th></tr></thead><tbody>
+        ${bad.map((p) => `<tr><td><a class="wp-id" href="https://plm.abyz-lab.work/projects/${esc(p.identifier)}" target="_blank" rel="noopener">${esc(p.name)}</a></td><td>${esc(p.opStatus)}</td><td class="num">${p.openCount}</td></tr>`).join('')}</tbody></table>` });
+  }
+
   function trendPanel(UI) {
     const rows = history.slice(-14).reverse().map((h) => `<tr><td>${UI.fmtDateY(h.date)}</td><td class="num">${esc(h.overdue)}</td>
       <td class="num">${esc(h.blocked)}</td><td class="num">${esc(h.stale)}</td><td class="num">${esc(h.unmanaged)}</td>
@@ -186,9 +211,10 @@
       </div>
       ${kpis(UI)}
       <div class="grid">
+        <div class="col-12">${decisionPanel(UI)}</div>
         <div class="col-12">${projectPanel(UI)}</div>
+        <div class="col-12">${mismatchPanel(UI)}</div>
         <div class="col-12">${drillPanel(UI)}</div>
-        <div class="col-12">${goalPanel(UI)}</div>
         <div class="col-6">${trendPanel(UI)}</div>
       </div>`;
   };

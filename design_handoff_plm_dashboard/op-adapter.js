@@ -320,6 +320,7 @@
     const includeProject = (p) => {
       if (p.active === false) return false; // archived projects stay out of every view (admin API keys still receive them)
       const name = p.name || '';
+      if (/^\s*OKR(\s+\d{4})?\s*$/i.test(name) || p.identifier === 'OKR') return false; // goals live in the Goals view, not as a project
       // Not managed work (owner decisions 2026-09-30 / 2026-10-01); same list as Hermes op_exception_rules.EXCLUDED_PROJECTS.
       return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$|^\s*인허가 요청 업무 테스트\s*$|^\s*Claude Test\b|^\s*인수인계 업무|^\s*시료 관리\s*$|^\s*개발운영/i.test(name));
     };
@@ -432,7 +433,7 @@
       if (/observer/i.test(u.role)) u.isObserver = true;
       if (/form.?reporter/i.test(u.name) || /form.?reporter/i.test(u.login)) u.isBot = true;
       // Service/admin accounts — excluded from all views but kept in D.U for lookup.
-      if (/^(guest|abyz-lab|admin)$/i.test(u.name)) u.isBot = true;
+      if (/^(guest|abyz-lab|admin|form-reporter)$/i.test(u.login || '') || /^(guest|abyz-lab|admin)$/i.test(u.name)) u.isBot = true;
       // Locked accounts (no showUser link) — fold into isBot so all view filters apply.
       if (u.isLocked) u.isBot = true;
     });
@@ -494,8 +495,25 @@
             memberRoleSets: pRoleSets, // all roles per uid — for PM/TL candidate dropdowns
             startDate: null,
             dueDate: null,
+            parentId: refId(p, 'parent'),
+            opStatus: escapeHtml(p._links?.status?.title || ''),
+            opStatusKey: (p._links?.status?.href || '').split('/').pop(),
           };
-        }),
+        })
+        .map((p, _, all) => {
+          // 'finished' project that still has open work: flag it so views can show the mismatch.
+          const closedIds = new Set(statuses.filter((st) => st.isClosed).map((st) => st.id));
+          const openCount = wpsRaw.filter((w) => refId(w, 'project') === p.id && !closedIds.has(refId(w, 'status'))).length;
+          return Object.assign(p, { openCount, statusMismatch: p.opStatusKey === 'finished' && openCount > 0 });
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+        .reduce((ordered, p, _, all) => {
+          // parent first, then its children (name order), top-level only in the outer loop
+          if (p.parentId && all.some((q) => q.id === p.parentId)) return ordered;
+          ordered.push(p);
+          all.filter((c) => c.parentId === p.id).forEach((c) => ordered.push(Object.assign(c, { depth: 1 })));
+          return ordered;
+        }, []),
       VERSIONS,
       RELATIONS,
       WORK_PACKAGES,

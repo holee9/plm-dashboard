@@ -18,6 +18,7 @@
 
   let snap = null;
   let history = [];
+  let ins = null, insHist = [];   // insights.json / insights_history.json (input coverage, team trend)
   let loadState = 'idle';   // idle | loading | ok | error
   let loadError = '';
   let filter = { flag: 'overdue', projectId: null };
@@ -32,14 +33,19 @@
   async function load() {
     loadState = 'loading';
     try {
-      const [s, h] = await Promise.all([
+      const [s, h, i, ih] = await Promise.all([
         fetch('data/health.json', { cache: 'no-store' }),
         fetch('data/health_history.json', { cache: 'no-store' }),
+        fetch('data/insights.json', { cache: 'no-store' }).catch(() => null),
+        fetch('data/insights_history.json', { cache: 'no-store' }).catch(() => null),
       ]);
       if (!s.ok) throw new Error(`health.json HTTP ${s.status}`);
       snap = await s.json();
       history = h.ok ? await h.json() : [];
       if (!Array.isArray(history)) history = [];
+      ins = i && i.ok ? await i.json() : null;
+      insHist = ih && ih.ok ? await ih.json() : [];
+      if (!Array.isArray(insHist)) insHist = [];
       loadState = 'ok';
     } catch (e) {
       loadState = 'error';
@@ -182,6 +188,30 @@
         ${bad.map((p) => `<tr><td><a class="wp-id" href="https://plm.abyz-lab.work/projects/${esc(p.identifier)}" target="_blank" rel="noopener">${esc(p.name)}</a></td><td>${esc(p.opStatus)}</td><td class="num">${p.openCount}</td></tr>`).join('')}</tbody></table>` });
   }
 
+  /* ---- input coverage: how far the numbers on every screen can be trusted ---- */
+  const pc = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '–');
+  function coverage(UI) {
+    if (!ins || !ins.metrics) return '<div class="empty">입력 충족도 데이터(insights.json)를 읽지 못했습니다.</div>';
+    const m = ins.metrics.all;
+    const lines = ins.product_lines.map((l) => ({ l, open: ins.project_status.filter((p) => l.projects.includes(p.identifier)).reduce((s, p) => s + p.open, 0),
+      ms: ins.milestones.some((x) => l.projects.includes(x.project_identifier)) })).filter((x) => x.open > 0);
+    const withMs = lines.filter((x) => x.ms).length;
+    const gauges = `<div class="kpi-row kpi-strip" style="--kpi-cols:4">
+      ${UI.kpi({ label: '담당 지정', value: pc(m.assigned, m.open), foot: `열린 일감 ${m.open}건 중 ${m.assigned}건` })}
+      ${UI.kpi({ label: '마감일 입력', value: pc(m.with_due, m.open), foot: `${m.with_due}건 · 앞으로 일정·지연 판정의 바탕` })}
+      ${UI.kpi({ label: '7일 내 수정', value: pc(m.touched_7d, m.open), foot: `${m.touched_7d}건 · 사람이 고친 것만(봇 제외)` })}
+      ${UI.kpi({ label: 'OP 마일스톤 보유 제품군', value: `${withMs}/${lines.length}`, foot: '일감이 있는 제품군 기준 · RA는 마일스톤 대신 제출 마감일로 관리' })}
+    </div>`;
+    const teamRows = Object.entries(ins.metrics.teams || {}).filter(([, c]) => c.open > 0).map(([t, c]) => `<tr><td><b>${esc(t)} 팀</b></td><td class="num">${c.open}</td>
+      <td class="num">${pc(c.assigned, c.open)}</td><td class="num">${pc(c.with_due, c.open)}</td><td class="num">${pc(c.touched_7d, c.open)}</td></tr>`).join('');
+    const team = UI.panel({ title: '팀별 충족도', sub: '제품군 담당(product_lines.json) 기준 · 공동 제품군은 두 팀장에 모두 포함', body: `<table class="tbl"><thead><tr><th>팀</th><th class="num">열린</th><th class="num">담당 지정</th><th class="num">마감일</th><th class="num">7일 내 수정</th></tr></thead><tbody>${teamRows}</tbody></table>` });
+    const hrows = insHist.slice(-10).reverse().map((h) => { const a = h.all || {}; return `<tr><td>${esc(h.date)}</td><td class="num">${a.open ?? '–'}</td><td class="num">${a.assigned != null ? pc(a.assigned, a.open) : '–'}</td>
+      <td class="num">${a.with_due != null ? pc(a.with_due, a.open) : '–'}</td><td class="num">${pc(a.touched_7d, a.open)}</td><td class="num">${a.need ?? '–'}</td><td class="num">${a.bulk ?? '–'}</td><td class="num">${a.empty ?? '–'}</td></tr>`; }).join('');
+    const hist = UI.panel({ title: '충족도 추이', sub: '하루 한 줄, 최근 10일 · 담당 지정·마감일은 2026-10-01 이후 기록부터 표시', body: `<table class="tbl"><thead><tr><th>날짜</th><th class="num">열린</th><th class="num">담당 지정</th><th class="num">마감일</th><th class="num">7일 내 수정</th><th class="num">결정 필요</th><th class="num">월말 일괄</th><th class="num">빈 칸</th></tr></thead><tbody>${hrows}</tbody></table>` });
+    return `<div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">입력 충족도 — 이 숫자들이 낮을수록 다른 화면의 판단을 그만큼 덜 믿어야 합니다. OP에 입력된 만큼만 계산됩니다.</div>${gauges}
+      <div class="grid"><div class="col-6">${team}</div><div class="col-6">${hist}</div></div>`;
+  }
+
   function trendPanel(UI) {
     const rows = history.slice(-14).reverse().map((h) => `<tr><td>${UI.fmtDateY(h.date)}</td><td class="num">${esc(h.overdue)}</td>
       <td class="num">${esc(h.blocked)}</td><td class="num">${esc(h.stale)}</td><td class="num">${esc(h.unmanaged)}</td>
@@ -209,6 +239,7 @@
         <button type="button" class="tb-chip" data-health-reload>다시 읽기</button>
         <span class="rule"></span>
       </div>
+      ${coverage(UI)}
       ${kpis(UI)}
       <div class="grid">
         <div class="col-12">${decisionPanel(UI)}</div>

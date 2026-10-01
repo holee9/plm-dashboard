@@ -77,6 +77,41 @@
     return { line, status, open, overdue, msOver, next, oldestBlock, noOwner, why, decide, items, ms, slips };
   }
 
+  /* ---- product-line detail (expands under the row) ---- */
+  function lineDetail(s) {
+    const idents = new Set(s.line.projects);
+    const ps = (I.project_stats || []).filter((p) => idents.has(p.identifier));
+    const sum = (k) => ps.reduce((a, p) => a + p[k], 0);
+    const open = sum('open'), due = sum('with_due'), asg = sum('assigned');
+    const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : '–');
+    if (!open && !s.ms.length) return '<div class="muted" style="padding:8px">열린 일감도 마일스톤도 없습니다 — 판단할 자료가 없습니다.</div>';
+    const byStatus = {}; const byWho = {};
+    ps.forEach((p) => { Object.entries(p.statuses).forEach(([k, v]) => { byStatus[k] = (byStatus[k] || 0) + v; }); Object.entries(p.assignees).forEach(([k, v]) => { byWho[k] = (byWho[k] || 0) + v; }); });
+    const ORDER = ['Ticketed', 'Open', 'Confirmed', 'In Progress', 'In Review', 'On Hold'];
+    const statusTxt = ORDER.filter((k) => byStatus[k]).map((k) => `${esc(k)} <b>${byStatus[k]}</b>`).join(' · ') || '–';
+    const whoTxt = Object.entries(byWho).sort((a, b) => (a[0] === '(담당 없음)') - (b[0] === '(담당 없음)') || a[0].localeCompare(b[0], 'ko')).map(([k, v]) => `${esc(k)} <b>${v}</b>`).join(' · ') || '–';
+    const projRows = ps.filter((p) => p.open || I.milestones.some((m) => m.project_identifier === p.identifier)).map((p) => {
+      const ms = I.milestones.filter((m) => m.project_identifier === p.identifier);
+      const msTxt = ms.length ? ms.map((m) => `<div class="ms-item">${esc(m.subject.slice(0, 18))} ${m.date ? m.date.slice(5) : '<b>날짜 없음</b>'}${m.first_planned && m.first_planned !== m.date ? ` <span class="muted">(첫 계획 ${m.first_planned.slice(5)}${m.changes ? ', ' + m.changes + '회 변경' : ''}${m.slip_days > 0 ? ', ' + m.slip_days + '일 지연' : ''})</span>` : ''}</div>`).join('') : '<span class="muted">없음</span>';
+      return `<tr><td>${esc(p.project)}</td><td class="num">${p.open}</td><td class="num">${pct(p.with_due, p.open)}</td><td class="num">${pct(p.assigned, p.open)}</td><td style="font-size:12px">${msTxt}</td></tr>`;
+    }).join('');
+    const names = new Set(ps.map((p) => p.project));
+    const flowRows = (I.flow.open_items || []).filter((i) => names.has(i.project)).map((i) => ({ i, d: i.status === 'On Hold' ? i.hold_days : i.start_days })).filter((x) => x.d != null)
+      .sort((a, b) => b.d - a.d).slice(0, 5);
+    const flowTxt = flowRows.length ? `<table class="tbl"><thead><tr><th>번호</th><th>제목</th><th>상태</th><th>담당자</th><th class="num">경과</th></tr></thead><tbody>${flowRows.map(({ i, d }) => `<tr><td>${wp(i)}</td><td>${esc(i.subject.slice(0, 36))}</td><td>${esc(i.status)}</td><td>${esc(i.assignee || '담당자 없음')}</td><td class="num">${i.status === 'On Hold' ? '보류 ' : '시작 후 '}${d}일</td></tr>`).join('')}</tbody></table>` : '<span class="muted">진행·검토·보류 중인 일감 없음</span>';
+    const NEED = ['overdue', 'missing_update', 'blocked_aging', 'triage_overdue'];
+    const need = s.items.filter((i) => i.flags.some((f) => NEED.includes(f)));
+    const needTxt = need.length ? `<table class="tbl"><thead><tr><th>번호</th><th>제목</th><th>이유</th><th>담당자</th></tr></thead><tbody>${need.slice(0, 8).map((i) => `<tr><td>${wp(i)}</td><td>${esc(i.subject.slice(0, 36))}</td><td style="font-size:12px">${esc(i.flags.map((f) => ({ overdue: '마감 지남', missing_update: '마감 후 갱신 없음', blocked_aging: '보류 장기화', triage_overdue: '이슈 분류 지연' }[f])).filter(Boolean).join(', '))}</td><td>${esc(i.assignee || '담당자 없음')}</td></tr>`).join('')}</tbody></table>${need.length > 8 ? `<div class="muted" style="font-size:11px">외 ${need.length - 8}건</div>` : ''}` : '<span class="muted">이번 주 결정 필요 없음</span>';
+    return `<div style="padding:8px 4px;font-size:12px">
+      <div style="margin-bottom:6px"><b>입력 충족도</b> 열린 ${open}건 · 담당 지정 ${pct(asg, open)} · 마감일 ${pct(due, open)} <button type="button" class="tb-chip" data-exec-roadmap="${esc(s.line.name)}">로드맵에서 보기</button></div>
+      <table class="tbl"><thead><tr><th>과제</th><th class="num">열린</th><th class="num">마감일</th><th class="num">담당 지정</th><th>OP 마일스톤 (현재 · 첫 계획 대비)</th></tr></thead><tbody>${projRows || '<tr><td colspan="5" class="muted">없음</td></tr>'}</tbody></table>
+      <div style="margin:8px 0 2px"><b>상태 분포</b> ${statusTxt}</div>
+      <div style="margin:2px 0 8px"><b>담당자별</b> ${whoTxt}</div>
+      <div style="margin:8px 0 2px"><b>오래 끈 진행·보류 5건</b></div>${flowTxt}
+      <div style="margin:8px 0 2px"><b>결정 필요</b> <span class="muted">결정 시한 ${nextMeeting()}</span></div>${needTxt}
+    </div>`;
+  }
+
   function lineRow(s) {
     const nextTxt = s.next ? `${esc(s.next.subject.slice(0, 16))} <b>${s.next.date.slice(5)}</b> <span class="muted">D-${days(s.next.date, today())}</span>` : '<span class="muted">없음</span>';
     return `<tr data-exec-line="${esc(s.line.name)}">
@@ -85,7 +120,7 @@
       <td>${nextTxt}</td>
       <td style="font-size:12px">${s.why.map((w) => `<div>· ${w}</div>`).join('')}</td>
       <td style="font-size:12px"><b>${esc(s.decide)}</b><div class="muted">${esc(s.line.owner)}</div></td>
-    </tr>`;
+    </tr><tr data-exec-detail="${esc(s.line.name)}" hidden><td colspan="5" style="background:var(--surface-2,transparent)">${lineDetail(s)}</td></tr>`;
   }
 
   /* ---- top strip ---- */
@@ -157,11 +192,13 @@
         <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
       ${strip(stats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 데이터 신뢰도 낮아 판단 보류 (지난주 대비 추이는 10-08부터)</div>
-      ${UI.panel({ title: 'Q1·Q2·Q4 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 로드맵에서 해당 제품군 강조', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
+      ${UI.panel({ title: 'Q1·Q2·Q4 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제별 일정·상태·오래 끈 일·결정 필요가 펼쳐집니다', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
       <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div></div>`;
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-exec-reload]')) { H = null; I = null; load(); }
-    const row = e.target.closest('[data-exec-line]'); if (row && window.App) { window.App.set('roadmapFocus', row.dataset.execLine); window.App.go?.('roadmap'); }
+    const rb = e.target.closest('[data-exec-roadmap]'); if (rb && window.App) { window.App.set('roadmapFocus', rb.dataset.execRoadmap); window.App.go?.('roadmap'); return; }
+    const row = e.target.closest('[data-exec-line]');
+    if (row) { const d = row.nextElementSibling; if (d && d.hasAttribute('data-exec-detail')) d.hidden = !d.hidden; }
   });
 })();

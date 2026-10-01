@@ -319,7 +319,8 @@
 
     const includeProject = (p) => {
       const name = p.name || '';
-      return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$/i.test(name));
+      // Not managed work (owner decisions 2026-09-30 / 2026-10-01); same list as Hermes op_exception_rules.EXCLUDED_PROJECTS.
+      return !(/DR.*사업본부|사업본부.*미팅|^\s*인프라\s*구축\s*$|^\s*인허가 요청 업무 테스트\s*$/i.test(name));
     };
     const allowedProjectIds = new Set(projects.filter(includeProject).map((p) => p.id));
     const WORK_PACKAGES = wpsRaw.map(mapWorkPackage).filter((wp) => allowedProjectIds.has(wp.projectId));

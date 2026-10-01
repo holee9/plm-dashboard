@@ -12,9 +12,9 @@
 
   const FLAG_LABELS = {
     overdue: '마감 지남', missing_update: '마감 후 갱신 없음', blocked_aging: '보류 장기화',
-    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정',
+    blocked: '보류', stale: '방치', due_soon: '마감 임박', unmanaged: '담당자·마감일 미지정', bulk_date: '월말 일괄 날짜(실제 날짜 필요)',
   };
-  const FLAG_ORDER = ['overdue', 'missing_update', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
+  const FLAG_ORDER = ['overdue', 'missing_update', 'bulk_date', 'blocked_aging', 'blocked', 'stale', 'due_soon', 'unmanaged'];
 
   let snap = null;
   let history = [];

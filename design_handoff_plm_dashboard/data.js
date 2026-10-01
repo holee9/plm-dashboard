@@ -315,7 +315,20 @@
   const isOpenWork = (wp) => OPEN_WORK_STATUSES.includes(S[wp.statusId]?.name)
     && (T[wp.typeId]?.name || '') !== '마일스톤'
     && !/^\[[^\]]+\]/.test(wp.subject || '');
-  const isOverdue = (wp) => isOpenWork(wp) && hasDueDate(wp) && wp._due < TODAY;
+  // Month-end bulk dates (same rule as Hermes op_exception_rules.bulk_dates, 2026-10-01): BULK_MIN or more open
+  // Work Packages of one project share one month-end date → a planning placeholder, "real date needed", not overdue.
+  const BULK_MIN = 5;
+  let _bulk = null;
+  const _monthEnd = (iso) => new Date(new Date(iso + 'T00:00:00Z').getTime() + 86400000).getUTCDate() === 1;
+  const isBulk = (wp) => {
+    if (!_bulk) {
+      const n = {};
+      WORK_PACKAGES.forEach((w) => { if (isOpenWork(w) && w.dueDate && _monthEnd(w.dueDate)) n[w.projectId + '|' + w.dueDate] = (n[w.projectId + '|' + w.dueDate] || 0) + 1; });
+      _bulk = new Set(Object.keys(n).filter((k) => n[k] >= BULK_MIN));
+    }
+    return !!wp.dueDate && _bulk.has(wp.projectId + '|' + wp.dueDate);
+  };
+  const isOverdue = (wp) => isOpenWork(wp) && hasDueDate(wp) && wp._due < TODAY && !isBulk(wp);
   const dueWithin = (wp, days) => isOpenWork(wp) && hasDueDate(wp) && wp._due >= TODAY && wp._due <= addDays(TODAY, days);
 
   function statusDistribution(wps) {
@@ -559,7 +572,7 @@
     WORK_PACKAGES, TIME_ENTRIES, RELATIONS,
     U, P, S, T, PR, V, A, R,
     usersByRole, versionsByProject, currentVersion,
-    isOpen, isOpenWork, isOverdue, dueWithin,
+    isOpen, isOpenWork, isOverdue, isBulk, dueWithin,
     statusDistribution, kpis, openCloseTrend, backlogTrend,
     userUtilization, projectHealth, burndown, activityBreakdown,
     reload,

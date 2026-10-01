@@ -62,6 +62,10 @@
     if (overdue) why.push(`마감 지남 ${overdue}건 / 열린 ${open}건`);
     if (noOwner.length) why.push(`담당자 없는 결정 ${noOwner.length}건`);
     if (!why.length) why.push(`열린 ${open}건, 예외 없음`);
+    const krIds = new Set(H.goal_health.objectives.flatMap((o) => o.key_results.flatMap((k) => (k.related || []).map((r) => r.id))));
+    const krMs = ms.filter((m) => krIds.has(m.id));
+    if (krMs.length) why.push(`★ OKR 연결 마일스톤: ${krMs.map((m) => esc(m.subject.slice(0, 14)) + (m.date ? ' ' + m.date.slice(5) : '')).join(', ')}`);
+    else if (!ms.length) why.push('마일스톤 없음 — 날짜 약속 없음 (관리 이슈)');
     const decide = blockedAging[0] ? `${blockedAging[0].display_id} 재개/중단` : noOwner[0] ? `${noOwner[0].display_id} 담당 지정` : msOver[0] ? `${esc(msOver[0].subject.slice(0, 12))} 일정 재설정` : overdue ? '마감 재설정' : '—';
     return { line, status, open, overdue, msOver, next, oldestBlock, noOwner, why, decide, items, ms, slips };
   }
@@ -145,7 +149,7 @@
     const stats = I.product_lines.map(lineStats).sort((a, b) => ({ red: 0, amber: 1, grey: 2, green: 3 }[a.status] - { red: 0, amber: 1, grey: 2, green: 3 }[b.status]));
     const trend = (() => { try { return null; } catch { return null; } })();
     return `
-      <div class="tier"><span class="tier-name">사업본부 현황</span>
+      <div class="tier"><span class="tier-name">DR 사업본부 현황</span>
         <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · Hermes 판정(§7)과 OP 이력 기반 · 관리자용</span>
         <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
       ${strip(stats)}

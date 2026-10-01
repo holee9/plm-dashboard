@@ -31,8 +31,8 @@
   // Dashboard v2 (managers only, 2026-10-01): status → why → who decides.
   // Step 1·2 scope: 현황 + 로드맵. 운영 규율(health)·목표(goals) kept for the owner's audit view.
   const VIEWS = [
-    { key: 'exec',      en: 'Status',    ko: '사업본부 현황', ic: IC.overview,  section: 'MANAGEMENT' },
-    { key: 'roadmap',   en: 'Roadmap',   ko: '로드맵',        ic: IC.timeline,  section: 'MANAGEMENT' },
+    { key: 'exec',      en: 'Status',    ko: 'DR 사업본부 현황', ic: IC.overview,  section: 'MANAGEMENT' },
+    { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline,  section: 'MANAGEMENT' },
     { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: 'MANAGEMENT' },
     { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: 'OWNER' },
   ];
@@ -43,7 +43,7 @@
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
     exec: '일정 · 결정 · 목표 · 인허가 · 참여도 — 한 화면 (관리자용)',
-    roadmap: '제품군별 마일스톤 · 첫 계획 대비 현재 · 인허가 마감',
+    roadmap: 'OKR 연결 ★ 마일스톤 · 첫 계획 대비 현재 · 인허가 마감 · 약속 없는 과제',
     health: '예외 전체 · 추이 · 갱신율 (주간 운영 리뷰 대조용)',
     goals: 'Objective · Key Result · 연결 일감 (OKR 2026)',
     people: '담당자별 열린 일감 · 마감 지남 · 담당자 없는 일감',

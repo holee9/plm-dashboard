@@ -34,6 +34,7 @@
     { key: 'exec',      en: 'Status',    ko: 'DR 사업본부 현황', ic: IC.overview,  section: 'MANAGEMENT' },
     { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline,  section: 'MANAGEMENT' },
     { key: 'ops',       en: 'Flow',      ko: '실행 현황',    ic: IC.projects,  section: 'MANAGEMENT' },
+    { key: 'ra',        en: 'RA',        ko: '인허가 현황',  ic: IC.cal,       section: 'MANAGEMENT' },
     { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: 'MANAGEMENT' },
     { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: 'OWNER' },
   ];
@@ -45,6 +46,7 @@
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
     exec: '일정 · 결정 · 목표 · 인허가 · 참여도 — 한 화면 (관리자용)',
     ops: '일감 흐름(WIP·작업 나이·사이클 타임·처리량) · 주인 없는 일감 · 담당자별(이름순)',
+    ra: '인허가 요청 · 등록 상태 · 갱신 의무 · 지표 (요청은 OP, 등록은 등록부)',
     roadmap: 'OKR 연결 ★ 마일스톤 · 첫 계획 대비 현재 · 약속 없는 과제',
     health: '예외 전체 · 추이 · 갱신율 (주간 운영 리뷰 대조용)',
     goals: 'Objective · Key Result · 연결 일감 (OKR 2026)',
@@ -172,6 +174,7 @@
 
   /* ---------- navigation ---------- */
   function go(view) { state.view = view; save(); renderShell(); }
+  window.App.go = go;
 
   /* ---------- ms-panel helpers ---------- */
   // Portal: move panel to <body> so position:fixed is relative to viewport,

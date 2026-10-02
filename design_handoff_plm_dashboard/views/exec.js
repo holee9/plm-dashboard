@@ -15,7 +15,7 @@
   const DOT = { red: '🔴', amber: '🟡', green: '🟢', grey: '⚪' };
   const TXT = { red: '위험', amber: '주의', green: '정상', grey: '판단 보류' };
   const COL = { red: 'var(--c-red)', amber: 'var(--c-amber)', green: 'var(--c-green)', grey: 'var(--text-dim)' };
-  let H = null, I = null, err = null, loading = false;
+  let H = null, I = null, RA = null, err = null, loading = false;
 
   async function load() {
     loading = true;
@@ -23,6 +23,8 @@
       const [h, i] = await Promise.all([fetch('data/health.json', { cache: 'no-store' }), fetch('data/insights.json', { cache: 'no-store' })]);
       if (!h.ok || !i.ok) throw new Error(`health ${h.status} / insights ${i.status}`);
       H = await h.json(); I = await i.json(); err = null;
+      // ra.json feeds only the Q4 tile; its absence must not hide the rest of the screen
+      try { const r = await fetch('data/ra.json', { cache: 'no-store' }); RA = r.ok ? await r.json() : null; } catch (e) { RA = null; }
     } catch (e) { err = e.message; }
     loading = false;
     if (window.App?.refresh) window.App.refresh();
@@ -133,10 +135,6 @@
     const elapsed = Math.max(0, Math.min(1, (new Date(today()) - q0) / (q1 - q0)));
     const krs = g.objectives.flatMap((o) => o.key_results); const prog = krs.length ? krs.reduce((s, k) => s + (k.progress || 0), 0) / krs.length : null;
     const goalTone = prog === null ? 'grey' : prog - elapsed < -0.3 ? 'red' : prog - elapsed < -0.1 ? 'amber' : 'green';
-    const reg = allStats.find((s) => s.line.regulatory);
-    const regItems = reg ? reg.items : [];
-    const regNext = reg && reg.ms.length ? reg.ms[0] : null;
-    const regDue = reg ? (H.items.filter((i) => reg.line.projects.includes((I.project_status.find((p) => p.project === i.project) || {}).identifier)).map((i) => i.due).filter(Boolean).sort()[0]) : null;
     const low = I.people.filter((p) => p.trust === 'low');
     const ok = I.people.filter((p) => p.trust === 'ok');
     const part = H.process_health.weekly_update_rate;
@@ -144,7 +142,7 @@
       ${UI.kpi({ label: 'Q1 제품 일정', value: `${DOT.red}${cnt('red')} ${DOT.amber}${cnt('amber')} ${DOT.green}${cnt('green')}${cnt('grey') ? ' ' + DOT.grey + cnt('grey') : ''}`, foot: `마일스톤 지남 ${stats.reduce((s, x) => s + x.msOver.length, 0)}건 · 30일↑ 지연 계획 ${stats.reduce((s, x) => s + x.slips.length, 0)}건` })}
       ${UI.kpi({ label: 'Q2 결정 지연', value: `${oldest ? DOT.red : DOT.green} ${blocks.length}건`, foot: `보류 최장 ${oldest}일 · 담당자 없는 결정 ${allStats.reduce((s, x) => s + x.noOwner.length, 0)}건` })}
       ${UI.kpi({ label: 'Q3 분기 목표', value: `${DOT[goalTone]} ${prog === null ? '–' : Math.round(prog * 100) + '%'}`, foot: `분기 경과 ${Math.round(elapsed * 100)}% · KR ${g.kr_total} · 위험 ${g.kr_at_risk}` })}
-      ${UI.kpi({ label: 'Q4 인허가', value: `${reg ? DOT[reg.status] : DOT.grey} ${reg ? TXT[reg.status] : '–'}`, foot: reg ? `예외 ${regItems.length}건 · 다음 마감 ${regDue ? regDue.slice(5) : '–'}` : '제품군 정의 없음' })}
+      ${UI.kpi({ label: 'Q4 인허가', value: RA ? `${RA.review_delay ? DOT.amber : DOT.green} 검토 지연 ${RA.review_delay}건` : '–', foot: RA ? `열린 요청 ${RA.open}건 · 등록부 ${RA.registry_connected ? '연결됨' : '연결 전'} · <a href="#" data-exec-ra>인허가 현황 →</a>` : '인허가 데이터 없음' })}
       ${UI.kpi({ label: 'Q5 OP 참여도', value: `${part < 0.5 ? DOT.grey : DOT.green} ${Math.round(part * 100)}%`, foot: `7일 내 갱신 · 입력 신뢰 가능 ${ok.length}명 / 부족 ${low.length}명 → 부하 판단 보류` })}
     </div>`;
   }
@@ -198,6 +196,7 @@
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-exec-reload]')) { H = null; I = null; load(); }
+    if (e.target.closest('[data-exec-ra]')) { e.preventDefault(); window.App?.go?.('ra'); return; }
     const rb = e.target.closest('[data-exec-roadmap]'); if (rb && window.App) { window.App.set('roadmapFocus', rb.dataset.execRoadmap); window.App.go?.('roadmap'); return; }
     const row = e.target.closest('[data-exec-line]');
     if (row) { const d = row.nextElementSibling; if (d && d.hasAttribute('data-exec-detail')) d.hidden = !d.hidden; }

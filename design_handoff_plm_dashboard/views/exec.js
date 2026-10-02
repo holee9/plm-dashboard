@@ -124,7 +124,7 @@
   }
 
   /* ---- top strip ---- */
-  function strip(stats) {
+  function strip(stats, allStats) {   // stats: RA excluded (product lines only); allStats: includes the RA line for Q2/Q4
     const UI = window.UI;
     const cnt = (c) => stats.filter((s) => s.status === c).length;
     const blocks = H.items.filter((i) => i.flags.includes('blocked_aging'));
@@ -133,7 +133,7 @@
     const elapsed = Math.max(0, Math.min(1, (new Date(today()) - q0) / (q1 - q0)));
     const krs = g.objectives.flatMap((o) => o.key_results); const prog = krs.length ? krs.reduce((s, k) => s + (k.progress || 0), 0) / krs.length : null;
     const goalTone = prog === null ? 'grey' : prog - elapsed < -0.3 ? 'red' : prog - elapsed < -0.1 ? 'amber' : 'green';
-    const reg = stats.find((s) => s.line.regulatory);
+    const reg = allStats.find((s) => s.line.regulatory);
     const regItems = reg ? reg.items : [];
     const regNext = reg && reg.ms.length ? reg.ms[0] : null;
     const regDue = reg ? (H.items.filter((i) => reg.line.projects.includes((I.project_status.find((p) => p.project === i.project) || {}).identifier)).map((i) => i.due).filter(Boolean).sort()[0]) : null;
@@ -142,7 +142,7 @@
     const part = H.process_health.weekly_update_rate;
     return `<div class="kpi-row kpi-strip" style="--kpi-cols:5">
       ${UI.kpi({ label: 'Q1 제품 일정', value: `${DOT.red}${cnt('red')} ${DOT.amber}${cnt('amber')} ${DOT.green}${cnt('green')}${cnt('grey') ? ' ' + DOT.grey + cnt('grey') : ''}`, foot: `마일스톤 지남 ${stats.reduce((s, x) => s + x.msOver.length, 0)}건 · 30일↑ 지연 계획 ${stats.reduce((s, x) => s + x.slips.length, 0)}건` })}
-      ${UI.kpi({ label: 'Q2 결정 지연', value: `${oldest ? DOT.red : DOT.green} ${blocks.length}건`, foot: `보류 최장 ${oldest}일 · 담당자 없는 결정 ${stats.reduce((s, x) => s + x.noOwner.length, 0)}건` })}
+      ${UI.kpi({ label: 'Q2 결정 지연', value: `${oldest ? DOT.red : DOT.green} ${blocks.length}건`, foot: `보류 최장 ${oldest}일 · 담당자 없는 결정 ${allStats.reduce((s, x) => s + x.noOwner.length, 0)}건` })}
       ${UI.kpi({ label: 'Q3 분기 목표', value: `${DOT[goalTone]} ${prog === null ? '–' : Math.round(prog * 100) + '%'}`, foot: `분기 경과 ${Math.round(elapsed * 100)}% · KR ${g.kr_total} · 위험 ${g.kr_at_risk}` })}
       ${UI.kpi({ label: 'Q4 인허가', value: `${reg ? DOT[reg.status] : DOT.grey} ${reg ? TXT[reg.status] : '–'}`, foot: reg ? `예외 ${regItems.length}건 · 다음 마감 ${regDue ? regDue.slice(5) : '–'}` : '제품군 정의 없음' })}
       ${UI.kpi({ label: 'Q5 OP 참여도', value: `${part < 0.5 ? DOT.grey : DOT.green} ${Math.round(part * 100)}%`, foot: `7일 내 갱신 · 입력 신뢰 가능 ${ok.length}명 / 부족 ${low.length}명 → 부하 판단 보류` })}
@@ -184,15 +184,16 @@
     if (!H && !loading && !err) { load(); return '<div class="empty">현황 데이터 로딩 중…</div>'; }
     if (err) return `<div class="empty" style="color:var(--c-red)">현황 데이터를 읽지 못함: ${esc(err)} <button class="mini-btn" data-exec-reload>다시 읽기</button></div>`;
     if (!H || !I) return '<div class="empty">현황 데이터 로딩 중…</div>';
-    const stats = I.product_lines.map(lineStats).sort((a, b) => ({ red: 0, amber: 1, grey: 2, green: 3 }[a.status] - { red: 0, amber: 1, grey: 2, green: 3 }[b.status]));
+    const allStats = I.product_lines.map(lineStats).sort((a, b) => ({ red: 0, amber: 1, grey: 2, green: 3 }[a.status] - { red: 0, amber: 1, grey: 2, green: 3 }[b.status]));
+    const stats = allStats.filter((s) => !s.line.regulatory);   // RA is a DR 사업본부 organisation, not a product line
     const trend = (() => { try { return null; } catch { return null; } })();
     return `
       <div class="tier"><span class="tier-name">DR 사업본부 현황</span>
         <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · Hermes 판정(§7)과 OP 이력 기반 · 관리자용</span>
         <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
-      ${strip(stats)}
+      ${strip(stats, allStats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 데이터 신뢰도 낮아 판단 보류 (지난주 대비 추이는 10-08부터)</div>
-      ${UI.panel({ title: 'Q1·Q2·Q4 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제별 일정·상태·오래 끈 일·결정 필요가 펼쳐집니다', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
+      ${UI.panel({ title: 'Q1·Q2 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제별 일정·상태·오래 끈 일·결정 필요가 펼쳐집니다', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
       <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div></div>`;
   };
   document.addEventListener('click', (e) => {

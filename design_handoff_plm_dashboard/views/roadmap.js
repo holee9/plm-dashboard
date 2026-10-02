@@ -4,7 +4,6 @@
    whole portfolio schedule is visible without opening OpenProject.
    Each milestone shows its first planned date (◇, from OP journal history)
    and its current date (◆); the connecting line is the slip. Past-due = red.
-   Regulatory due dates (RA work packages) appear on the regulatory lane.
    Sources: data/insights.json (milestones + product_lines), data/health.json.
    ============================================================ */
 (function () {
@@ -59,16 +58,13 @@
           <span style="position:absolute;left:${x(cur)}%;top:${top}px;transform:translateX(-50%);font-size:10px;white-space:nowrap;color:${past ? 'var(--c-red)' : 'var(--text-muted)'}">${krOf[m.id] ? '★' : ''}${esc(m.subject.slice(0, 12))} ${m.date.slice(5)}</span>`;
       }).join('');
     }
-    const regMarksFor = (projs) => (window.DB?.WORK_PACKAGES || []).filter((w) => { const p = window.DB.P[w.projectId]; return p && projs.has(p.identifier) && w._due && window.DB.isOpen(w); })
-      .sort((a, b) => a._due - b._due).map((w, idx) => `<a href="${OP}/work_packages/${w.id}" target="_blank" rel="noopener" title="${esc(w.subject)} · 마감 ${esc(w.dueDate)}" style="position:absolute;left:${x(w._due)}%;top:4px;transform:translateX(-50%);color:${w._due < today ? 'var(--c-red)' : 'var(--accent)'};font-size:14px;text-decoration:none">▲</a>
-        <span style="position:absolute;left:${x(w._due)}%;top:${24 + (idx % 3) * 12}px;transform:translateX(-50%);font-size:10px;white-space:nowrap;color:var(--text-muted)">${esc((w.displayId || '') + ' ' + w.subject.slice(0, 10))} ${String(w.dueDate).slice(5)}</span>`).join('');
     const sub = (label, inner, h, muted) => `<div style="display:flex;border-top:1px dotted var(--line)">
         <div style="width:200px;flex:0 0 200px;padding:6px 10px 6px 24px;font-size:12px;${muted ? 'color:var(--text-dim)' : ''}">${label}</div>
         <div style="position:relative;flex:1;height:${h}px">${inner}</div></div>`;
     const withMs = [], withoutMs = [];
-    I.product_lines.forEach((line) => {
+    I.product_lines.filter((line) => !line.regulatory).forEach((line) => {   // RA is not a product line (see 인허가 현황 menu)
       const projs = line.projects.map((id) => ({ id, name: nameOf[id] || id, ms: I.milestones.filter((m) => m.project_identifier === id && inWin(m)), open: (phOf[nameOf[id]] || {}).open || 0, overdue: (phOf[nameOf[id]] || {}).overdue || 0 }));
-      const hasMs = projs.some((p) => p.ms.length) || line.regulatory;
+      const hasMs = projs.some((p) => p.ms.length);
       (hasMs ? withMs : withoutMs).push({ line, projs });
     });
     const lanes = withMs.map(({ line, projs }) => {
@@ -77,7 +73,6 @@
       const hl = focus === line.name ? 'background:rgba(var(--accent-rgb),.08)' : '';
       const rows = projs.filter((p) => p.ms.length).sort((a, b) => a.ms[0].date.localeCompare(b.ms[0].date))
         .map((p) => sub(`${esc(p.name)}<div class="muted" style="font-size:10.5px">마일스톤 ${p.ms.length} · 열린 ${p.open}</div>`, marksFor(p.ms), 58));
-      if (line.regulatory) rows.push(sub('제출 마감 ▲<div class="muted" style="font-size:10.5px">열린 일감 마감일</div>', regMarksFor(new Set(line.projects)), 64));
       const noMs = projs.filter((p) => !p.ms.length && p.open > 0), empty = projs.filter((p) => !p.ms.length && p.open === 0);
       if (noMs.length) rows.push(sub('<span style="color:var(--c-amber)">⚠ 약속 없음</span>', `<span style="position:absolute;left:8px;top:8px;font-size:11.5px">${noMs.map((p) => `${esc(p.name)} <span class="muted">(열린 ${p.open}${p.overdue ? `, <span style="color:var(--c-red)">지남 ${p.overdue}</span>` : ''})</span>`).join(' · ')}</span>`, 30));
       if (empty.length) rows.push(sub('비어 있음', `<span class="muted" style="position:absolute;left:8px;top:8px;font-size:11px">${empty.map((p) => esc(p.name)).join(' · ')} — 열린 일감·마일스톤 없음</span>`, 28, true));

@@ -193,14 +193,14 @@
   function coverage(UI) {
     if (!ins || !ins.metrics) return '<div class="empty">입력 충족도 데이터(insights.json)를 읽지 못했습니다.</div>';
     const m = ins.metrics.all;
-    const lines = ins.product_lines.map((l) => ({ l, open: ins.project_status.filter((p) => l.projects.includes(p.identifier)).reduce((s, p) => s + p.open, 0),
+    const lines = ins.product_lines.filter((l) => !l.regulatory).map((l) => ({ l, open: ins.project_status.filter((p) => l.projects.includes(p.identifier)).reduce((s, p) => s + p.open, 0),
       ms: ins.milestones.some((x) => l.projects.includes(x.project_identifier)) })).filter((x) => x.open > 0);
     const withMs = lines.filter((x) => x.ms).length;
     const gauges = `<div class="kpi-row kpi-strip" style="--kpi-cols:4">
       ${UI.kpi({ label: '담당 지정', value: pc(m.assigned, m.open), foot: `열린 일감 ${m.open}건 중 ${m.assigned}건` })}
       ${UI.kpi({ label: '마감일 입력', value: pc(m.with_due, m.open), foot: `${m.with_due}건 · 앞으로 일정·지연 판정의 바탕` })}
       ${UI.kpi({ label: '7일 내 수정', value: pc(m.touched_7d, m.open), foot: `${m.touched_7d}건 · 사람이 고친 것만(봇 제외)` })}
-      ${UI.kpi({ label: 'OP 마일스톤 보유 제품군', value: `${withMs}/${lines.length}`, foot: '일감이 있는 제품군 기준 · RA는 마일스톤 대신 제출 마감일로 관리' })}
+      ${UI.kpi({ label: 'OP 마일스톤 보유 제품군', value: `${withMs}/${lines.length}`, foot: '일감이 있는 제품군 기준' })}
     </div>`;
     const teamRows = Object.entries(ins.metrics.teams || {}).filter(([, c]) => c.open > 0).map(([t, c]) => `<tr><td><b>${esc(t)} 팀</b></td><td class="num">${c.open}</td>
       <td class="num">${pc(c.assigned, c.open)}</td><td class="num">${pc(c.with_due, c.open)}</td><td class="num">${pc(c.touched_7d, c.open)}</td></tr>`).join('');

@@ -72,7 +72,7 @@
   const regSub = (g) => `기준 ${esc(g.synced_at ? new Date(g.synced_at).toLocaleString('ko-KR') : '–')} · 커밋 ${esc(String(g.commit || '').slice(0, 7))}${g.excluded_rows ? ` · 오류로 제외된 행 ${g.excluded_rows}건` : ''}`;
   const open = { fam: new Set(), country: new Set() };      // expanded product families / company-licence countries (view state only)
   const toggleAll = (kind, label) => `<span style="float:right"><button type="button" class="mini-btn" data-ra-all="${kind}:open">${label} 모두 펼치기</button> <button type="button" class="mini-btn" data-ra-all="${kind}:close">모두 접기</button></span>`;
-  const tog = (attr, key, isOpen) => `<button type="button" class="mini-btn" ${attr}="${esc(key)}" aria-expanded="${isOpen}" style="margin-right:6px">${isOpen ? '▾' : '▸'}</button>`;
+  const tog = (attr, key, isOpen) => `<button type="button" class="mini-btn" ${attr}="${esc(key)}" aria-expanded="${isOpen}" aria-label="${isOpen ? '접기' : '펼치기'}" title="${isOpen ? '접기' : '펼치기'}" style="margin-right:10px;width:32px;height:32px;padding:0;font-size:20px;line-height:1;vertical-align:middle;cursor:pointer">${isOpen ? '▾' : '▸'}</button>`;
 
   function modelCell(c) {
     if (!c) return '<td title="등록 없음">–</td>';
@@ -90,7 +90,7 @@
     const row = (f) => {
       const isOpen = open.fam.has(f), models = fm[f] || [];
       const partial = cols.some((c) => cell[`${f}|${c}`] === 'partial');
-      let h = `<tr data-ra-famrow="${esc(f)}"><td>${tog('data-ra-fam', f, isOpen)}<b>${esc(f)}</b> <span class="muted">모델 ${models.length}개${partial ? ' · ◐ 있음' : ''}</span></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`;
+      let h = `<tr data-ra-famrow="${esc(f)}" style="cursor:pointer" title="${isOpen ? '눌러서 접기' : '눌러서 모델 펼치기'}"><td>${tog('data-ra-fam', f, isOpen)}<b>${esc(f)}</b> <span class="muted">모델 ${models.length}개${partial ? ' · ◐ 있음' : ''}</span></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`;
       if (isOpen) h += models.map((m) => `<tr class="ra-sub" data-ra-modelrow="${esc(f)}|${esc(m.model)}"><td style="padding-left:34px">${esc(m.model)}</td>${cols.map((c) => modelCell(m.cells[c])).join('')}</tr>`).join('');
       return h;
     };
@@ -109,7 +109,7 @@
         const items = list.filter((x) => x.country === country);      // registry order (reg_id), as ra.json lists them
         const isOpen = open.country.has(country);
         const sum = ['유효', '갱신중', '만료', '철회'].map((st) => [st, items.filter((x) => x.state === st).length]).filter(([, n]) => n).map(([st, n]) => `${st} ${n}`).join(' · ');
-        return `<tr data-ra-ctryrow="${esc(country)}"><td colspan="5">${tog('data-ra-country', country, isOpen)}<b>${esc(country)}</b> <span class="muted">${items.length}건 · ${sum}</span></td></tr>`
+        return `<tr data-ra-ctryrow="${esc(country)}" style="cursor:pointer" title="${isOpen ? '눌러서 접기' : '눌러서 항목 펼치기'}"><td colspan="5">${tog('data-ra-country', country, isOpen)}<b>${esc(country)}</b> <span class="muted">${items.length}건 · ${sum}</span></td></tr>`
           + (isOpen ? items.map((x) => `<tr class="ra-sub" data-ra-comp="${esc(x.reg_id)}"><td style="padding-left:34px">${esc(x.type)}</td><td>${esc(x.state)}</td><td>${esc(x.expiry || '–')}</td><td>${esc(x.next_duty || '–')}</td><td>${esc(x.next_date || '–')}</td></tr>`).join('') : '');
       }).join('')}
       </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">제조업허가·사업장 등록·대리인·품질시스템 인증·보험 등 회사가 받는 것입니다. 제품 인허가가 아니며 요청 폼으로 받지 않습니다. 만료일이 없으면 – 로 표시합니다.</div>`
@@ -170,6 +170,9 @@
     const f = e.target.closest('[data-ra-fam]'), c = e.target.closest('[data-ra-country]'), a = e.target.closest('[data-ra-all]');
     if (f) return flip(open.fam, f.getAttribute('data-ra-fam'));
     if (c) return flip(open.country, c.getAttribute('data-ra-country'));
+    const fr = e.target.closest('[data-ra-famrow]'), cr = e.target.closest('[data-ra-ctryrow]');      // the whole row is a click target, not only the arrow
+    if (fr) return flip(open.fam, fr.getAttribute('data-ra-famrow'));
+    if (cr) return flip(open.country, cr.getAttribute('data-ra-ctryrow'));
     if (a && R && R.registry) {
       const [kind, how] = a.getAttribute('data-ra-all').split(':');
       const keys = kind === 'fam' ? (R.registry.families || []) : (R.registry.company || []).map((x) => x.country);

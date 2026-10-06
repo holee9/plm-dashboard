@@ -102,3 +102,16 @@ test('before the registry is connected both panels say 연결 전', async () => 
   assert.match(html, /회사 허가·인증/);
   assert.equal((html.match(/연결 전/g) || []).length >= 3, true);
 });
+
+test('the whole family or country row opens it, and the arrow is a large, labelled target', async () => {
+  const env = setup();
+  const html = await render(env);
+  assert.match(html, /aria-label="펼치기"/);
+  assert.match(html, /width:32px;height:32px/);
+  env.click('[data-ra-famrow]', { 'data-ra-famrow': 'BLUE (G series)' });
+  env.click('[data-ra-ctryrow]', { 'data-ra-ctryrow': '미국' });
+  const open = env.c.Views.ra({});
+  assert.equal((open.match(/data-ra-modelrow/g) || []).length, 2);
+  assert.equal((open.match(/data-ra-comp=/g) || []).length, 2);
+  assert.match(open, /aria-label="접기"/);
+});

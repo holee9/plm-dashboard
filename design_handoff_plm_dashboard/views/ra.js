@@ -67,7 +67,7 @@
 
   /* ---- registry panels (R3): shown only when ra.json says registry_connected ---- */
   const SYMBOL = { full: '●', partial: '◐', renewing: '갱신중', expired: '만료' };
-  const STATE_TITLE = { full: '전 모델 유효', partial: '일부 모델만 유효 — 제품군을 펼쳐 모델별로 확인', renewing: '갱신 진행 중', expired: '만료·철회' };
+  const STATE_TITLE = { full: '등록부에 있는 모델 모두 유효', partial: '등록부에 있는 모델 중 일부만 유효 — 제품군을 펼쳐 모델별로 확인', renewing: '갱신 진행 중', expired: '만료·철회' };
   const MODEL_SYMBOL = { '유효': '●', '갱신중': '갱신중', '만료': '만료', '철회': '철회' };
   const regSub = (g) => `기준 ${esc(g.synced_at ? new Date(g.synced_at).toLocaleString('ko-KR') : '–')} · 커밋 ${esc(String(g.commit || '').slice(0, 7))}${g.excluded_rows ? ` · 오류로 제외된 행 ${g.excluded_rows}건` : ''}`;
   const open = { fam: new Set(), country: new Set() };      // expanded product families / company-licence countries (view state only)
@@ -96,7 +96,7 @@
     };
     const body = fams.length ? `${toggleAll('fam', '제품군')}<table class="tbl" data-ra-matrix><thead><tr><th>제품군 (펼치면 모델)</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
       ${fams.map(row).join('')}
-      </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">● 유효 · ◐ 제품군 일부 모델만 유효 · 갱신중 · 만료 · – 등록 없음. 모델 줄은 등록부에 한 번이라도 등록된 모델만 나타납니다(입력 대기 줄은 제외). 회사가 받는 허가·인증은 아래 "회사 허가·인증"에 따로 있습니다.</div>`
+      </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">● 유효(등록부에 있는 모델 모두) · ◐ 등록부에 있는 모델 중 일부만 유효 · 갱신중 · 만료 · – 등록 없음. 모델 줄은 등록부에 한 번이라도 등록된 모델만 나타납니다(입력 대기 줄은 제외). 회사가 받는 허가·인증은 아래 "회사 허가·인증"에 따로 있습니다.</div>`
       : '<div class="empty">등록부에 등록된 제품 줄이 없습니다</div>';
     return UI.panel({ title: '제품 인허가', sub: `제품군 × 국가 · 등록 ${g.counts.rows}건 · 입력 대기 ${g.counts.pending}건 · ${regSub(g)}`, body });
   }
@@ -150,7 +150,7 @@
         <button type="button" class="tb-chip" data-ra-reload>다시 읽기</button><span class="rule"></span></div>
       ${counts()}
       <div class="grid">
-        <div class="col-12">${R.registry_connected && R.registry ? matrixPanel() : (R.registry_note ? pending('제품 인허가', `등록부를 읽지 못함: ${R.registry_note}`) : pending('제품 인허가', '제품군 × 국가 · ◐ = 제품군 일부 모델만 등록'))}</div>
+        <div class="col-12">${R.registry_connected && R.registry ? matrixPanel() : (R.registry_note ? pending('제품 인허가', `등록부를 읽지 못함: ${R.registry_note}`) : pending('제품 인허가', '제품군 × 국가 · ◐ = 등록부에 있는 모델 중 일부만 유효'))}</div>
         <div class="col-12">${R.registry_connected && R.registry ? companyPanel() : pending('회사 허가·인증', '제조업허가·사업장 등록·대리인·품질시스템 인증 등 회사가 받는 것')}</div>
         <div class="col-12">${R.registry_connected && R.registry ? obligationsPanel() : pending('갱신 의무', '갱신 시한이 다가오는 의무')}</div>
         <div class="col-12">${requests()}</div>

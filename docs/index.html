@@ -1086,6 +1086,11 @@ Key files: [관련 파일 목록]</pre>
     <td><strong>envsubst 템플릿 기반 nginx 컨테이너는 bare `docker compose restart`로 시크릿을 날릴 수 있다</strong></td>
     <td>`/op/` 프록시 접근 제어 추가(#54) 후 <code>docker compose restart</code>로 반영을 시도했는데, 이 명령을 실행한 셸에 <code>OP_AUTH_B64</code>가 없어 컨테이너가 빈 값("Defaulting to a blank string")으로 재기동됐다. <code>nginx:alpine</code>의 entrypoint는 컨테이너가 재시작될 때마다 <code>default.conf.template</code>에 <code>envsubst</code>를 다시 적용하므로, 이전에 정상 기동됐던 값이 남아있는 게 아니라 그 시점 프로세스 환경변수로 새로 치환된다. 해결: 반드시 <code>proxy/start.sh</code>(<code>~/.hermes/.env</code>에서 <code>OP_API_KEY</code>를 읽어 <code>OP_AUTH_B64</code>를 계산·export 후 <code>docker compose up -d</code>)로 재기동해야 한다 — 템플릿 변수를 쓰는 컨테이너는 "restart"가 안전하다고 가정하면 안 되고, 항상 env를 다시 주입하는 래퍼를 거쳐야 한다.</td>
   </tr>
+  <tr>
+    <td>P41</td>
+    <td><strong>뷰 안의 접기·펴기를 <code>App.refresh()</code>로 다시 그리면 스크롤이 맨 위로 돌아간다</strong></td>
+    <td><code>renderContent()</code>가 매번 <code>el.scrollTop = 0</code>으로 초기화하고 <code>#content</code>를 새로 만든다. 접기·펴기 클릭 직후 <code>scrollTop</code>을 저장했다가 다시 그린 뒤 복원해야 한다(인허가 현황, #86). 가짜 틀(harness)에서는 스크롤 컨테이너가 없어 이 문제가 보이지 않았고 운영 화면 시험에서 <code>scrollTop</code> 400 → 400으로 확인했다.</td>
+  </tr>
 </table>
 
 <div class="note tip">

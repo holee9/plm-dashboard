@@ -187,7 +187,7 @@
     const trend = (() => { try { return null; } catch { return null; } })();
     return `
       <div class="tier"><span class="tier-name">DR 사업본부 현황</span>
-        <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · Hermes 판정(§7)과 OP 이력 기반 · 관리자용</span>
+        <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · Hermes 판정(§7)과 OP 이력 기반</span>
         <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
       ${strip(stats, allStats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 데이터 신뢰도 낮아 판단 보류 (지난주 대비 추이는 10-08부터)</div>

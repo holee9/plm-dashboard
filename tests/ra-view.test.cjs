@@ -122,3 +122,8 @@ test('the request panel describes the whole RA project work and the header carri
   assert.doesNotMatch(html, /관리자용/);
   assert.doesNotMatch(html, /폼으로 접수된/);
 });
+
+test('no screen carries the admin-only wording', () => {
+  const files = ['app.js', 'views/exec.js', 'views/ops.js', 'views/ra.js'];
+  for (const f of files) assert.doesNotMatch(fs.readFileSync(path.join(root, f), 'utf8'), /관리자용/, f);
+});

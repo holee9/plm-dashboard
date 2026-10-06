@@ -51,6 +51,7 @@ test('product and company licences are separate panels and the product matrix ha
   assert.match(html, /회사 허가·인증/);
   assert.doesNotMatch(region(html, 'data-ra-matrix', '회사 허가·인증'), /공통/);
   assert.match(html, /◐/);
+  assert.match(html, /등록부에 있는 모델 중 일부만 유효/);      // ◐ is about the models in the registry, not a full product line-up the registry does not hold
 });
 
 test('families and countries start collapsed and expand to models / licences on click', async () => {

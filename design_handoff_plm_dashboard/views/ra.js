@@ -1,8 +1,9 @@
 /* ============================================================
    PLM Dashboard — 인허가 현황 (managers only)
    Source: data/ra.json (op_ra_insights.py, from OpenProject request work packages).
-   A 등록 상태 · B 갱신 의무 · E 모델 조회 come from the registry repo and show "연결 전" until it is
-   connected (ra.json registry_connected). C 요청 and D KPI come from OP requests (form-reporter, project RA).
+   A 제품 인허가 (제품군 × 국가, each family expands to its models) · A2 회사 허가·인증 (per country, expandable; not product approvals) ·
+   B 갱신 의무 · E 모델 조회 come from the registry repo and show "연결 전" until it is connected (ra.json registry_connected).
+   C 요청 and D KPI come from OP requests (form-reporter, project RA).
    No certificate numbers, no certificate files.
    ============================================================ */
 (function () {
@@ -66,8 +67,18 @@
 
   /* ---- registry panels (R3): shown only when ra.json says registry_connected ---- */
   const SYMBOL = { full: '●', partial: '◐', renewing: '갱신중', expired: '만료' };
-  const STATE_TITLE = { full: '전 모델 유효', partial: '일부 모델만 유효', renewing: '갱신 진행 중', expired: '만료·철회' };
+  const STATE_TITLE = { full: '전 모델 유효', partial: '일부 모델만 유효 — 제품군을 펼쳐 모델별로 확인', renewing: '갱신 진행 중', expired: '만료·철회' };
+  const MODEL_SYMBOL = { '유효': '●', '갱신중': '갱신중', '만료': '만료', '철회': '철회' };
   const regSub = (g) => `기준 ${esc(g.synced_at ? new Date(g.synced_at).toLocaleString('ko-KR') : '–')} · 커밋 ${esc(String(g.commit || '').slice(0, 7))}${g.excluded_rows ? ` · 오류로 제외된 행 ${g.excluded_rows}건` : ''}`;
+  const open = { fam: new Set(), country: new Set() };      // expanded product families / company-licence countries (view state only)
+  const toggleAll = (kind, label) => `<span style="float:right"><button type="button" class="mini-btn" data-ra-all="${kind}:open">${label} 모두 펼치기</button> <button type="button" class="mini-btn" data-ra-all="${kind}:close">모두 접기</button></span>`;
+  const tog = (attr, key, isOpen) => `<button type="button" class="mini-btn" ${attr}="${esc(key)}" aria-expanded="${isOpen}" style="margin-right:6px">${isOpen ? '▾' : '▸'}</button>`;
+
+  function modelCell(c) {
+    if (!c) return '<td title="등록 없음">–</td>';
+    const tip = [c.state, (c.types || []).join(', '), c.expiry ? `만료 ${c.expiry}` : ''].filter(Boolean).join(' · ');
+    return `<td title="${esc(tip)}">${MODEL_SYMBOL[c.state] || esc(c.state)}</td>`;
+  }
 
   function matrixPanel() {
     const g = R.registry, UI = window.UI;
@@ -75,20 +86,44 @@
     g.matrix.forEach((m) => { cell[`${m.family}|${m.country}`] = m.state; });
     const cols = g.columns.filter((c) => g.matrix.some((m) => m.country === c));
     const fams = g.families.filter((f) => g.matrix.some((m) => m.family === f));
-    const body = fams.length ? `<table class="tbl" data-ra-matrix><thead><tr><th>제품군</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
-      ${fams.map((f) => `<tr><td><b>${esc(f)}</b></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`).join('')}
-      </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">● 전 모델 유효 · ◐ 일부 모델만 유효 · 갱신중 · 만료 · – 등록 없음 (제품군 단위 표시, 입력 대기 줄은 제외)</div>`
-      : '<div class="empty">등록부에 등록된 줄이 없습니다</div>';
-    return UI.panel({ title: '등록 상태', sub: `제품군 × 국가 · 등록 ${g.counts.rows}건 · 입력 대기 ${g.counts.pending}건 · ${regSub(g)}`, body });
+    const fm = g.family_models || {};
+    const row = (f) => {
+      const isOpen = open.fam.has(f), models = fm[f] || [];
+      const partial = cols.some((c) => cell[`${f}|${c}`] === 'partial');
+      let h = `<tr data-ra-famrow="${esc(f)}"><td>${tog('data-ra-fam', f, isOpen)}<b>${esc(f)}</b> <span class="muted">모델 ${models.length}개${partial ? ' · ◐ 있음' : ''}</span></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`;
+      if (isOpen) h += models.map((m) => `<tr class="ra-sub" data-ra-modelrow="${esc(f)}|${esc(m.model)}"><td style="padding-left:34px">${esc(m.model)}</td>${cols.map((c) => modelCell(m.cells[c])).join('')}</tr>`).join('');
+      return h;
+    };
+    const body = fams.length ? `${toggleAll('fam', '제품군')}<table class="tbl" data-ra-matrix><thead><tr><th>제품군 (펼치면 모델)</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${fams.map(row).join('')}
+      </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">● 유효 · ◐ 제품군 일부 모델만 유효 · 갱신중 · 만료 · – 등록 없음. 모델 줄은 등록부에 한 번이라도 등록된 모델만 나타납니다(입력 대기 줄은 제외). 회사가 받는 허가·인증은 아래 "회사 허가·인증"에 따로 있습니다.</div>`
+      : '<div class="empty">등록부에 등록된 제품 줄이 없습니다</div>';
+    return UI.panel({ title: '제품 인허가', sub: `제품군 × 국가 · 등록 ${g.counts.rows}건 · 입력 대기 ${g.counts.pending}건 · ${regSub(g)}`, body });
+  }
+
+  function companyPanel() {
+    const g = R.registry, UI = window.UI, list = g.company || [];
+    const order = [...(g.columns || []), ...list.map((c) => c.country)].filter((c, i, a) => c && a.indexOf(c) === i && list.some((x) => x.country === c));
+    const body = list.length ? `${toggleAll('country', '국가')}<table class="tbl" data-ra-company><thead><tr><th>국가 · 인허가 종류</th><th>상태</th><th>만료일</th><th>다음 의무</th><th>다음 의무일</th></tr></thead><tbody>
+      ${order.map((country) => {
+        const items = list.filter((x) => x.country === country);      // registry order (reg_id), as ra.json lists them
+        const isOpen = open.country.has(country);
+        const sum = ['유효', '갱신중', '만료', '철회'].map((st) => [st, items.filter((x) => x.state === st).length]).filter(([, n]) => n).map(([st, n]) => `${st} ${n}`).join(' · ');
+        return `<tr data-ra-ctryrow="${esc(country)}"><td colspan="5">${tog('data-ra-country', country, isOpen)}<b>${esc(country)}</b> <span class="muted">${items.length}건 · ${sum}</span></td></tr>`
+          + (isOpen ? items.map((x) => `<tr class="ra-sub" data-ra-comp="${esc(x.reg_id)}"><td style="padding-left:34px">${esc(x.type)}</td><td>${esc(x.state)}</td><td>${esc(x.expiry || '–')}</td><td>${esc(x.next_duty || '–')}</td><td>${esc(x.next_date || '–')}</td></tr>`).join('') : '');
+      }).join('')}
+      </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">제조업허가·사업장 등록·대리인·품질시스템 인증·보험 등 회사가 받는 것입니다. 제품 인허가가 아니며 요청 폼으로 받지 않습니다. 만료일이 없으면 – 로 표시합니다.</div>`
+      : '<div class="empty">등록부에 회사 허가·인증 줄이 없습니다</div>';
+    return UI.panel({ title: '회사 허가·인증', sub: `국가별 · ${list.length}건 · 제품과 무관하게 회사가 받는 허가·등록·인증`, body });
   }
 
   function obligationsPanel() {
     const g = R.registry, UI = window.UI;
     const rows = g.obligations;
-    const body = rows.length ? `<table class="tbl" data-ra-obligations><thead><tr><th>의무일</th><th>등록</th><th>제품군</th><th>모델</th><th>국가</th><th>종류</th><th>상태</th></tr></thead><tbody>
-      ${rows.map((o) => `<tr data-ra-ob="${esc(o.reg_id)}"><td>${esc(o.date)}</td><td>${esc(o.reg_id)}</td><td>${esc(o.family)}</td><td>${esc((o.models || []).join(', '))}</td><td>${esc(o.country)}</td><td>${esc(o.kind)}</td><td>${o.overdue ? '<b>기한 지남</b>' : '예정'}${o.state === '갱신중' ? ' · 갱신중' : ''}</td></tr>`).join('')}</tbody></table>`
+    const body = rows.length ? `<table class="tbl" data-ra-obligations><thead><tr><th>의무일</th><th>등록</th><th>구분</th><th>제품군</th><th>모델</th><th>국가</th><th>인허가 종류</th><th>의무</th><th>상태</th></tr></thead><tbody>
+      ${rows.map((o) => `<tr data-ra-ob="${esc(o.reg_id)}"><td>${esc(o.date)}</td><td>${esc(o.reg_id)}</td><td>${o.scope === 'company' ? '회사' : '제품'}</td><td>${esc(o.family || '–')}</td><td>${esc((o.models || []).join(', ') || '–')}</td><td>${esc(o.country)}</td><td>${esc(o.type || '–')}</td><td>${esc(o.kind)}</td><td>${o.overdue ? '<b>기한 지남</b>' : '예정'}${o.state === '갱신중' ? ' · 갱신중' : ''}</td></tr>`).join('')}</tbody></table>`
       : '<div class="empty">착수 시점이 된 의무가 없습니다</div>';
-    return UI.panel({ title: '갱신 의무', sub: `의무일 − 착수 기준일수에 도달한 의무 · ${rows.length}건 (기한 지남 ${rows.filter((o) => o.overdue).length}건) · 의무일순`, body });
+    return UI.panel({ title: '갱신 의무', sub: `제품·회사 허가·인증 · 의무일 − 착수 기준일수에 도달한 의무 · ${rows.length}건 (기한 지남 ${rows.filter((o) => o.overdue).length}건) · 의무일순`, body });
   }
 
   function lookupResult(q) {
@@ -115,14 +150,34 @@
         <button type="button" class="tb-chip" data-ra-reload>다시 읽기</button><span class="rule"></span></div>
       ${counts()}
       <div class="grid">
-        <div class="col-12">${R.registry_connected && R.registry ? matrixPanel() : (R.registry_note ? pending('등록 상태', `등록부를 읽지 못함: ${R.registry_note}`) : pending('등록 상태', '제품군 × 국가 · ◐ = 제품군 일부 모델만 등록'))}</div>
+        <div class="col-12">${R.registry_connected && R.registry ? matrixPanel() : (R.registry_note ? pending('제품 인허가', `등록부를 읽지 못함: ${R.registry_note}`) : pending('제품 인허가', '제품군 × 국가 · ◐ = 제품군 일부 모델만 등록'))}</div>
+        <div class="col-12">${R.registry_connected && R.registry ? companyPanel() : pending('회사 허가·인증', '제조업허가·사업장 등록·대리인·품질시스템 인증 등 회사가 받는 것')}</div>
         <div class="col-12">${R.registry_connected && R.registry ? obligationsPanel() : pending('갱신 의무', '갱신 시한이 다가오는 의무')}</div>
         <div class="col-12">${requests()}</div>
         <div class="col-12">${kpis()}</div>
         <div class="col-12">${R.registry_connected && R.registry ? lookupPanel() : pending('모델 조회', '모델별 국가 등록 상태')}</div>
       </div>`;
   };
-  document.addEventListener('click', (e) => { if (e.target.closest('[data-ra-reload]')) { R = null; load(); } });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-ra-reload]')) { R = null; load(); return; }
+    const redraw = () => {      // App.refresh re-renders the shell and resets the scroll: keep the reader where they were
+      const top = document.getElementById('content')?.scrollTop || 0;
+      if (window.App?.refresh) window.App.refresh();
+      const el = document.getElementById('content');
+      if (el) el.scrollTop = top;
+    };
+    const flip = (set, key) => { if (set.has(key)) set.delete(key); else set.add(key); redraw(); };
+    const f = e.target.closest('[data-ra-fam]'), c = e.target.closest('[data-ra-country]'), a = e.target.closest('[data-ra-all]');
+    if (f) return flip(open.fam, f.getAttribute('data-ra-fam'));
+    if (c) return flip(open.country, c.getAttribute('data-ra-country'));
+    if (a && R && R.registry) {
+      const [kind, how] = a.getAttribute('data-ra-all').split(':');
+      const keys = kind === 'fam' ? (R.registry.families || []) : (R.registry.company || []).map((x) => x.country);
+      const set = kind === 'fam' ? open.fam : open.country;
+      keys.forEach((k) => (how === 'open' ? set.add(k) : set.delete(k)));
+      redraw();
+    }
+  });
   document.addEventListener('input', (e) => {
     if (e.target && e.target.id === 'raModelQ' && R && R.registry) document.getElementById('raModelResult').innerHTML = lookupResult(e.target.value);
   });

@@ -82,7 +82,7 @@
     const f = I.flow;
     return `
       <div class="tier"><span class="tier-name">실행 현황</span>
-        <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · 일감 흐름(건수·날짜만 사용) · 관리자용</span>
+        <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · 일감 흐름(건수·날짜만 사용)</span>
         <button type="button" class="tb-chip" data-ops-reload>다시 읽기</button><span class="rule"></span></div>
       ${kpis(f)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">OP에 공수(시간) 추정이 입력돼 있지 않아 건수와 날짜로만 계산한 지표입니다. 시작 = 처음 진행·검토 상태가 된 날, 종료 = 처음 종료 상태가 된 날. 사람 순위·과부하 판정은 하지 않습니다.</div>

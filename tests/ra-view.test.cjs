@@ -115,3 +115,10 @@ test('the whole family or country row opens it, and the arrow is a large, labell
   assert.equal((open.match(/data-ra-comp=/g) || []).length, 2);
   assert.match(open, /aria-label="접기"/);
 });
+
+test('the request panel describes the whole RA project work and the header carries no admin-only wording', async () => {
+  const html = await render(setup());
+  assert.match(html, /OP RA 프로젝트의 인허가 업무/);
+  assert.doesNotMatch(html, /관리자용/);
+  assert.doesNotMatch(html, /폼으로 접수된/);
+});

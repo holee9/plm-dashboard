@@ -3,7 +3,7 @@
    Source: data/ra.json (op_ra_insights.py, from OpenProject request work packages).
    A 제품 인허가 (제품군 × 국가, each family expands to its models) · A2 회사 허가·인증 (per country, expandable; not product approvals) ·
    B 갱신 의무 · E 모델 조회 come from the registry repo and show "연결 전" until it is connected (ra.json registry_connected).
-   C 요청 and D KPI come from OP requests (form-reporter, project RA).
+   C 요청 and D KPI come from the OP project RA (top-level work packages: form requests, work registered directly, Hermes renewals).
    No certificate numbers, no certificate files.
    ============================================================ */
 (function () {
@@ -60,7 +60,7 @@
         <td>${esc(r.desired || '–')}</td><td>${esc(r.due || '–')}</td>
         <td>${r.auto ? '자동 생성' : ''}${r.review_delay ? ' 검토 지연' : ''}${r.desired && r.due && r.due > r.desired ? ' 희망일 초과' : ''}</td></tr>`).join('')}</tbody></table>`
       : '<div class="empty">열린 요청이 없습니다</div>';
-    return UI.panel({ title: `요청 — 열린 ${rows.length}건`, sub: '폼으로 접수된 인허가 요청 · 접수 7일이 지나도 마감일이 없으면 검토 지연', body });
+    return UI.panel({ title: `요청 — 열린 ${rows.length}건`, sub: 'OP RA 프로젝트의 인허가 업무(폼 접수·직접 등록·자동 갱신 일감, 하위 일감 제외) · 접수 7일이 지나도 마감일이 없으면 검토 지연', body });
   }
 
   const pending = (title, sub) => window.UI.panel({ title, sub, body: `<div class="empty">${BEFORE} — 등록부(저장소)를 연결하면 표시됩니다</div>` });
@@ -146,7 +146,7 @@
     if (!R) return '<div class="empty">인허가 데이터 로딩 중…</div>';
     return `
       <div class="tier"><span class="tier-name">인허가 현황</span>
-        <span class="tier-en">기준 ${esc(new Date(R.generated).toLocaleString('ko-KR'))} · 요청은 OP, 등록은 등록부 · 관리자용</span>
+        <span class="tier-en">기준 ${esc(new Date(R.generated).toLocaleString('ko-KR'))} · 업무는 OP, 등록은 등록부</span>
         <button type="button" class="tb-chip" data-ra-reload>다시 읽기</button><span class="rule"></span></div>
       ${counts()}
       <div class="grid">

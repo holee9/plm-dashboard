@@ -93,8 +93,11 @@
       let h = `<tr data-ra-famrow="${esc(f)}" style="cursor:pointer" title="${isOpen ? '눌러서 접기' : '눌러서 모델 펼치기'}"><td>${tog('data-ra-fam', f, isOpen)}<b>${esc(f)}</b> <span class="muted">모델 ${models.length}개${partial ? ' · ◐ 있음' : ''}</span></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`;
       if (isOpen) {
         // series (묶음 표시, from the dictionary via ra.json) -> models; a family whose models carry no series lists them directly
+        const order = g.series_order && g.series_order[f] ? g.series_order[f] : [];   // dictionary order (ra.json); unknown series go last
         const groups = new Map();
         models.forEach((m) => { const k = m.series || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(m); });
+        const sorted = [...groups.entries()].sort((a, b) => { const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+        groups.clear(); sorted.forEach(([k, v]) => groups.set(k, v));
         const modelRow = (m) => `<tr class="ra-sub" data-ra-modelrow="${esc(f)}|${esc(m.model)}"><td style="padding-left:${groups.size > 1 || !groups.has('') ? 48 : 34}px">${esc(m.model)}</td>${cols.map((c) => modelCell(m.cells[c])).join('')}</tr>`;
         groups.forEach((ms, series) => {
           if (series) h += `<tr class="ra-sub ra-series" data-ra-seriesrow="${esc(f)}|${esc(series)}"><td style="padding-left:34px" colspan="${cols.length + 1}"><b>${esc(series)}</b> <span class="muted">모델 ${ms.length}개</span></td></tr>`;

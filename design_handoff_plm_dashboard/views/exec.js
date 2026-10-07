@@ -194,6 +194,13 @@
       ${UI.panel({ title: 'Q1·Q2 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제별 일정·상태·오래 끈 일·결정 필요가 펼쳐집니다', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
       <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div></div>`;
   };
+  // Shared core for the first screen (views/home.js): same data, same rules, one source of truth.
+  window.ExecCore = {
+    data: () => ({ H, I, RA, err, loading }),
+    load, lineStats, lineRow, strip, decisions, nextMeeting, days,
+    today: () => H && H.today,
+    esc, wp, DOT, TXT, COL,
+  };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-exec-reload]')) { H = null; I = null; load(); }
     if (e.target.closest('[data-exec-ra]')) { e.preventDefault(); window.App?.go?.('ra'); return; }

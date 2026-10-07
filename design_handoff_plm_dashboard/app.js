@@ -30,13 +30,16 @@
   // Legacy views (overview, resources, risks) stay loadable by key but are not in the menu.
   // Dashboard v2 (managers only, 2026-10-01): status → why → who decides.
   // Step 1·2 scope: 현황 + 로드맵. 운영 규율(health)·목표(goals) kept for the owner's audit view.
+  // 2026-10-07 (#94): two screens — 대시보드 (one screen: status → this week's work → decisions → RA)
+  // and 로드맵 (milestone timeline). Older screens stay reachable under 이전 화면 until removed.
   const VIEWS = [
-    { key: 'exec',      en: 'Status',    ko: 'DR 사업본부 현황', ic: IC.overview,  section: 'MANAGEMENT' },
-    { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline,  section: 'MANAGEMENT' },
-    { key: 'ops',       en: 'Flow',      ko: '실행 현황',    ic: IC.projects,  section: 'MANAGEMENT' },
-    { key: 'ra',        en: 'RA',        ko: '인허가 현황',  ic: IC.cal,       section: 'MANAGEMENT' },
-    { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: 'MANAGEMENT' },
-    { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: 'OWNER' },
+    { key: 'home',      en: 'Dashboard', ko: '대시보드',      ic: IC.overview,  section: '화면' },
+    { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline,  section: '화면' },
+    { key: 'exec',      en: 'Status',    ko: 'DR 사업본부 현황', ic: IC.overview,  section: '이전 화면' },
+    { key: 'ops',       en: 'Flow',      ko: '실행 현황',    ic: IC.projects,  section: '이전 화면' },
+    { key: 'ra',        en: 'RA',        ko: '인허가 현황',  ic: IC.cal,       section: '이전 화면' },
+    { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: '이전 화면' },
+    { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: '이전 화면' },
   ];
   const SUBTITLE = {
     overview: '전체 과제·인원·리스크 종합 현황',
@@ -44,6 +47,7 @@
     resources: '입력 신뢰도 · 일정 압박 · 보조 가동률',
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
+    home: '과제 현황 → 이번 주 업무 → 결정 → 인허가 — 한 화면, 입력은 OP',
     exec: '일정 · 결정 · 목표 · 인허가 · 참여도 — 한 화면',
     ops: '일감 흐름(WIP·작업 나이·사이클 타임·처리량) · 주인 없는 일감 · 담당자별(이름순)',
     ra: '인허가 요청 · 등록 상태 · 갱신 의무 · 지표 (요청은 OP, 등록은 등록부)',
@@ -64,7 +68,7 @@
   };
 
   /* ---------- state ---------- */
-  const DEFAULTS = { view: 'exec', theme: 'dark', density: 'cozy', style: 'telemetry',
+  const DEFAULTS = { view: 'home', theme: 'dark', density: 'cozy', style: 'telemetry',
     accent: 'blue', collapsed: false, projectTab: 1, boardProject: 'all', boardUser: 'all',
     resSort: 'pressure', tlProject: 'all', hiddenProjects: [], hiddenProjectsSeeded: false,
     projOrder: [], projPmOverrides: {}, projTlOverrides: {}, kpiSections: null, projEditMode: false, kpiEditMode: false,
@@ -79,6 +83,8 @@
   let refreshMessage = '새로고침';
   if (window.TWEAK_DEFAULTS) Object.assign(state, window.TWEAK_DEFAULTS);
   try { Object.assign(state, JSON.parse(localStorage.getItem('plm_state') || '{}')); } catch (e) {}
+  // One-time: browsers that last saw the old first screen open on the new one (#94).
+  if (!state.homeSeeded) { state.view = 'home'; state.homeSeeded = true; }
   // Migrate: projPmOverrides/projTlOverrides were single numbers; now arrays
   ['projPmOverrides', 'projTlOverrides'].forEach((key) => {
     const map = state[key] || {};
@@ -108,7 +114,7 @@
     let nav = '', lastSection = '';
     VIEWS.forEach((v) => {
       if (v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }
-      const badge = v.key === 'exec' ? `<span class="nav-badge alert">${overdueTotal}</span>`
+      const badge = v.key === 'home' ? `<span class="nav-badge alert">${overdueTotal}</span>`
         : v.key === 'overview' ? `<span class="nav-badge">${D.WORK_PACKAGES.length}</span>` : '';
       nav += `<button type="button" class="nav-item ${state.view === v.key ? 'active' : ''}" data-view="${v.key}" aria-label="${v.en} · ${v.ko}" ${state.view === v.key ? 'aria-current="page"' : ''}>
         ${svg(v.ic)}<span class="nav-label">${v.ko}</span>${badge}</button>`;
@@ -119,7 +125,7 @@
       + `${String(received.getHours()).padStart(2, '0')}:${String(received.getMinutes()).padStart(2, '0')}` : '수신 이력 없음';
     const syncLabel = D._loading ? '연동 중…' : refreshStatus === 'error' ? (D.lastReceivedAt ? '갱신 실패 · 이전 데이터' : '연동 오류')
       : D._error ? '연동 오류' : D.lastReceivedAt ? 'Live · 연동 완료' : '수신 이력 없음';
-    if (!VIEWS.some((v) => v.key === state.view)) { state.view = 'exec'; save(); }
+    if (!VIEWS.some((v) => v.key === state.view)) { state.view = 'home'; save(); }
     const cur = VIEWS.find((v) => v.key === state.view);
     const refreshTone = refreshStatus === 'loading' ? ' data-refresh-loading="true"'
       : refreshStatus === 'error' ? ' data-refresh-error="true"' : '';

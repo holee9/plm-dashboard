@@ -127,3 +127,19 @@ test('no screen carries the admin-only wording', () => {
   const files = ['app.js', 'views/exec.js', 'views/ops.js', 'views/ra.js'];
   for (const f of files) assert.doesNotMatch(fs.readFileSync(path.join(root, f), 'utf8'), /관리자용/, f);
 });
+
+test('models that carry a series are grouped under series header rows; models without a series list directly', async () => {
+  const ra = JSON.parse(JSON.stringify(RA));
+  ra.registry.family_models['BLUE (G series)'][0].series = 'BLUE';
+  ra.registry.family_models['BLUE (G series)'][1].series = 'BLUE';
+  ra.registry.family_models['BLUE (G series)'].push({ model: 'GT1717C', series: 'CYAN', cells: { '한국': { state: '유효', types: ['MFDS 신고'], expiry: '' } } });
+  const env = setup(ra); let html = await render(env);
+  assert.doesNotMatch(html, /data-ra-seriesrow/);
+  env.click('[data-ra-famrow]', { 'data-ra-famrow': 'BLUE (G series)' }); html = env.c.Views.ra({});
+  const series = [...html.matchAll(/data-ra-seriesrow="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(series, ['BLUE (G series)|BLUE', 'BLUE (G series)|CYAN']);
+  assert.equal((html.match(/data-ra-modelrow/g) || []).length, 3);
+  assert.ok(html.indexOf('data-ra-seriesrow="BLUE (G series)|BLUE"') < html.indexOf('data-ra-modelrow="BLUE (G series)|G1417CW"'));
+  const plain = setup(); await render(plain); plain.click('[data-ra-famrow]', { 'data-ra-famrow': 'BLUE (G series)' });
+  assert.doesNotMatch(plain.c.Views.ra({}), /data-ra-seriesrow/);
+});

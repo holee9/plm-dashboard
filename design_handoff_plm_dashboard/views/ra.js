@@ -91,10 +91,22 @@
       const isOpen = open.fam.has(f), models = fm[f] || [];
       const partial = cols.some((c) => cell[`${f}|${c}`] === 'partial');
       let h = `<tr data-ra-famrow="${esc(f)}" style="cursor:pointer" title="${isOpen ? '눌러서 접기' : '눌러서 모델 펼치기'}"><td>${tog('data-ra-fam', f, isOpen)}<b>${esc(f)}</b> <span class="muted">모델 ${models.length}개${partial ? ' · ◐ 있음' : ''}</span></td>${cols.map((c) => { const st = cell[`${f}|${c}`]; return `<td data-ra-cell="${esc(f)}|${esc(c)}" title="${st ? STATE_TITLE[st] : ''}">${st ? SYMBOL[st] : '–'}</td>`; }).join('')}</tr>`;
-      if (isOpen) h += models.map((m) => `<tr class="ra-sub" data-ra-modelrow="${esc(f)}|${esc(m.model)}"><td style="padding-left:34px">${esc(m.model)}</td>${cols.map((c) => modelCell(m.cells[c])).join('')}</tr>`).join('');
+      if (isOpen) {
+        // series (묶음 표시, from the dictionary via ra.json) -> models; a family whose models carry no series lists them directly
+        const order = g.series_order && g.series_order[f] ? g.series_order[f] : [];   // dictionary order (ra.json); unknown series go last
+        const groups = new Map();
+        models.forEach((m) => { const k = m.series || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(m); });
+        const sorted = [...groups.entries()].sort((a, b) => { const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+        groups.clear(); sorted.forEach(([k, v]) => groups.set(k, v));
+        const modelRow = (m) => `<tr class="ra-sub" data-ra-modelrow="${esc(f)}|${esc(m.model)}"><td style="padding-left:${groups.size > 1 || !groups.has('') ? 48 : 34}px">${esc(m.model)}</td>${cols.map((c) => modelCell(m.cells[c])).join('')}</tr>`;
+        groups.forEach((ms, series) => {
+          if (series) h += `<tr class="ra-sub ra-series" data-ra-seriesrow="${esc(f)}|${esc(series)}"><td style="padding-left:34px" colspan="${cols.length + 1}"><b>${esc(series)}</b> <span class="muted">모델 ${ms.length}개</span></td></tr>`;
+          h += ms.map(modelRow).join('');
+        });
+      }
       return h;
     };
-    const body = fams.length ? `${toggleAll('fam', '제품군')}<table class="tbl" data-ra-matrix><thead><tr><th>제품군 (펼치면 모델)</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
+    const body = fams.length ? `${toggleAll('fam', '제품군')}<table class="tbl" data-ra-matrix><thead><tr><th>제품군 (펼치면 시리즈·모델)</th>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>
       ${fams.map(row).join('')}
       </tbody></table><div class="muted mono" style="font-size:11px;margin-top:6px">● 유효(등록부에 있는 모델 모두) · ◐ 등록부에 있는 모델 중 일부만 유효 · 갱신중 · 만료 · – 등록 없음. 모델 줄은 등록부에 한 번이라도 등록된 모델만 나타납니다(입력 대기 줄은 제외). 회사가 받는 허가·인증은 아래 "회사 허가·인증"에 따로 있습니다.</div>`
       : '<div class="empty">등록부에 등록된 제품 줄이 없습니다</div>';

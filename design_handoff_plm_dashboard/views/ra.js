@@ -170,6 +170,15 @@
         <div class="col-12">${R.registry_connected && R.registry ? lookupPanel() : pending('모델 조회', '모델별 국가 등록 상태')}</div>
       </div>`;
   };
+  // Shared with the first screen (#96): the same panels, the same expand state, rendered inline from the
+  // ra.json the first screen already holds. The click handlers below work wherever the markup appears.
+  window.RAPanels = {
+    detail(data) {
+      R = data;
+      if (!R.registry_connected || !R.registry) return `${pending('제품 인허가', '등록부 연결 전')}${requests()}`;
+      return `<div data-ra-detail>${matrixPanel()}${companyPanel()}${obligationsPanel()}${requests()}${lookupPanel()}</div>`;
+    },
+  };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-ra-reload]')) { R = null; load(); return; }
     const redraw = () => {      // App.refresh re-renders the shell and resets the scroll: keep the reader where they were

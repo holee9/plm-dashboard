@@ -29,7 +29,8 @@ function setup({ ra = read('ra.json'), db } = {}) {
   const handlers = {};
   const context = { console, Date, setTimeout, clearTimeout, localStorage: { getItem: () => null, setItem() {} },
     fetch: async (url) => ({ ok: url in files, status: url in files ? 200 : 404, json: async () => JSON.parse(JSON.stringify(files[url])) }),
-    document: { getElementById: () => null, addEventListener: (n, fn) => { (handlers[n] = handlers[n] || []).push(fn); }, querySelectorAll: () => [] } };
+    document: { getElementById: () => null, addEventListener: (n, fn) => { (handlers[n] = handlers[n] || []).push(fn); }, querySelectorAll: () => [],
+      _fire: (n, sel, attrs) => (handlers[n] || []).forEach((fn) => fn({ preventDefault() {}, target: { closest: (s) => (s === sel ? { getAttribute: (k) => attrs[k], dataset: {} } : null) } })) } };
   context.window = context;
   vm.createContext(context);
   context.window.DB = db === undefined ? fakeDB(new Date(health.today + 'T00:00:00')) : db;
@@ -53,7 +54,8 @@ test('the first screen renders all five blocks', async () => {
   assert.match(html, /data-home-decide/);
   assert.match(html, /data-home-long/);
   assert.match(html, /인허가 — 회사 전체/);               // 5 regulatory
-  assert.match(html, /data-home-go="ra"/);
+  assert.match(html, /data-home-ra-toggle/);
+  assert.doesNotMatch(html, /data-home-go|data-exec-ra/);   // #96: no link to a separate RA screen
   assert.doesNotMatch(html, /undefined|NaN/);
 });
 
@@ -97,4 +99,30 @@ test('without ra.json the screen still renders and says regulatory data is missi
   const html = await render(env);
   assert.match(html, /data-home-ra="none"/);
   assert.match(html, /data-home-lines/);
+});
+
+// #96 A1/A3: the regulatory detail expands in place and is byte-identical to the old RA screen's panels.
+test('regulatory detail expands in place to family → series → model and matches the RA screen', async () => {
+  const env = setup();
+  for (const f of ['views/ra.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), env.c, { filename: f });
+  let html = await render(env);
+  assert.doesNotMatch(html, /data-ra-matrix/);                         // collapsed by default
+  const click = (sel, attrs = {}) => env.c.document._fire('click', sel, attrs);
+  click('[data-home-ra-toggle]');
+  html = env.c.Views.home({});
+  assert.match(html, /data-ra-detail/);
+  assert.match(html, /data-ra-matrix/); assert.match(html, /data-ra-company/); assert.match(html, /data-ra-obligations/);
+  // old screen, same data
+  env.c.Views.ra({}); await new Promise((r) => setTimeout(r, 0));
+  const old = env.c.Views.ra({});
+  const region = (h, from, to) => { const i = h.indexOf(from); const j = h.indexOf(to, i + 1); return h.slice(i, j); };
+  assert.equal(region(html, '<table class="tbl" data-ra-matrix', '</table>'), region(old, '<table class="tbl" data-ra-matrix', '</table>'));
+  assert.equal(region(html, '<table class="tbl" data-ra-company', '</table>'), region(old, '<table class="tbl" data-ra-company', '</table>'));
+  // expand a family → series rows → model rows, inside the first screen
+  const fam = env.ra.registry.families[0];
+  click('[data-ra-fam]', { 'data-ra-fam': fam });
+  html = env.c.Views.home({});
+  assert.match(html, /data-ra-seriesrow=/); assert.match(html, /data-ra-modelrow=/);
+  click('[data-home-ra-toggle]');
+  assert.doesNotMatch(env.c.Views.home({}), /data-ra-matrix/);
 });

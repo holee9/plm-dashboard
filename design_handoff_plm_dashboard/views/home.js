@@ -84,8 +84,13 @@
       ${UI.kpi({ label: '90일 안 의무', value: `${obs.some((o) => o.overdue) ? C.DOT.red : obs.length ? C.DOT.amber : C.DOT.green} ${obs.length}건`, foot: `기한 지남 ${obs.filter((o) => o.overdue).length}건` })}
       ${UI.kpi({ label: '등록부', value: g.counts ? `${g.counts.rows}+${g.counts.company_rows}` : '–', foot: `제품 ${g.counts ? g.counts.rows : '–'}줄 · 회사 ${g.counts ? g.counts.company_rows : '–'}줄 · ${RA.registry_connected ? '연결됨' : '연결 전'}` })}
     </div>`;
-    return UI.panel({ title: '인허가 — 회사 전체', sub: '요청은 OP, 등록은 등록부 · 상세는 인허가 현황 화면', tools: '<button type="button" class="mini-btn" data-home-go="ra">인허가 현황 →</button>', body: kp + obTxt });
+    // #96: the full regulatory detail (product matrix → series → model, company licences, obligations, requests)
+    // opens in place from views/ra.js; no separate screen.
+    const detail = raOpen && window.RAPanels ? `<div style="margin-top:var(--grid-1)">${window.RAPanels.detail(RA)}</div>` : '';
+    return UI.panel({ title: '인허가 — 회사 전체', sub: '요청은 OP, 등록은 등록부 · 펼치면 제품군 → 시리즈 → 모델, 회사 허가·인증, 의무, 요청',
+      tools: `<button type="button" class="mini-btn${raOpen ? ' on' : ''}" data-home-ra-toggle aria-expanded="${raOpen}">${raOpen ? '상세 접기 ▾' : '상세 펼치기 ▸'}</button>`, body: kp + obTxt + detail });
   }
+  let raOpen = false;   // view state only: whether the regulatory detail is expanded on the first screen
 
   window.Views.home = function () {
     const C = window.ExecCore, UI = window.UI;
@@ -110,7 +115,11 @@
       ${regulatory(C, RA)}`;
   };
   document.addEventListener('click', (e) => {
-    const go = e.target.closest('[data-home-go]');
-    if (go) { e.preventDefault(); window.App?.go?.(go.dataset.homeGo); }
+    if (e.target.closest('[data-home-ra-toggle]')) {
+      raOpen = !raOpen;
+      const top = document.getElementById('content')?.scrollTop || 0;   // keep the reader where they were (P41)
+      if (window.App?.refresh) window.App.refresh();
+      const el = document.getElementById('content'); if (el) el.scrollTop = top;
+    }
   });
 })();

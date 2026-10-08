@@ -142,7 +142,7 @@
       ${UI.kpi({ label: 'Q1 제품 일정', value: `${DOT.red}${cnt('red')} ${DOT.amber}${cnt('amber')} ${DOT.green}${cnt('green')}${cnt('grey') ? ' ' + DOT.grey + cnt('grey') : ''}`, foot: `마일스톤 지남 ${stats.reduce((s, x) => s + x.msOver.length, 0)}건 · 30일↑ 지연 계획 ${stats.reduce((s, x) => s + x.slips.length, 0)}건` })}
       ${UI.kpi({ label: 'Q2 결정 지연', value: `${oldest ? DOT.red : DOT.green} ${blocks.length}건`, foot: `보류 최장 ${oldest}일 · 담당자 없는 결정 ${allStats.reduce((s, x) => s + x.noOwner.length, 0)}건` })}
       ${UI.kpi({ label: 'Q3 분기 목표', value: `${DOT[goalTone]} ${prog === null ? '–' : Math.round(prog * 100) + '%'}`, foot: `분기 경과 ${Math.round(elapsed * 100)}% · KR ${g.kr_total} · 위험 ${g.kr_at_risk}` })}
-      ${UI.kpi({ label: 'Q4 인허가', value: RA ? `${RA.review_delay ? DOT.amber : DOT.green} 검토 지연 ${RA.review_delay}건` : '–', foot: RA ? `열린 요청 ${RA.open}건 · 등록부 ${RA.registry_connected ? '연결됨' : '연결 전'} · <a href="#" data-exec-ra>인허가 현황 →</a>` : '인허가 데이터 없음' })}
+      ${UI.kpi({ label: 'Q4 인허가', value: RA ? `${RA.review_delay ? DOT.amber : DOT.green} 검토 지연 ${RA.review_delay}건` : '–', foot: RA ? `열린 요청 ${RA.open}건 · 등록부 ${RA.registry_connected ? '연결됨' : '연결 전'} · 상세는 아래 인허가 블록` : '인허가 데이터 없음' })}
       ${UI.kpi({ label: 'Q5 OP 참여도', value: `${part < 0.5 ? DOT.grey : DOT.green} ${Math.round(part * 100)}%`, foot: `7일 내 갱신 · 입력 신뢰 가능 ${ok.length}명 / 부족 ${low.length}명 → 부하 판단 보류` })}
     </div>`;
   }
@@ -203,7 +203,6 @@
   };
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-exec-reload]')) { H = null; I = null; load(); }
-    if (e.target.closest('[data-exec-ra]')) { e.preventDefault(); window.App?.go?.('ra'); return; }
     const rb = e.target.closest('[data-exec-roadmap]'); if (rb && window.App) { window.App.set('roadmapFocus', rb.dataset.execRoadmap); window.App.go?.('roadmap'); return; }
     const row = e.target.closest('[data-exec-line]');
     if (row) { const d = row.nextElementSibling; if (d && d.hasAttribute('data-exec-detail')) d.hidden = !d.hidden; }

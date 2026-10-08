@@ -15,7 +15,7 @@
   const DOT = { red: '🔴', amber: '🟡', green: '🟢', grey: '⚪' };
   const TXT = { red: '위험', amber: '주의', green: '정상', grey: '판단 보류' };
   const COL = { red: 'var(--c-red)', amber: 'var(--c-amber)', green: 'var(--c-green)', grey: 'var(--text-dim)' };
-  let H = null, I = null, RA = null, err = null, loading = false;
+  let H = null, I = null, RA = null, W = null, err = null, loading = false;
 
   async function load() {
     loading = true;
@@ -23,8 +23,9 @@
       const [h, i] = await Promise.all([fetch('data/health.json', { cache: 'no-store' }), fetch('data/insights.json', { cache: 'no-store' })]);
       if (!h.ok || !i.ok) throw new Error(`health ${h.status} / insights ${i.status}`);
       H = await h.json(); I = await i.json(); err = null;
-      // ra.json feeds only the Q4 tile; its absence must not hide the rest of the screen
+      // ra.json (Q4 tile + regulatory block) and weekly.json (주간 흐름, #101) each degrade on their own; neither hides the rest
       try { const r = await fetch('data/ra.json', { cache: 'no-store' }); RA = r.ok ? await r.json() : null; } catch (e) { RA = null; }
+      try { const w = await fetch('data/weekly.json', { cache: 'no-store' }); W = w.ok ? await w.json() : null; } catch (e) { W = null; }
     } catch (e) { err = e.message; }
     loading = false;
     if (window.App?.refresh) window.App.refresh();
@@ -172,7 +173,7 @@
 
   // Shared core for the first screen (views/home.js): same data, same rules, one source of truth.
   window.ExecCore = {
-    data: () => ({ H, I, RA, err, loading }),
+    data: () => ({ H, I, RA, W, err, loading }),
     load, lineStats, lineRow, strip, decisions, nextMeeting, days,
     today: () => H && H.today,
     esc, wp, DOT, TXT, COL,

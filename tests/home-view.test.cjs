@@ -25,18 +25,19 @@ function fakeDB(today) {
 
 function setup({ ra = read('ra.json'), db } = {}) {
   const health = read('health.json'), insights = read('insights.json');
-  const files = { 'data/health.json': health, 'data/insights.json': insights, 'data/ra.json': ra };
+  const weekly = read('weekly.json');
+  const files = { 'data/health.json': health, 'data/insights.json': insights, 'data/ra.json': ra, 'data/weekly.json': weekly };
   const handlers = {};
   const context = { console, Date, setTimeout, clearTimeout, localStorage: { getItem: () => null, setItem() {} },
     fetch: async (url) => ({ ok: url in files, status: url in files ? 200 : 404, json: async () => JSON.parse(JSON.stringify(files[url])) }),
     document: { getElementById: () => null, addEventListener: (n, fn) => { (handlers[n] = handlers[n] || []).push(fn); }, querySelectorAll: () => [],
-      _fire: (n, sel, attrs) => (handlers[n] || []).forEach((fn) => fn({ preventDefault() {}, target: { closest: (s) => (s === sel ? { getAttribute: (k) => attrs[k], dataset: {} } : null) } })) } };
+      _fire: (n, sel, attrs, dataset = {}) => (handlers[n] || []).forEach((fn) => fn({ preventDefault() {}, target: { closest: (s) => (s === sel ? { getAttribute: (k) => attrs[k], dataset } : null) } })) } };
   context.window = context;
   vm.createContext(context);
   context.window.DB = db === undefined ? fakeDB(new Date(health.today + 'T00:00:00')) : db;
   for (const f of ['ui.js', 'exec-core.js', 'views/home.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), context, { filename: f });
   context.window.App = { refresh() {}, go() {} };
-  return { c: context, health, insights, ra };
+  return { c: context, health, insights, ra, weekly };
 }
 async function render(env) {
   env.c.Views.home({});
@@ -50,32 +51,12 @@ test('the first screen renders all five blocks', async () => {
   assert.match(html, /data-home-basis/);                 // 1 data basis
   assert.match(html, /Q1 제품 일정/);                    // 2 strip
   assert.match(html, /data-home-lines/);                 // 3 product lines
-  assert.match(html, /data-home-due/);                   // 4 this week
-  assert.match(html, /data-home-decide/);
-  assert.match(html, /data-home-long/);
+  assert.match(html, /data-home-wf\b/);                  // 4 weekly flow (#101)
+  assert.match(html, /data-home-wftotal/);
   assert.match(html, /인허가 — 회사 전체/);               // 5 regulatory
   assert.match(html, /data-home-ra-toggle/);
   assert.doesNotMatch(html, /data-home-go|data-exec-ra/);   // #96: no link to a separate RA screen
   assert.doesNotMatch(html, /undefined|NaN/);
-});
-
-test('due-this-week lists open work due within 7 days from live OP, closed and past excluded', async () => {
-  const html = await render(setup());
-  const ids = [...html.matchAll(/data-home-duerow="(\d+)"/g)].map((m) => +m[1]);
-  assert.deepEqual(ids, [1, 2, 7, 3]);                   // sorted by due (day 0, 3, 5, 7); 4 (day 8), 5 (past), 6 (closed) excluded
-  assert.doesNotMatch(html, /D-NaN/);
-  assert.match(html, /이번 주 마감 4건/);
-  assert.match(html, /담당자 없음/);                      // id 7 has no assignee
-});
-
-test('decisions-pending count equals a recomputation over health.json and shows days slipped', async () => {
-  const env = setup();
-  const html = await render(env);
-  const NEED = ['overdue', 'missing_update', 'blocked_aging'];
-  const expect = env.health.items.filter((i) => i.flags.some((f) => ['blocked_aging', 'missing_update', 'triage_overdue'].includes(f)) || (!i.assignee && i.flags.some((f) => NEED.includes(f)))).length;
-  assert.equal(count(html, /data-home-deciderow=/g), expect);
-  assert.match(html, new RegExp(`결정 필요 ${expect}건`));
-  if (expect) assert.match(html, /<td class="num"><b>\d+<\/b>일<\/td>/);
 });
 
 test('regulatory block shows obligations due within 90 days and the registry counts', async () => {
@@ -85,12 +66,6 @@ test('regulatory block shows obligations due within 90 days and the registry cou
   const expect = env.ra.registry.obligations.filter((o) => o.date && (o.overdue || o.date <= lim)).length;
   assert.match(html, new RegExp(`90일 안 의무</div>\\s*<div class="kpi-value">[^<]*${expect}건`));
   assert.match(html, new RegExp(`${env.ra.registry.counts.rows}\\+${env.ra.registry.counts.company_rows}`));
-});
-
-test('without live OP data the due block says so instead of failing', async () => {
-  const html = await render(setup({ db: { WORK_PACKAGES: [] } }));
-  assert.match(html, /data-home-due="none"/);
-  assert.match(html, /data-home-lines/);
 });
 
 test('without ra.json the screen still renders and says regulatory data is missing', async () => {
@@ -124,4 +99,35 @@ test('regulatory detail expands in place to family → series → model and matc
   assert.match(html, /data-ra-seriesrow=/); assert.match(html, /data-ra-modelrow=/);
   click('[data-home-ra-toggle]');
   assert.doesNotMatch(env.c.Views.home({}), /data-ra-matrix/);
+});
+
+// #101 주간 흐름: the table shows exactly what Hermes classified, per product line and in total; cells expand to the items.
+test('weekly flow table: per-line counts, totals row, expand to items, decided mark, plan line', async () => {
+  const env = setup();
+  let html = await render(env);
+  const W = env.weekly;
+  for (const key of ['done_last', 'carry', 'new_week', 'due_week', 'decide']) {
+    const sum = W.lines.reduce((a, l) => a + (l[key] || []).length, 0);
+    assert.equal(sum, W.totals[key], key);
+  }
+  const total = html.slice(html.indexOf('data-home-wftotal'));
+  for (const key of ['done_last', 'carry', 'new_week', 'due_week', 'decide']) assert.match(total, new RegExp(`<b>${W.totals[key]}</b>`));
+  const line = W.lines.find((l) => (l.carry || []).length);
+  assert.doesNotMatch(html, /data-home-wflist=/);
+  env.c.document._fire('click', '[data-home-wf]', {}, { homeWf: `${line.name}|carry` });
+  html = env.c.Views.home({});
+  assert.match(html, new RegExp(`data-home-wflist="${line.name.replace(/[()]/g, '\\$&')}\\|carry"`));
+  assert.equal(count(html, /data-home-wfrow=/g), line.carry.length);
+  const dl = W.lines.find((l) => (l.decide || []).some((d) => d.decided_at));
+  if (dl) { env.c.document._fire('click', '[data-home-wf]', {}, { homeWf: `${dl.name}|decide` }); assert.match(env.c.Views.home({}), /결정됨 \d\d-\d\d/); }
+  assert.match(html, W.plan.prev ? /지난주 계획/ : /다음 주부터/);
+  assert.doesNotMatch(html, /undefined|NaN/);
+});
+
+test('without weekly.json the screen renders and says the weekly flow is not there yet', async () => {
+  const env = setup();
+  env.c.fetch = async (url) => (url === 'data/weekly.json' ? { ok: false, status: 404 } : { ok: true, json: async () => read(url.slice(5)) });
+  const html = await render(env);
+  assert.match(html, /data-home-wf="none"/);
+  assert.match(html, /data-home-lines/);
 });

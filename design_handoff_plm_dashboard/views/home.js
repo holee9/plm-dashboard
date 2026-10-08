@@ -4,8 +4,8 @@
      1. data basis (when, how trustworthy)          insights.json metrics.all
      2. Q1–Q5 strip                                  ExecCore.strip
      3. product line: status → why → this week's decision   ExecCore.lineRow
-     4. this week's work: due in 7 days (live OP) · decisions pending with days slipped (health.json)
-        · long-running in-progress (insights.json flow)
+     4. 주간 흐름 (#101): per product line — last week done · carried over · this week new / due · decisions
+        (+ decided marks), all classified by Hermes op_weekly_flow.py into data/weekly.json
      5. regulatory summary (ra.json)                 links to the RA screen
    Rules and numbers come from ExecCore (exec-core.js) so this screen never
    disagrees with the rules it inherited from the former status screen. All input happens in OP.
@@ -27,45 +27,46 @@
     </div>`;
   }
 
-  /* ---- 4a. due within 7 days — live OP work packages, same scope as Hermes (open work, no bulk month-end dates) ---- */
-  function dueThisWeek(C, I) {
-    const UI = window.UI, D = window.DB;
-    const ident = {}; (I.product_lines || []).forEach((l) => l.projects.forEach((p) => { ident[p] = l.name; }));
-    if (!D || !D.WORK_PACKAGES || !D.WORK_PACKAGES.length) return UI.panel({ title: '이번 주 마감', sub: 'OP 실시간', body: '<span class="muted" data-home-due="none">OP 데이터를 아직 받지 못했습니다</span>' });
-    const rows = D.WORK_PACKAGES.filter((w) => D.dueWithin(w, 7)).sort((a, b) => a._due - b._due);
-    const body = rows.length ? `<table class="tbl" data-home-due><thead><tr><th>마감</th><th>일감</th><th>제품군 / 과제</th><th>담당자</th><th>상태</th></tr></thead><tbody>
-      ${rows.map((w) => { const p = D.P[w.projectId] || {}; const due = UI.dueLabel(w.dueDate); const line = ident[p.identifier];
-        return `<tr data-home-duerow="${w.id}"><td><span class="kpi-delta ${due.cls}">${due.txt}</span> <span class="muted">${C.esc(w.dueDate.slice(5))}</span></td><td>${UI.wpLink(w)} ${C.esc(String(w.subject || '').slice(0, 40))}</td><td>${line ? `<b>${C.esc(line)}</b> / ` : ''}${C.esc(p.name || '')}</td><td>${C.esc((D.U[w.assigneeId] || {}).name || '담당자 없음')}</td><td>${C.esc((D.S[w.statusId] || {}).name || '')}</td></tr>`; }).join('')}</tbody></table>`
-      : '<span class="muted" data-home-due="empty">이번 주 마감 일감 없음</span>';
-    return UI.panel({ title: `이번 주 마감 ${rows.length}건`, sub: '오늘부터 7일 안 · 열린 일감 · 월말 일괄 날짜 제외 (Hermes와 같은 기준)', body, bodyStyle: 'max-height:360px;overflow-y:auto' });
+  /* ---- 4. 주간 흐름 (#101): one table per product line, classified by Hermes (data/weekly.json) ---- */
+  const wfOpen = new Set();   // expanded cells, "line|bucket" (view state only)
+  const kst = (iso) => { const d = new Date(iso); return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const BUCKETS = [
+    ['done_last', '지난주 완료', (i) => `완료 ${kst(i.closed_at)}`],
+    ['carry', '지난주에서 이어짐', (i) => `${i.status}${i.due ? ' · 마감 ' + i.due.slice(5) : ''}${i.overdue ? ' · <b>마감 지남</b>' : ''}`],
+    ['new_week', '이번 주 신규', (i) => `생성 ${i.created.slice(5)}${i.due ? ' · 마감 ' + i.due.slice(5) : ''}`],
+    ['due_week', '이번 주 마감', (i) => `마감 <b>${(i.due || '').slice(5)}</b> · ${i.status}`],
+    ['decide', '결정 필요', (d) => d.decided_at ? `결정됨 ${kst(d.decided_at)} · ${d.why} (${d.slip_days}일 만에)` : `${d.why} · <b>${d.slip_days}일</b> 밀림`],
+  ];
+  function wfCell(C, line, key, label, fmt) {
+    const items = line[key] || [];
+    const extra = key === 'carry' ? items.filter((i) => i.overdue).length : key === 'decide' ? items.filter((d) => d.decided_at).length : 0;
+    const note = key === 'carry' && extra ? ` <span class="muted">마감 지남 ${extra}</span>` : key === 'decide' && extra ? ` <span class="muted">결정됨 ${extra}</span>` : '';
+    const k = `${line.name}|${key}`;
+    const btn = items.length ? `<button type="button" class="mini-btn${wfOpen.has(k) ? ' on' : ''}" data-home-wf="${C.esc(k)}" aria-expanded="${wfOpen.has(k)}" aria-label="${label} ${items.length}건 ${wfOpen.has(k) ? '접기' : '펼치기'}"><b>${items.length}</b></button>` : '<span class="muted">0</span>';
+    return `<td data-home-wfcell="${C.esc(k)}">${btn}${note}</td>`;
   }
-
-  /* ---- 4b. decisions pending, with days slipped — same selection as 이번 주 결정 TOP 5 but the whole list ---- */
-  function decisionsPending(C, H, I) {
-    const UI = window.UI;
-    const NEED = ['overdue', 'missing_update', 'blocked_aging'];
-    const crit = H.items.filter((i) => i.flags.some((f) => f === 'blocked_aging' || f === 'missing_update' || f === 'triage_overdue') || (!i.assignee && i.flags.some((f) => NEED.includes(f))));
-    const slip = (i) => i.flags.includes('blocked_aging') ? C.days(C.today(), (i.blocked_since || C.today()).slice(0, 10))
-      : i.flags.includes('missing_update') && i.due ? C.days(C.today(), i.due)
-      : i.flags.includes('triage_overdue') ? C.days(C.today(), i.created) : (i.age_days ?? (I.items.find((x) => x.id === i.id) || {}).age_days ?? 0);
-    const why = (i) => i.flags.includes('blocked_aging') ? '보류 장기화' : i.flags.includes('triage_overdue') ? '이슈 분류 지연' : i.flags.includes('missing_update') ? '마감 지남 후 갱신 없음' : '담당자 없는 예외';
-    const ownerOf = (i) => { const id = (I.project_status.find((p) => p.project === i.project) || {}).identifier; const l = I.product_lines.find((x) => x.projects.includes(id)); return l ? l.owner : '–'; };
-    const rows = crit.map((i) => ({ i, d: slip(i) })).sort((a, b) => b.d - a.d);
-    const body = rows.length ? `<table class="tbl" data-home-decide><thead><tr><th>밀림</th><th>일감</th><th>왜</th><th>과제</th><th>담당자</th><th>결정 주체</th></tr></thead><tbody>
-      ${rows.map(({ i, d }) => `<tr data-home-deciderow="${C.esc(i.display_id)}"><td class="num"><b>${d}</b>일</td><td>${C.wp(i)} ${C.esc(i.subject.slice(0, 40))}</td><td style="font-size:12px">${why(i)}</td><td>${C.esc(i.project)}</td><td>${C.esc(i.assignee || '없음')}</td><td><b>${C.esc(ownerOf(i))}</b></td></tr>`).join('')}</tbody></table>`
-      : '<span class="muted" data-home-decide="empty">결정 필요 없음</span>';
-    return UI.panel({ title: `결정 필요 ${rows.length}건`, sub: `밀린 일수 순 · 결정 시한 ${C.nextMeeting()} · 결정은 OP에서 담당자·마감일을 고치면 기록`, body, bodyStyle: 'max-height:360px;overflow-y:auto' });
+  function wfList(C, line, key, fmt) {
+    const items = line[key] || [];
+    return `<div data-home-wflist="${C.esc(line.name + '|' + key)}" style="padding:6px 4px"><b>${BUCKETS.find((b) => b[0] === key)[1]}</b> · ${C.esc(line.name)} · ${items.length}건
+      <table class="tbl" style="margin-top:4px"><thead><tr><th>일감</th><th>과제</th><th>담당자</th><th>상태 / 날짜</th></tr></thead><tbody>
+      ${items.map((i) => `<tr data-home-wfrow="${i.id}"><td>${C.wp(i)} ${C.esc(String(i.subject || '').slice(0, 44))}</td><td>${C.esc(i.project || '')}</td><td>${C.esc(i.assignee || '담당자 없음')}</td><td style="font-size:12px">${fmt(i)}</td></tr>`).join('')}</tbody></table></div>`;
   }
-
-  /* ---- 4c. long-running in-progress / in-review work ---- */
-  function longRunning(C, I) {
+  function weeklyFlow(C, W) {
     const UI = window.UI;
-    const all = (I.flow && I.flow.open_items || []).filter((i) => i.status !== 'On Hold' && i.start_days != null).sort((a, b) => b.start_days - a.start_days);
-    const top = all.slice(0, 8);
-    const body = top.length ? `<table class="tbl" data-home-long><thead><tr><th class="num">시작 후</th><th>일감</th><th>과제</th><th>상태</th><th>담당자</th></tr></thead><tbody>
-      ${top.map((i) => `<tr><td class="num"><b>${i.start_days}</b>일</td><td>${C.wp(i)} ${C.esc(i.subject.slice(0, 36))}</td><td>${C.esc(i.project)}</td><td>${C.esc(i.status)}</td><td>${C.esc(i.assignee || '담당자 없음')}</td></tr>`).join('')}</tbody></table>${all.length > top.length ? `<div class="muted" style="font-size:11px">외 ${all.length - top.length}건</div>` : ''}`
-      : '<span class="muted" data-home-long="empty">진행·검토 중인 일감 없음</span>';
-    return UI.panel({ title: `진행·검토 중 ${all.length}건 — 오래 끈 순`, sub: '시작 후 경과일 상위 8건', body, bodyStyle: 'max-height:360px;overflow-y:auto' });
+    if (!W) return UI.panel({ title: '주간 흐름', body: '<span class="muted" data-home-wf="none">주간 흐름 데이터(weekly.json)가 아직 없습니다 — Hermes 다음 실행 후 표시됩니다</span>' });
+    const wk = W.week, t = W.totals || {};
+    const sub = `지난주 ${kst(wk.prev_anchor)} → 이번 주 ${kst(wk.anchor)} → ${kst(wk.next_anchor)} (목요일 리뷰 기준${wk.source === 'calendar' ? ', 리뷰 기록 없어 달력 목요일' : ''}) · 숫자를 누르면 일감 목록`;
+    const lines = (W.lines || []).filter((l) => !l.regulatory || BUCKETS.some(([k]) => (l[k] || []).length));
+    const rows = lines.map((l) => {
+      const open = BUCKETS.filter(([k]) => wfOpen.has(`${l.name}|${k}`));
+      return `<tr data-home-wfline="${C.esc(l.name)}"><td><b>${C.esc(l.name)}</b><div class="muted" style="font-size:11px">${C.esc(l.owner || '')}</div></td>${BUCKETS.map(([k, label, fmt]) => wfCell(C, l, k, label, fmt)).join('')}</tr>`
+        + (open.length ? `<tr data-home-wfdetail="${C.esc(l.name)}"><td colspan="${BUCKETS.length + 1}" style="background:var(--surface-2,transparent)">${open.map(([k, , fmt]) => wfList(C, l, k, fmt)).join('')}</td></tr>` : '');
+    }).join('');
+    const total = `<tr data-home-wftotal><td><b>합계</b></td>${BUCKETS.map(([k]) => `<td><b>${t[k] ?? 0}</b>${k === 'decide' && t.decided ? ` <span class="muted">결정됨 ${t.decided}</span>` : ''}</td>`).join('')}</tr>`;
+    const plan = W.plan && W.plan.prev ? `지난주 계획(마감 ${W.plan.prev.planned}건) 중 완료 <b>${W.plan.prev.done}</b>건 (${W.plan.prev.ratio === null ? '–' : Math.round(W.plan.prev.ratio * 100) + '%'})` : '계획 대비 완료율은 다음 주부터 (이번 주 마감 목록을 저장해 둠)';
+    const body = `<table class="tbl" data-home-wf><thead><tr><th>제품군</th>${BUCKETS.map(([, label]) => `<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}${total}</tbody></table>
+      <div class="muted mono" style="font-size:11px;margin-top:6px" data-home-wfplan>${plan} · 지난주 완료 = 상태가 완료로 바뀐 시각 기준 · 이어짐 = 지난주 마감이었거나 지난주에 사람이 손댄 열린 일감 · 결정됨 = 회의 뒤 담당자·마감일 변경(D-04)</div>`;
+    return UI.panel({ title: '주간 흐름 — 지난주 완료 → 이어짐 → 이번 주 신규·마감 → 결정', sub, body });
   }
 
   /* ---- 5. regulatory summary ---- */
@@ -95,7 +96,7 @@
   window.Views.home = function () {
     const C = window.ExecCore, UI = window.UI;
     if (!C) return '<div class="empty">현황 모듈이 없습니다 (exec-core.js)</div>';
-    const { H, I, RA, err, loading } = C.data();
+    const { H, I, RA, W, err, loading } = C.data();
     if (!H && !loading && !err) { C.load(); return '<div class="empty">현황 데이터 로딩 중…</div>'; }
     if (err) return `<div class="empty" style="color:var(--c-red)">현황 데이터를 읽지 못함: ${C.esc(err)} <button class="mini-btn" data-exec-reload>다시 읽기</button></div>`;
     if (!H || !I) return '<div class="empty">현황 데이터 로딩 중…</div>';
@@ -110,11 +111,18 @@
       ${C.strip(stats, allStats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 판단할 자료 부족</div>
       ${UI.panel({ title: '제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제·일감이 펼쳐집니다 · 일감 번호를 누르면 OP 원본', body: `<table class="tbl" data-home-lines><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(C.lineRow).join('')}</tbody></table>` })}
-      <div class="tier"><span class="tier-name">이번 주 업무</span><span class="tier-en">마감 · 결정 · 오래 끈 일 — 목요일 회의와 같은 기준</span><span class="rule"></span></div>
-      <div class="grid"><div class="col-6">${dueThisWeek(C, I)}</div><div class="col-6">${decisionsPending(C, H, I)}</div><div class="col-12">${longRunning(C, I)}</div></div>
+      ${weeklyFlow(C, W)}
       ${regulatory(C, RA)}`;
   };
   document.addEventListener('click', (e) => {
+    const wf = e.target.closest('[data-home-wf]');
+    if (wf) {
+      const k = wf.dataset.homeWf; if (wfOpen.has(k)) wfOpen.delete(k); else wfOpen.add(k);
+      const top = document.getElementById('content')?.scrollTop || 0;
+      if (window.App?.refresh) window.App.refresh();
+      const el = document.getElementById('content'); if (el) el.scrollTop = top;
+      return;
+    }
     if (e.target.closest('[data-home-ra-toggle]')) {
       raOpen = !raOpen;
       const top = document.getElementById('content')?.scrollTop || 0;   // keep the reader where they were (P41)

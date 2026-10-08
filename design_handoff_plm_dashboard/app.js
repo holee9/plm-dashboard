@@ -101,7 +101,10 @@
 
   /* ---------- shell ---------- */
   function renderShell() {
-    const overdueTotal = D.WORK_PACKAGES.filter(D.isOverdue).length;
+    // #99: one basis for every number on the first screen — the Hermes snapshot (health.json). The live OP
+    // count is only the fallback while the snapshot has not loaded yet.
+    const snapH = window.ExecCore && window.ExecCore.data().H;
+    const overdueTotal = snapH && snapH.exception_counts ? snapH.exception_counts.overdue : D.WORK_PACKAGES.filter(D.isOverdue).length;
     let nav = '', lastSection = '';
     VIEWS.forEach((v) => {
       if (v.section && v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }

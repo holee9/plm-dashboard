@@ -22,8 +22,8 @@
     const upd = H.process_health ? Math.round(H.process_health.weekly_update_rate * 100) : null;
     const low = upd !== null && upd < 50;
     return `<div class="muted mono" data-home-basis style="font-size:11px;margin:0 0 var(--grid-1)">
-      이 숫자의 바탕: 열린 일감 <b>${m.open ?? '–'}</b>건 · 마감일 입력 <b>${pct(m.with_due, m.open)}</b> · 담당 지정 <b>${pct(m.assigned, m.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
-      ${low ? ' · ⚪ 갱신률이 50% 아래라 일정·부하 판단은 보류 표시' : ''} · 기준 ${C.esc(new Date(H.generated_at).toLocaleString('ko-KR'))}
+      이 숫자의 바탕: 열린 일감 <b>${m.open ?? '–'}</b>건 · 마감 지남 <b data-home-overdue>${H.exception_counts ? H.exception_counts.overdue : '–'}</b>건 · 마감일 입력 <b>${pct(m.with_due, m.open)}</b> · 담당 지정 <b>${pct(m.assigned, m.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
+      ${low ? ' · ⚪ 갱신률이 50% 아래라 일정·부하 판단은 보류 표시' : ''} · 기준 <b>${C.esc(new Date(H.generated_at).toLocaleString('ko-KR'))}</b> (Hermes 30분 스냅숏 — 이 화면의 모든 숫자가 이 시각 기준)
     </div>`;
   }
 

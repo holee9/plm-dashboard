@@ -842,3 +842,19 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline:2px solid 
 .gantt { max-height:640px; overflow:auto; }
 
 .project-hero-copy { max-height:100%; overflow-y:auto; }
+
+/* ----------  첫 화면 표시 결함 (#100)  ---------- */
+/* names and dates never wrap into vertical letters; the table scrolls inside its panel instead of the page */
+[data-home-wf] td, [data-home-wflist] td:nth-child(3), [data-home-wflist] td:nth-child(4), [data-home-ra-ob] td { white-space: nowrap; }
+[data-home-wflist] td:first-child { white-space: normal; min-width: 180px; }
+.panel-body { overflow-x: auto; }
+@media (max-width: 600px) {
+  .kpi-strip, .kpi-row { grid-template-columns: repeat(2, 1fr) !important; }
+  .tier { flex-wrap: wrap; }
+  .tier-en { white-space: normal; }
+  .content-inner, #content { overflow-x: hidden; }
+}
+@media (max-width: 600px) {
+  .panel-title { white-space: normal; }
+  .panel-head > div:first-child { min-width: 0; }
+}

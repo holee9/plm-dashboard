@@ -7,8 +7,8 @@
      4. this week's work: due in 7 days (live OP) · decisions pending with days slipped (health.json)
         · long-running in-progress (insights.json flow)
      5. regulatory summary (ra.json)                 links to the RA screen
-   Rules and numbers come from ExecCore (views/exec.js) so this screen never
-   disagrees with the status screen it replaces. All input happens in OP.
+   Rules and numbers come from ExecCore (exec-core.js) so this screen never
+   disagrees with the rules it inherited from the former status screen. All input happens in OP.
    ============================================================ */
 (function () {
   window.Views = window.Views || {};
@@ -85,7 +85,7 @@
       ${UI.kpi({ label: '등록부', value: g.counts ? `${g.counts.rows}+${g.counts.company_rows}` : '–', foot: `제품 ${g.counts ? g.counts.rows : '–'}줄 · 회사 ${g.counts ? g.counts.company_rows : '–'}줄 · ${RA.registry_connected ? '연결됨' : '연결 전'}` })}
     </div>`;
     // #96: the full regulatory detail (product matrix → series → model, company licences, obligations, requests)
-    // opens in place from views/ra.js; no separate screen.
+    // opens in place from ra-panels.js; no separate screen (#98).
     const detail = raOpen && window.RAPanels ? `<div style="margin-top:var(--grid-1)">${window.RAPanels.detail(RA)}</div>` : '';
     return UI.panel({ title: '인허가 — 회사 전체', sub: '요청은 OP, 등록은 등록부 · 펼치면 제품군 → 시리즈 → 모델, 회사 허가·인증, 의무, 요청',
       tools: `<button type="button" class="mini-btn${raOpen ? ' on' : ''}" data-home-ra-toggle aria-expanded="${raOpen}">${raOpen ? '상세 접기 ▾' : '상세 펼치기 ▸'}</button>`, body: kp + obTxt + detail });
@@ -94,7 +94,7 @@
 
   window.Views.home = function () {
     const C = window.ExecCore, UI = window.UI;
-    if (!C) return '<div class="empty">현황 모듈이 없습니다 (views/exec.js)</div>';
+    if (!C) return '<div class="empty">현황 모듈이 없습니다 (exec-core.js)</div>';
     const { H, I, RA, err, loading } = C.data();
     if (!H && !loading && !err) { C.load(); return '<div class="empty">현황 데이터 로딩 중…</div>'; }
     if (err) return `<div class="empty" style="color:var(--c-red)">현황 데이터를 읽지 못함: ${C.esc(err)} <button class="mini-btn" data-exec-reload>다시 읽기</button></div>`;

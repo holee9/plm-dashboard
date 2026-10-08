@@ -126,7 +126,8 @@ test('all filtered work remains reachable beyond former display limits',()=>{
 test('shell has named semantic navigation and no fictional reporting period',()=>{
   const {c,els}=setup();c.DB.reload(dataset());c.App.refresh();
   assert.doesNotMatch(els.app.innerHTML,/Last 90d/);
-  assert.equal((els.app.innerHTML.match(/<button type="button" class="nav-item/g)||[]).length,7);   // 대시보드·로드맵 + 이전 화면 5 (#94)
+  assert.equal((els.app.innerHTML.match(/<button type="button" class="nav-item/g)||[]).length,2);   // 대시보드·로드맵, exactly two (#98)
+  assert.doesNotMatch(els.app.innerHTML,/nav-section-label/);
   assert.match(els.app.innerHTML,/aria-current="page"/);
   assert.match(els.app.innerHTML,/aria-label="사이드바/);
   assert.doesNotMatch(c.Views.overview({}),/▲ 4%/);

@@ -30,16 +30,12 @@
   // Legacy views (overview, resources, risks) stay loadable by key but are not in the menu.
   // Dashboard v2 (managers only, 2026-10-01): status → why → who decides.
   // Step 1·2 scope: 현황 + 로드맵. 운영 규율(health)·목표(goals) kept for the owner's audit view.
-  // 2026-10-07 (#94): two screens — 대시보드 (one screen: status → this week's work → decisions → RA)
-  // and 로드맵 (milestone timeline). Older screens stay reachable under 이전 화면 until removed.
+  // 2026-10-08 (#94, #98): exactly two screens — 대시보드 (one screen: status → this week's work → decisions → RA,
+  // RA detail expands in place) and 로드맵 (milestone timeline). The former 현황·실행 현황·인허가 현황·OKR·운영 규율
+  // screens were removed; their rules live on in exec-core.js / ra-panels.js, which the first screen uses.
   const VIEWS = [
-    { key: 'home',      en: 'Dashboard', ko: '대시보드',      ic: IC.overview,  section: '화면' },
-    { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline,  section: '화면' },
-    { key: 'exec',      en: 'Status',    ko: 'DR 사업본부 현황', ic: IC.overview,  section: '이전 화면' },
-    { key: 'ops',       en: 'Flow',      ko: '실행 현황',    ic: IC.projects,  section: '이전 화면' },
-    { key: 'ra',        en: 'RA',        ko: '인허가 현황',  ic: IC.cal,       section: '이전 화면' },
-    { key: 'goals',     en: 'Goals',     ko: '목표 (OKR)',    ic: IC.projects,  section: '이전 화면' },
-    { key: 'health',    en: 'Audit',     ko: '운영 규율',     ic: IC.health,    section: '이전 화면' },
+    { key: 'home',      en: 'Dashboard', ko: '대시보드',      ic: IC.overview },
+    { key: 'roadmap',   en: 'Roadmap',   ko: '목표·마일스톤 로드맵',        ic: IC.timeline },
   ];
   const SUBTITLE = {
     overview: '전체 과제·인원·리스크 종합 현황',
@@ -48,12 +44,7 @@
     board: '상태별 칸반 보드 · 필터링',
     timeline: '간트 차트 · 마일스톤 · 일정 점검',
     home: '과제 현황 → 이번 주 업무 → 결정 → 인허가 — 한 화면, 입력은 OP',
-    exec: '일정 · 결정 · 목표 · 인허가 · 참여도 — 한 화면',
-    ops: '일감 흐름(WIP·작업 나이·사이클 타임·처리량) · 주인 없는 일감 · 담당자별(이름순)',
-    ra: '인허가 요청 · 등록 상태 · 갱신 의무 · 지표 (요청은 OP, 등록은 등록부)',
     roadmap: 'OKR 연결 ★ 마일스톤 · 첫 계획 대비 현재 · 약속 없는 과제',
-    health: '예외 전체 · 추이 · 갱신율 (주간 운영 리뷰 대조용)',
-    goals: 'Objective · Key Result · 연결 일감 (OKR 2026)',
     people: '담당자별 열린 일감 · 마감 지남 · 담당자 없는 일감',
     risks: '마감 초과 · 임박 · 과부하 · 공수 초과',
   };
@@ -113,7 +104,7 @@
     const overdueTotal = D.WORK_PACKAGES.filter(D.isOverdue).length;
     let nav = '', lastSection = '';
     VIEWS.forEach((v) => {
-      if (v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }
+      if (v.section && v.section !== lastSection) { nav += `<div class="nav-section-label">${v.section}</div>`; lastSection = v.section; }
       const badge = v.key === 'home' ? `<span class="nav-badge alert">${overdueTotal}</span>`
         : v.key === 'overview' ? `<span class="nav-badge">${D.WORK_PACKAGES.length}</span>` : '';
       nav += `<button type="button" class="nav-item ${state.view === v.key ? 'active' : ''}" data-view="${v.key}" aria-label="${v.en} · ${v.ko}" ${state.view === v.key ? 'aria-current="page"' : ''}>

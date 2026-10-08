@@ -1,5 +1,5 @@
 /* ============================================================
-   PLM Dashboard — 인허가 현황 (managers only)
+   PLM Dashboard — RAPanels (regulatory tables rendered inside the first screen; the separate 인허가 현황 screen was removed in #98)
    Source: data/ra.json (op_ra_insights.py, from OpenProject request work packages).
    A 제품 인허가 (제품군 × 국가, each family expands to its models) · A2 회사 허가·인증 (per country, expandable; not product approvals) ·
    B 갱신 의무 · E 모델 조회 come from the registry repo and show "연결 전" until it is connected (ra.json registry_connected).
@@ -7,49 +7,12 @@
    No certificate numbers, no certificate files.
    ============================================================ */
 (function () {
-  window.Views = window.Views || {};
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const OP = 'https://plm.abyz-lab.work';
   const BEFORE = '<span class="muted">연결 전</span>';
-  let R = null, err = null, loading = false;
-
-  async function load() {
-    loading = true;
-    try {
-      const r = await fetch('data/ra.json', { cache: 'no-store' });
-      if (!r.ok) throw new Error(`ra ${r.status}`);
-      R = await r.json(); err = null;
-    } catch (e) { err = e.message; }
-    loading = false;
-    if (window.App?.refresh) window.App.refresh();
-  }
+  let R = null;   // set by RAPanels.detail(ra) — the first screen owns the fetch
 
   const pct = (x) => (x === null || x === undefined ? null : Math.round(x * 100));
-
-  function counts() {
-    const UI = window.UI;
-    const rate = R.desired_date_rate || {};
-    return `<div class="kpi-row kpi-strip" style="--kpi-cols:5">
-      ${UI.kpi({ label: '열린 요청', value: `${R.open}건`, foot: `전체 요청 ${R.requests_total}건` })}
-      ${UI.kpi({ label: '검토 지연', value: `${R.review_delay}건`, tone: R.review_delay ? 'amber' : '', foot: '접수 7일 후에도 마감일이 없는 요청' })}
-      ${UI.kpi({ label: '희망일 초과', value: `${R.over_desired}건`, tone: R.over_desired ? 'amber' : '', foot: '열린 요청의 마감일이 희망일보다 늦음' })}
-      ${UI.kpi({ label: `최근 ${R.window_days}일 완료`, value: `${R.done_180}건`, foot: `취소 ${R.canceled_180}건은 제외` })}
-      ${UI.kpi({ label: '희망일 준수율', value: rate.ratio === null || rate.ratio === undefined ? '대상 없음' : `${rate.met}/${rate.of} · ${pct(rate.ratio)}%`, foot: '완료일이 희망일 이내 / 희망일이 있는 완료 요청' })}
-    </div>`;
-  }
-
-  function kpis() {
-    const UI = window.UI;
-    const pd = Object.entries(R.processing_days || {});
-    const body = `<div class="kpi-row" style="--kpi-cols:4">
-      ${UI.kpi({ label: '처리 기간', value: pd.length ? pd.map(([k, v]) => `${esc(k)} ${v.median}일`).join(' · ') : '대상 없음',
-        foot: pd.length ? pd.map(([k, v]) => `${esc(k)} ${v.n}건`).join(' · ') + ' · 접수→첫 완료 중앙값' : `최근 ${R.window_days}일 완료 요청 없음` })}
-      ${UI.kpi({ label: '희망일 준수율', value: R.desired_date_rate && R.desired_date_rate.ratio !== null ? `${R.desired_date_rate.met}/${R.desired_date_rate.of} · ${pct(R.desired_date_rate.ratio)}%` : '대상 없음', foot: '완료일 ≤ 희망일' })}
-      ${UI.kpi({ label: '신규 취득', value: R.registry_connected ? esc(R.new_acquisitions) : BEFORE, foot: R.registry_connected ? '이번 분기 새로 등록된 제품군·국가 (등록부)' : '분기 내 첫 등록 (등록부)' })}
-      ${UI.kpi({ label: '갱신 놓침', value: R.registry_connected ? esc(R.missed_renewals) : BEFORE, foot: R.registry_connected ? '만료일·의무일이 지났는데 아직 유효·갱신중인 줄 (등록부)' : '갱신 의무 기준 (등록부)' })}
-    </div>`;
-    return UI.panel({ title: '지표', sub: `최근 ${R.window_days}일 · 취소(Won't Fix·폐기됨)는 처리 기간에서 제외`, body });
-  }
 
   function requests() {
     const UI = window.UI;
@@ -152,35 +115,16 @@
       body: `<input type="search" class="form-input" id="raModelQ" placeholder="모델명 (예: BLUE-G1417CW)" autocomplete="off" style="max-width:360px"><div id="raModelResult" style="margin-top:8px">${lookupResult('')}</div>` });
   }
 
-  window.Views.ra = function () {
-    if (!R && !loading && !err) { load(); return '<div class="empty">인허가 데이터 로딩 중…</div>'; }
-    if (err) return `<div class="empty" style="color:var(--c-red)">인허가 데이터를 읽지 못함: ${esc(err)} <button class="mini-btn" data-ra-reload>다시 읽기</button></div>`;
-    if (!R) return '<div class="empty">인허가 데이터 로딩 중…</div>';
-    return `
-      <div class="tier"><span class="tier-name">인허가 현황</span>
-        <span class="tier-en">기준 ${esc(new Date(R.generated).toLocaleString('ko-KR'))} · 업무는 OP, 등록은 등록부</span>
-        <button type="button" class="tb-chip" data-ra-reload>다시 읽기</button><span class="rule"></span></div>
-      ${counts()}
-      <div class="grid">
-        <div class="col-12">${R.registry_connected && R.registry ? matrixPanel() : (R.registry_note ? pending('제품 인허가', `등록부를 읽지 못함: ${R.registry_note}`) : pending('제품 인허가', '제품군 × 국가 · ◐ = 등록부에 있는 모델 중 일부만 유효'))}</div>
-        <div class="col-12">${R.registry_connected && R.registry ? companyPanel() : pending('회사 허가·인증', '제조업허가·사업장 등록·대리인·품질시스템 인증 등 회사가 받는 것')}</div>
-        <div class="col-12">${R.registry_connected && R.registry ? obligationsPanel() : pending('갱신 의무', '갱신 시한이 다가오는 의무')}</div>
-        <div class="col-12">${requests()}</div>
-        <div class="col-12">${kpis()}</div>
-        <div class="col-12">${R.registry_connected && R.registry ? lookupPanel() : pending('모델 조회', '모델별 국가 등록 상태')}</div>
-      </div>`;
-  };
   // Shared with the first screen (#96): the same panels, the same expand state, rendered inline from the
   // ra.json the first screen already holds. The click handlers below work wherever the markup appears.
   window.RAPanels = {
     detail(data) {
       R = data;
-      if (!R.registry_connected || !R.registry) return `${pending('제품 인허가', '등록부 연결 전')}${requests()}`;
+      if (!R.registry_connected || !R.registry) return `<div data-ra-detail>${pending('제품 인허가', '제품군 × 국가')}${pending('회사 허가·인증', '회사가 받는 허가·등록·인증')}${pending('갱신 의무', '갱신 시한이 다가오는 의무')}${requests()}</div>`;
       return `<div data-ra-detail>${matrixPanel()}${companyPanel()}${obligationsPanel()}${requests()}${lookupPanel()}</div>`;
     },
   };
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-ra-reload]')) { R = null; load(); return; }
     const redraw = () => {      // App.refresh re-renders the shell and resets the scroll: keep the reader where they were
       const top = document.getElementById('content')?.scrollTop || 0;
       if (window.App?.refresh) window.App.refresh();

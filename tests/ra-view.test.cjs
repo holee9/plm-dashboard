@@ -32,17 +32,14 @@ function setup(ra = RA) {
     document: { getElementById: () => null, addEventListener: (n, fn) => { (handlers[n] = handlers[n] || []).push(fn); }, querySelectorAll: () => [] } };
   context.window = context;
   vm.createContext(context);
-  for (const f of ['ui.js', 'views/ra.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), context, { filename: f });
+  for (const f of ['ui.js', 'ra-panels.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), context, { filename: f });
   let refreshed = 0;
   context.window.App = { refresh() { refreshed += 1; } };
+  context.window.Views = { ra: () => context.RAPanels.detail(JSON.parse(JSON.stringify(ra))) };   // #98: panels only, no screen
   const click = (selector, attrs) => handlers.click.forEach((fn) => fn({ target: { closest: (sel) => (sel === selector ? { getAttribute: (k) => attrs[k] } : null) } }));
   return { c: context, click, refreshed: () => refreshed };
 }
-async function render(env) {
-  env.c.Views.ra({});                                   // first call starts the load
-  await new Promise((r) => setTimeout(r, 0));
-  return env.c.Views.ra({});
-}
+async function render(env) { return env.c.Views.ra({}); }
 const region = (html, from, to) => { const i = html.indexOf(from); assert.ok(i >= 0, `${from} missing`); return html.slice(i, html.indexOf(to, i + 1)); };
 
 test('product and company licences are separate panels and the product matrix has no company row', async () => {
@@ -59,7 +56,7 @@ test('families and countries start collapsed and expand to models / licences on 
   let html = await render(env);
   assert.doesNotMatch(html, /data-ra-modelrow/);
   assert.doesNotMatch(html, /data-ra-comp=/);
-  const before = env.refreshed();      // the load itself already refreshed once
+  const before = env.refreshed();
   env.click('[data-ra-fam]', { 'data-ra-fam': 'BLUE (G series)' });
   env.click('[data-ra-country]', { 'data-ra-country': '미국' });
   assert.equal(env.refreshed(), before + 2);
@@ -124,7 +121,7 @@ test('the request panel describes the whole RA project work and the header carri
 });
 
 test('no screen carries the admin-only wording', () => {
-  const files = ['app.js', 'views/exec.js', 'views/ops.js', 'views/ra.js'];
+  const files = ['app.js', 'exec-core.js', 'ra-panels.js', 'views/home.js'];
   for (const f of files) assert.doesNotMatch(fs.readFileSync(path.join(root, f), 'utf8'), /관리자용/, f);
 });
 

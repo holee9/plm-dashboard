@@ -1,5 +1,5 @@
 /* ============================================================
-   PLM Dashboard v2 — 사업본부 현황 (managers only)
+   PLM Dashboard — ExecCore (rules shared by the first screen; the old 사업본부 현황 screen was removed in #98)
    One screen that answers five questions in under a minute:
      Q1 schedule  Q2 blocked decisions  Q3 quarterly goals  Q4 regulatory  Q5 people
    Every block = status → why → who decides. Judgements are withheld (grey) when
@@ -170,30 +170,6 @@
         <td>${esc(i.assignee || '없음')}</td><td><b>${esc(ownerOf(i))}</b></td><td>${nextMeeting()}</td><td>${ageOf(i) ?? 0}일</td></tr>`).join('') || '<tr><td colspan="8" class="muted">없음</td></tr>'}</tbody></table>` });
   }
 
-  function goals() {
-    const UI = window.UI; const g = H.goal_health;
-    if (!g.objectives.length) return '';
-    return UI.panel({ title: 'Q3 분기 목표 (OKR 2026 Q4)', sub: '값은 10-08 회의에서 담당자가 확정 · 작업 기반 KR은 연결 일감 완료로 자동 반영',
-      body: `<div class="kpi-row" style="--kpi-cols:${g.objectives.length}">${g.objectives.map((o) => UI.kpi({ label: esc(o.subject.slice(0, 22)), value: o.progress === null ? '–' : Math.round(o.progress * 100) + '%', foot: `${esc(o.owner || '')} · KR ${o.key_results.length} · 위험 ${o.key_results.filter((k) => k.at_risk).length}` })).join('')}</div>` });
-  }
-
-  window.Views.exec = function () {
-    const UI = window.UI;
-    if (!H && !loading && !err) { load(); return '<div class="empty">현황 데이터 로딩 중…</div>'; }
-    if (err) return `<div class="empty" style="color:var(--c-red)">현황 데이터를 읽지 못함: ${esc(err)} <button class="mini-btn" data-exec-reload>다시 읽기</button></div>`;
-    if (!H || !I) return '<div class="empty">현황 데이터 로딩 중…</div>';
-    const allStats = I.product_lines.map(lineStats).sort((a, b) => ({ red: 0, amber: 1, grey: 2, green: 3 }[a.status] - { red: 0, amber: 1, grey: 2, green: 3 }[b.status]));
-    const stats = allStats.filter((s) => !s.line.regulatory);   // RA is a DR 사업본부 organisation, not a product line
-    const trend = (() => { try { return null; } catch { return null; } })();
-    return `
-      <div class="tier"><span class="tier-name">DR 사업본부 현황</span>
-        <span class="tier-en">기준 ${esc(new Date(H.generated_at).toLocaleString('ko-KR'))} · Hermes 판정(§7)과 OP 이력 기반</span>
-        <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
-      ${strip(stats, allStats)}
-      <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 데이터 신뢰도 낮아 판단 보류 (지난주 대비 추이는 10-08부터)</div>
-      ${UI.panel({ title: 'Q1·Q2 제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제별 일정·상태·오래 끈 일·결정 필요가 펼쳐집니다', body: `<table class="tbl"><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(lineRow).join('')}</tbody></table>` })}
-      <div class="grid"><div class="col-12">${decisions(stats)}</div><div class="col-12">${goals()}</div></div>`;
-  };
   // Shared core for the first screen (views/home.js): same data, same rules, one source of truth.
   window.ExecCore = {
     data: () => ({ H, I, RA, err, loading }),

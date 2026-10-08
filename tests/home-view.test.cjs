@@ -34,7 +34,7 @@ function setup({ ra = read('ra.json'), db } = {}) {
   context.window = context;
   vm.createContext(context);
   context.window.DB = db === undefined ? fakeDB(new Date(health.today + 'T00:00:00')) : db;
-  for (const f of ['ui.js', 'views/exec.js', 'views/home.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), context, { filename: f });
+  for (const f of ['ui.js', 'exec-core.js', 'views/home.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), context, { filename: f });
   context.window.App = { refresh() {}, go() {} };
   return { c: context, health, insights, ra };
 }
@@ -104,7 +104,7 @@ test('without ra.json the screen still renders and says regulatory data is missi
 // #96 A1/A3: the regulatory detail expands in place and is byte-identical to the old RA screen's panels.
 test('regulatory detail expands in place to family → series → model and matches the RA screen', async () => {
   const env = setup();
-  for (const f of ['views/ra.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), env.c, { filename: f });
+  for (const f of ['ra-panels.js']) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), env.c, { filename: f });
   let html = await render(env);
   assert.doesNotMatch(html, /data-ra-matrix/);                         // collapsed by default
   const click = (sel, attrs = {}) => env.c.document._fire('click', sel, attrs);
@@ -112,9 +112,8 @@ test('regulatory detail expands in place to family → series → model and matc
   html = env.c.Views.home({});
   assert.match(html, /data-ra-detail/);
   assert.match(html, /data-ra-matrix/); assert.match(html, /data-ra-company/); assert.match(html, /data-ra-obligations/);
-  // old screen, same data
-  env.c.Views.ra({}); await new Promise((r) => setTimeout(r, 0));
-  const old = env.c.Views.ra({});
+  // the same panels rendered directly from the module, same data (#98: there is no separate RA screen any more)
+  const old = env.c.RAPanels.detail(JSON.parse(JSON.stringify(env.ra)));
   const region = (h, from, to) => { const i = h.indexOf(from); const j = h.indexOf(to, i + 1); return h.slice(i, j); };
   assert.equal(region(html, '<table class="tbl" data-ra-matrix', '</table>'), region(old, '<table class="tbl" data-ra-matrix', '</table>'));
   assert.equal(region(html, '<table class="tbl" data-ra-company', '</table>'), region(old, '<table class="tbl" data-ra-company', '</table>'));

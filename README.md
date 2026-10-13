@@ -22,9 +22,9 @@
 http://plm-dash.work/
 ```
 
-### 접속 전 1회 설정 — PC의 hosts 파일에 한 줄 추가
+### 접속 전 1회 설정 — Windows PC의 hosts 파일에 한 줄 추가
 
-접속하는 PC가 연결된 망에 따라 아래 중 해당 줄을 추가합니다.
+접속하는 PC가 연결된 망에 따라 아래 중 해당 줄을 hosts 파일에 추가합니다.
 
 | 접속 망 | 추가할 내용 |
 |---------|-----------|
@@ -32,38 +32,29 @@ http://plm-dash.work/
 | 사무실 유선 (`10.20.6.x`) | `10.20.6.187  plm-dash.work` |
 | Tailscale (원격) | `100.110.194.101  plm-dash.work` |
 
-**Windows 자동 설정:**
+**자동 설정 (권장):**
+
+`scripts` 폴더의 `add-plm-dash-hosts.bat`과 `update-plm-dash-hosts.ps1`을 **같은 폴더에** 두고 BAT 파일을 더블클릭합니다. BAT가 같은 폴더의 PS1을 호출하므로 BAT 파일만 따로 내려받으면 동작하지 않습니다.
 
 ```bat
 scripts\add-plm-dash-hosts.bat
 ```
 
-BAT 파일을 더블클릭하면 관리자 권한을 요청하고 현재 망을 자동 감지한 뒤 브라우저를 엽니다.
-자동 감지가 어려우면 `scripts\add-plm-dash-hosts.bat tailscale`처럼 망을 지정합니다.
+- 관리자 권한을 요청합니다. 확인 창에서 허용합니다.
+- 현재 망을 `ipconfig` 결과로 감지합니다. `192.168.100.x`가 있으면 사무실 2.5G, 없고 `10.20.6.x`가 있으면 사무실 유선, 둘 다 없고 어댑터 이름에 Tailscale이 있으면 Tailscale로 정합니다. 여러 망에 동시에 연결돼 있으면 이 순서에서 먼저 맞는 망이 선택됩니다.
+- 감지하지 못하면 1–3번 메뉴로 망을 묻습니다.
+- hosts 파일의 기존 `plm-dash.work` 줄을 지우고 새 줄을 추가한 뒤 DNS 캐시를 비우고 브라우저를 엽니다.
+- 변경 전 hosts 파일은 `%TEMP%\hosts.plm-dash.backup`에 백업됩니다. 실행할 때마다 덮어씁니다.
+- 망을 직접 지정하려면 `scripts\add-plm-dash-hosts.bat office25g`, `wired`, `tailscale` 중 하나를 인자로 줍니다.
 
-**Mac / Linux 자동 설정:**
-
-```bash
-chmod +x scripts/add-plm-dash-hosts.sh
-./scripts/add-plm-dash-hosts.sh
-```
-
-필요할 때 `sudo` 암호를 요청하며, 설정 후 기본 브라우저를 엽니다. 망을 직접 지정하려면
-`./scripts/add-plm-dash-hosts.sh office25g`, `wired`, `tailscale` 중 하나를 사용합니다.
-
-**수동 설정 — Windows:** 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
+**수동 설정:** 메모장을 **관리자 권한**으로 열고 아래 파일의 맨 아래에 위 표의 해당 줄을 추가합니다.
 ```
 C:\Windows\System32\drivers\etc\hosts
 ```
 
-**수동 설정 — Mac / Linux:**
-```bash
-sudo nano /etc/hosts
-```
-
 저장 후 브라우저에서 `http://plm-dash.work/` 접속.
 
-> hosts 파일은 1회만 설정하면 이후 자동으로 동작합니다.
+> hosts 파일에는 `plm-dash.work`가 한 줄만 들어갑니다. 접속하는 망이 바뀌면 BAT를 다시 실행해(기존 줄은 자동으로 교체됩니다) 그 망의 줄로 바꿉니다.
 
 ### 프록시 재기동 (서버 재부팅 후)
 

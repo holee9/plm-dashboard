@@ -1,146 +1,91 @@
 @echo off
 setlocal EnableExtensions
+title PLM Dashboard - hosts setup
 
-set "HOST_NAME=plm-dash.work"
-set "HOSTS_FILE=%SystemRoot%\System32\drivers\etc\hosts"
-set "TARGET_IP="
-set "NETWORK_LABEL="
+set "NAME=plm-dash.work"
+set "HOSTS=%SystemRoot%\System32\drivers\etc\hosts"
+set "IP="
 
-if /I "%~1"=="help" goto :usage
-if /I "%~1"=="-h" goto :usage
-if /I "%~1"=="/?" goto :usage
+fltmc >nul 2>&1
+if not errorlevel 1 goto :main
+if /I "%~1"=="elevated" goto :noadmin
 
-net session >nul 2>&1
-if errorlevel 1 (
-  echo Requesting administrator privileges...
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -ArgumentList '%*' -Verb RunAs"
-  exit /b
-)
+echo Requesting administrator permission. Please click Yes.
+powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList 'elevated' -Verb RunAs"
+if errorlevel 1 goto :noadmin
+exit /b 0
 
-call :set_ip_from_arg "%~1"
-if errorlevel 2 exit /b 2
-
-if not defined TARGET_IP call :detect_ip
-if not defined TARGET_IP goto :choose_network
-goto :update_hosts
-
-:choose_network
-echo Could not auto-detect the current network.
+:noadmin
 echo.
-echo 1. Office 2.5G  ^(192.168.100.x^) - 192.168.100.50
-echo 2. Office wired ^(10.20.6.x^)     - 10.20.6.187
-echo 3. Tailscale remote              - 100.110.194.101
+echo [FAILED] Administrator permission was not granted.
+echo Right-click this file and choose "Run as administrator".
+pause
+exit /b 1
+
+:main
+where curl.exe >nul 2>&1
+if errorlevel 1 goto :menu
+
+echo Looking for the dashboard server...
+for %%A in (192.168.100.50 10.20.6.187 100.110.194.101) do if not defined IP curl.exe -s -f -o nul --max-time 2 "http://%%A/" && set "IP=%%A"
+if defined IP goto :apply
+
 echo.
+echo [FAILED] Cannot reach the server at 192.168.100.50, 10.20.6.187 or 100.110.194.101.
+echo Connect to the office network or to Tailscale, then run this file again.
+pause
+exit /b 1
+
+:menu
+echo.
+echo 1. Office 2.5G   192.168.100.50
+echo 2. Office wired  10.20.6.187
+echo 3. Tailscale     100.110.194.101
 choice /C 123 /M "Select network"
-if errorlevel 3 goto :use_tailscale
-if errorlevel 2 goto :use_wired
-if errorlevel 1 goto :use_office25g
-goto :choose_network
+if errorlevel 3 goto :use3
+if errorlevel 2 goto :use2
+set "IP=192.168.100.50"
+goto :apply
+:use2
+set "IP=10.20.6.187"
+goto :apply
+:use3
+set "IP=100.110.194.101"
+goto :apply
 
-:use_office25g
-set "TARGET_IP=192.168.100.50"
-set "NETWORK_LABEL=Office 2.5G"
-goto :update_hosts
-
-:use_wired
-set "TARGET_IP=10.20.6.187"
-set "NETWORK_LABEL=Office wired"
-goto :update_hosts
-
-:use_tailscale
-set "TARGET_IP=100.110.194.101"
-set "NETWORK_LABEL=Tailscale"
-goto :update_hosts
-
-:update_hosts
+:apply
 echo.
-echo Updating %HOSTS_FILE%
-echo %HOST_NAME% -^> %TARGET_IP% [%NETWORK_LABEL%]
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0update-plm-dash-hosts.ps1" -TargetIp "%TARGET_IP%" -HostName "%HOST_NAME%"
-if errorlevel 1 (
-  echo Failed to update hosts file.
-  pause
-  exit /b 1
-)
-
+echo Server found: %IP%
+echo Writing "%IP%  %NAME%" to %HOSTS%
+copy /y "%HOSTS%" "%TEMP%\hosts.plm-dash.backup" >nul 2>&1
+findstr /v /i /c:"%NAME%" "%HOSTS%" > "%TEMP%\hosts.plm-dash.new"
+if errorlevel 2 goto :hostsfail
+>> "%TEMP%\hosts.plm-dash.new" echo %IP%  %NAME%
+copy /y "%TEMP%\hosts.plm-dash.new" "%HOSTS%" >nul
+if errorlevel 1 goto :hostsfail
 ipconfig /flushdns >nul 2>&1
 
-echo Done.
-echo Backup: %TEMP%\hosts.plm-dash.backup
+ping -n 1 -w 1500 %NAME% 2>nul | findstr /C:"%IP%" >nul
+if errorlevel 1 goto :noresolve
+
+echo [OK] %NAME% now points to %IP%
+echo Opening http://%NAME%/
+start "" "http://%NAME%/"
+timeout /t 3 >nul
+exit /b 0
+
+:hostsfail
 echo.
-findstr /I /L /C:"%HOST_NAME%" "%HOSTS_FILE%"
-echo.
-echo Opening http://%HOST_NAME%/
-start "" "http://%HOST_NAME%/"
+echo [FAILED] Could not write the hosts file. Security software may be blocking it.
+echo Opening http://%IP%/ instead.
+start "" "http://%IP%/"
 pause
-exit /b 0
+exit /b 1
 
-:set_ip_from_arg
-set "PROFILE=%~1"
-if not defined PROFILE exit /b 0
-
-if /I "%PROFILE%"=="office25g" (
-  set "TARGET_IP=192.168.100.50"
-  set "NETWORK_LABEL=Office 2.5G"
-  exit /b 0
-)
-if /I "%PROFILE%"=="office-25g" (
-  set "TARGET_IP=192.168.100.50"
-  set "NETWORK_LABEL=Office 2.5G"
-  exit /b 0
-)
-if /I "%PROFILE%"=="wired" (
-  set "TARGET_IP=10.20.6.187"
-  set "NETWORK_LABEL=Office wired"
-  exit /b 0
-)
-if /I "%PROFILE%"=="office-wired" (
-  set "TARGET_IP=10.20.6.187"
-  set "NETWORK_LABEL=Office wired"
-  exit /b 0
-)
-if /I "%PROFILE%"=="tailscale" (
-  set "TARGET_IP=100.110.194.101"
-  set "NETWORK_LABEL=Tailscale"
-  exit /b 0
-)
-
-echo Unknown profile: %PROFILE%
-call :usage
-exit /b 2
-
-:detect_ip
-ipconfig | findstr /R /C:"192\.168\.100\." >nul
-if not errorlevel 1 (
-  set "TARGET_IP=192.168.100.50"
-  set "NETWORK_LABEL=Office 2.5G"
-  exit /b 0
-)
-
-ipconfig | findstr /R /C:"10\.20\.6\." >nul
-if not errorlevel 1 (
-  set "TARGET_IP=10.20.6.187"
-  set "NETWORK_LABEL=Office wired"
-  exit /b 0
-)
-
-ipconfig | findstr /I /C:"Tailscale" >nul
-if not errorlevel 1 (
-  set "TARGET_IP=100.110.194.101"
-  set "NETWORK_LABEL=Tailscale"
-  exit /b 0
-)
-
-exit /b 0
-
-:usage
-echo Usage:
-echo   %~nx0 [office25g ^| wired ^| tailscale]
+:noresolve
 echo.
-echo No argument: auto-detect network, then prompt if needed.
-echo office25g : map %HOST_NAME% to 192.168.100.50
-echo wired     : map %HOST_NAME% to 10.20.6.187
-echo tailscale : map %HOST_NAME% to 100.110.194.101
-exit /b 0
+echo [WARNING] The hosts file was written but %NAME% still does not resolve to %IP%.
+echo Opening http://%IP%/ instead.
+start "" "http://%IP%/"
+pause
+exit /b 1

@@ -22,48 +22,30 @@
 http://plm-dash.work/
 ```
 
-### 접속 전 1회 설정 — PC의 hosts 파일에 한 줄 추가
+`plm-dash.work`는 공용 DNS에 등록된 이름이 아니라(조회 결과 존재하지 않음) PC의 hosts 파일에 한 줄을 넣어야 열립니다. 아래 BAT 파일이 이 설정을 자동으로 합니다. 설정하지 않은 PC에서도 서버 IP 주소로는 바로 접속됩니다.
 
-접속하는 PC가 연결된 망에 따라 아래 중 해당 줄을 추가합니다.
+### Windows PC에서 접속 — 파일 하나만 실행
 
-| 접속 망 | 추가할 내용 |
-|---------|-----------|
-| 사무실 2.5G (`192.168.100.x`) | `192.168.100.50  plm-dash.work` |
-| 사무실 유선 (`10.20.6.x`) | `10.20.6.187  plm-dash.work` |
-| Tailscale (원격) | `100.110.194.101  plm-dash.work` |
+아무것도 설정하지 않은 PC에서 `add-plm-dash-hosts.bat` 파일 하나만 더블클릭하면 됩니다. 메일로 받은 파일을 아무 폴더에 저장해 실행해도 되고, 다른 파일이나 저장소는 필요 없습니다.
 
-**Windows 자동 설정:**
+1. 관리자 권한 확인 창이 뜨면 「예」를 누릅니다.
+2. 아래 세 주소를 순서대로 2초씩 확인해 응답하는 서버를 고릅니다.
+3. 그 서버 IP를 hosts 파일에 `plm-dash.work`로 등록합니다. 기존 `plm-dash.work` 줄은 교체되고, 변경 전 hosts는 `%TEMP%\hosts.plm-dash.backup`에 백업됩니다.
+4. 이름이 실제로 그 IP로 풀리는지 확인한 뒤 `http://plm-dash.work/`를 엽니다.
 
-```bat
-scripts\add-plm-dash-hosts.bat
-```
+- 실패하면 화면에 `[FAILED]` 또는 `[WARNING]`과 이유가 나오고, 대신 IP 주소로 열어 줍니다.
+- Windows 10 (1803 이후) 또는 11이 필요합니다. `curl.exe`가 없으면 번호 메뉴로 망을 직접 고릅니다.
+- 접속하는 망이 바뀌면(사무실과 Tailscale) hosts의 IP가 달라야 하므로 BAT를 다시 실행합니다.
 
-BAT 파일을 더블클릭하면 관리자 권한을 요청하고 현재 망을 자동 감지한 뒤 브라우저를 엽니다.
-자동 감지가 어려우면 `scripts\add-plm-dash-hosts.bat tailscale`처럼 망을 지정합니다.
+| 접속 망 | 서버 IP | hosts에 들어가는 줄 |
+|---------|---------|---------------------|
+| 사무실 2.5G (`192.168.100.x`) | `192.168.100.50` | `192.168.100.50  plm-dash.work` |
+| 사무실 유선 (`10.20.6.x`) | `10.20.6.187` | `10.20.6.187  plm-dash.work` |
+| Tailscale (원격) | `100.110.194.101` | `100.110.194.101  plm-dash.work` |
 
-**Mac / Linux 자동 설정:**
+**수동 설정:** 메모장을 **관리자 권한**으로 열고 `C:\Windows\System32\drivers\etc\hosts` 맨 아래에 위 표의 해당 줄을 추가한 뒤 저장합니다.
 
-```bash
-chmod +x scripts/add-plm-dash-hosts.sh
-./scripts/add-plm-dash-hosts.sh
-```
-
-필요할 때 `sudo` 암호를 요청하며, 설정 후 기본 브라우저를 엽니다. 망을 직접 지정하려면
-`./scripts/add-plm-dash-hosts.sh office25g`, `wired`, `tailscale` 중 하나를 사용합니다.
-
-**수동 설정 — Windows:** 메모장을 **관리자 권한**으로 열고 아래 파일 편집:
-```
-C:\Windows\System32\drivers\etc\hosts
-```
-
-**수동 설정 — Mac / Linux:**
-```bash
-sudo nano /etc/hosts
-```
-
-저장 후 브라우저에서 `http://plm-dash.work/` 접속.
-
-> hosts 파일은 1회만 설정하면 이후 자동으로 동작합니다.
+**IP로 직접 접속:** hosts 설정 없이 `http://192.168.100.50/` 처럼 위 표의 서버 IP를 브라우저에 입력해도 같은 화면이 열립니다.
 
 ### 프록시 재기동 (서버 재부팅 후)
 

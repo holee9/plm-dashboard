@@ -21,8 +21,11 @@
     const m = (I.metrics && I.metrics.all) || {};
     const upd = H.process_health ? Math.round(H.process_health.weekly_update_rate * 100) : null;
     const low = upd !== null && upd < 50;
+    const x = C.excludedSums(), m0 = m;   // #110: when projects are excluded the basis counts the same scope as the tables
+    const mm = { open: m0.open - x.open, with_due: m0.with_due - x.with_due, assigned: m0.assigned - x.assigned };
+    const overdue = H.exception_counts ? H.exception_counts.overdue - x.overdue : null;
     return `<div class="muted mono" data-home-basis style="font-size:11px;margin:0 0 var(--grid-1)">
-      이 숫자의 바탕: 열린 일감 <b>${m.open ?? '–'}</b>건 · 마감 지남 <b data-home-overdue>${H.exception_counts ? H.exception_counts.overdue : '–'}</b>건 · 마감일 입력 <b>${pct(m.with_due, m.open)}</b> · 담당 지정 <b>${pct(m.assigned, m.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
+      이 숫자의 바탕: 열린 일감 <b>${mm.open ?? '–'}</b>건 · 마감 지남 <b data-home-overdue>${overdue ?? '–'}</b>건 · 마감일 입력 <b>${pct(mm.with_due, mm.open)}</b> · 담당 지정 <b>${pct(mm.assigned, mm.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
       ${low ? ' · ⚪ 갱신률이 50% 아래라 일정·부하 판단은 보류 표시' : ''} · 기준 <b>${C.esc(new Date(H.generated_at).toLocaleString('ko-KR'))}</b> (Hermes 30분 스냅숏 — 이 화면의 모든 숫자가 이 시각 기준)
     </div>`;
   }
@@ -63,7 +66,7 @@
         + (open.length ? `<tr data-home-wfdetail="${C.esc(l.name)}"><td colspan="${BUCKETS.length + 1}" style="background:var(--surface-2,transparent)">${open.map(([k, , fmt]) => wfList(C, l, k, fmt)).join('')}</td></tr>` : '');
     }).join('');
     const total = `<tr data-home-wftotal><td><b>합계</b></td>${BUCKETS.map(([k]) => `<td><b>${t[k] ?? 0}</b>${k === 'decide' && t.decided ? ` <span class="muted">결정됨 ${t.decided}</span>` : ''}</td>`).join('')}</tr>`;
-    const plan = W.plan && W.plan.prev ? `지난주 계획(마감 ${W.plan.prev.planned}건) 중 완료 <b>${W.plan.prev.done}</b>건 (${W.plan.prev.ratio === null ? '–' : Math.round(W.plan.prev.ratio * 100) + '%'})` : '계획 대비 완료율은 다음 주부터 (이번 주 마감 목록을 저장해 둠)';
+    const plan = C.tracked().excluded.length ? '계획 대비 완료율은 주요 과제만 고른 동안 표시하지 않습니다(Hermes가 전체 과제로 계산)' : W.plan && W.plan.prev ? `지난주 계획(마감 ${W.plan.prev.planned}건) 중 완료 <b>${W.plan.prev.done}</b>건 (${W.plan.prev.ratio === null ? '–' : Math.round(W.plan.prev.ratio * 100) + '%'})` : '계획 대비 완료율은 다음 주부터 (이번 주 마감 목록을 저장해 둠)';
     const body = `<table class="tbl" data-home-wf><thead><tr><th>제품군</th>${BUCKETS.map(([, label]) => `<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}${total}</tbody></table>
       <div class="muted mono" style="font-size:11px;margin-top:6px" data-home-wfplan>${plan} · 지난주 완료 = 상태가 완료로 바뀐 시각 기준 · 이어짐 = 지난주 마감이었거나 지난주에 사람이 손댄 열린 일감 · 결정됨 = 회의 뒤 담당자·마감일 변경(D-04)</div>`;
     return UI.panel({ title: '주간 흐름 — 지난주 완료 → 이어짐 → 이번 주 신규·마감 → 결정', sub, body });
@@ -91,6 +94,31 @@
     return UI.panel({ title: '인허가 — 회사 전체', sub: '요청은 OP, 등록은 등록부 · 펼치면 제품군 → 시리즈 → 모델, 회사 허가·인증, 의무, 요청',
       tools: `<button type="button" class="mini-btn${raOpen ? ' on' : ''}" data-home-ra-toggle aria-expanded="${raOpen}">${raOpen ? '상세 접기 ▾' : '상세 펼치기 ▸'}</button>`, body: kp + obTxt + detail });
   }
+  /* ---- 6. 주요 과제 선택 (#110): shared setting, saved to data/config/tracked-projects.json ---- */
+  let selOpen = false, draft = null, selMsg = '', selBusy = false;
+  function scopeBar(C, I) {
+    const t = C.tracked(), UI = window.UI;
+    const lines = I.product_lines.filter((l) => !l.regulatory);
+    const total = lines.reduce((n, l) => n + l.projects.length, 0);
+    const when = t.updated_at ? ` · 마지막 변경 ${C.esc(String(t.updated_at).slice(0, 10))}` : '';
+    const warn = t.state === 'broken' ? ` · <b data-home-scope-warn style="color:var(--c-amber)">⚠ 선택 파일을 읽지 못해 전체 과제를 보여줍니다 (${C.esc(t.msg)})</b>` : '';
+    const head = `<div class="muted mono" data-home-scope style="font-size:11px;margin:0 0 var(--grid-1)">
+      주요 과제 <b data-home-scope-n>${total - t.excluded.length}</b>개 기준 (제외 <b data-home-scope-x>${t.excluded.length}</b>개)${when}${warn}
+      <button type="button" class="mini-btn${selOpen ? ' on' : ''}" data-home-scope-toggle aria-expanded="${selOpen}">${selOpen ? '선택 닫기 ▾' : '주요 과제 선택 ▸'}</button></div>`;
+    if (!selOpen) return head;
+    const names = {}; (I.project_status || []).forEach((p) => { names[p.identifier] = p; });
+    const d = draft || new Set(t.excluded);
+    const groups = lines.map((l) => `<div style="margin:4px 0"><b>${C.esc(l.name)}</b> <span class="muted">${C.esc(l.owner || '')}</span><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:2px">
+      ${l.projects.map((id) => { const p = names[id] || { project: id, open: 0 }; return `<label style="font-size:12px"><input type="checkbox" data-home-scope-proj="${C.esc(id)}" ${d.has(id) ? '' : 'checked'}> ${C.esc(p.project)} <span class="muted">열린 ${p.open ?? 0}</span></label>`; }).join('')}</div></div>`).join('');
+    const body = `<div data-home-scope-panel style="font-size:12px">${groups}
+      <div style="margin-top:8px"><button type="button" class="tb-chip" data-home-scope-save ${selBusy ? 'disabled' : ''}>저장</button>
+      <button type="button" class="tb-chip" data-home-scope-all>전체 선택</button>
+      <button type="button" class="tb-chip" data-home-scope-cancel>취소</button>
+      <span data-home-scope-msg class="muted">${C.esc(selMsg)}</span></div>
+      <div class="muted" style="margin-top:6px">체크한 과제만 아래 표·요약·주간 흐름에 나타납니다. 저장하면 이 화면을 여는 모든 사람에게 같은 선택이 적용됩니다.</div></div>`;
+    return head + UI.panel({ title: '주요 과제 선택', body });
+  }
+  const rerender = () => { const top = document.getElementById('content')?.scrollTop || 0; if (window.App?.refresh) window.App.refresh(); const el = document.getElementById('content'); if (el) el.scrollTop = top; };
   let raOpen = false;   // view state only: whether the regulatory detail is expanded on the first screen
 
   window.Views.home = function () {
@@ -102,12 +130,13 @@
     if (!H || !I) return '<div class="empty">현황 데이터 로딩 중…</div>';
     const order = { red: 0, amber: 1, grey: 2, green: 3 };
     const allStats = I.product_lines.map(C.lineStats).sort((a, b) => order[a.status] - order[b.status]);
-    const stats = allStats.filter((s) => !s.line.regulatory);
+    const stats = allStats.filter((s) => !s.line.regulatory && s.line.projects.some(C.isTracked));
     return `
       <div class="tier"><span class="tier-name">대시보드</span>
         <span class="tier-en">DR 사업본부 — 과제 현황 → 이번 주 업무 → 결정 → 인허가 · 모든 입력은 OP</span>
         <button type="button" class="tb-chip" data-exec-reload>다시 읽기</button><span class="rule"></span></div>
       ${basis(C, H, I)}
+      ${scopeBar(C, I)}
       ${C.strip(stats, allStats)}
       <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 판단할 자료 부족</div>
       ${UI.panel({ title: '제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제·일감이 펼쳐집니다 · 일감 번호를 누르면 OP 원본', body: `<table class="tbl" data-home-lines><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(C.lineRow).join('')}</tbody></table>` })}
@@ -121,6 +150,24 @@
       const top = document.getElementById('content')?.scrollTop || 0;
       if (window.App?.refresh) window.App.refresh();
       const el = document.getElementById('content'); if (el) el.scrollTop = top;
+      return;
+    }
+    if (e.target.closest('[data-home-scope-toggle]')) { selOpen = !selOpen; draft = null; selMsg = ''; rerender(); return; }
+    const sp = e.target.closest('[data-home-scope-proj]');
+    if (sp) {
+      const C = window.ExecCore; draft = draft || new Set(C.tracked().excluded);
+      const id = sp.dataset.homeScopeProj; if (draft.has(id)) draft.delete(id); else draft.add(id);
+      selMsg = ''; rerender(); return;
+    }
+    if (e.target.closest('[data-home-scope-all]')) { draft = new Set(); selMsg = ''; rerender(); return; }
+    if (e.target.closest('[data-home-scope-cancel]')) { selOpen = false; draft = null; selMsg = ''; rerender(); return; }
+    if (e.target.closest('[data-home-scope-save]')) {
+      const C = window.ExecCore; if (selBusy) return;
+      const next = draft || new Set(C.tracked().excluded);
+      const all = (window.ExecCore.data().I.product_lines || []).filter((l) => !l.regulatory).flatMap((l) => l.projects);
+      if (next.size >= all.length) { selMsg = '과제를 하나 이상 남겨 주세요'; rerender(); return; }
+      selBusy = true; selMsg = '저장 중…'; rerender();
+      C.saveTracked(next).then(() => { selOpen = false; draft = null; selMsg = ''; }).catch((er) => { selMsg = `⚠ ${er.message}`; }).finally(() => { selBusy = false; rerender(); });
       return;
     }
     if (e.target.closest('[data-home-ra-toggle]')) {

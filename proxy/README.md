@@ -48,6 +48,23 @@ open http://127.0.0.1:8080/
 기본 upstream은 `http://100.110.194.101`입니다. 다른 주소는 설치 시
 `PLM_DASHBOARD_UPSTREAM=http://...` 환경변수로 지정합니다.
 
+## 주요 과제 선택용 쓰기 경로 (#110)
+
+대시보드는 읽기 전용 마운트(`/dashboard:ro`)지만, 「주요 과제 선택」 설정 파일 하나만 쓸 수 있도록 별도 마운트를 둔다.
+
+- `docker-compose.yml`: `../design_handoff_plm_dashboard/data/config` 를 `/dashboard/data/config:rw` 로 마운트한다.
+- `nginx/default.conf.template`: 정확히 `/data/config/tracked-projects.json` 한 경로에만 `dav_methods PUT`을 켠다. 본문은 64k로 제한하고, 쓰기는 `/op/`와 같은 내부망(127.0.0.1, 192.168.100.0/24, 10.20.6.0/24, 100.64.0.0/10)에서만 허용한다. DELETE·POST 등 다른 방법과 다른 경로의 PUT은 거부된다(시험: 405·404·413·403).
+- **호스트 준비(처음 한 번, 컨테이너를 만들기 전)**: 마운트 지점이 읽기 전용 트리 안이라 폴더가 미리 있어야 한다. nginx 컨테이너는 uid 101로 쓰므로 그 계정에 ACL을 준다.
+
+```bash
+mkdir -p ../design_handoff_plm_dashboard/data/config
+setfacl -m u:101:rwx ../design_handoff_plm_dashboard/data/config
+```
+
+- 저장된 파일은 `rw-r--r--`로 만들어져 호스트 계정도 읽을 수 있다. `data/`는 git이 추적하지 않으므로 설정 파일은 저장소에 들어가지 않는다.
+- 적용: 설정 템플릿과 마운트가 바뀌었으므로 컨테이너를 재생성한다(`docker compose up -d --force-recreate`). nginx 설정 변경 뒤에는 reload가 아니라 재시작을 쓴다.
+- 되돌리기: 이 PR을 revert하고 컨테이너를 재생성한다. `data/config/tracked-projects.json`을 지우면 전체 과제 표시로 돌아간다.
+
 ## 파일 구성
 
 ```

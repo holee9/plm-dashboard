@@ -17,6 +17,56 @@
   const COL = { red: 'var(--c-red)', amber: 'var(--c-amber)', green: 'var(--c-green)', grey: 'var(--text-dim)' };
   let H = null, I = null, RA = null, W = null, err = null, loading = false;
 
+  /* ---- 주요 과제 선택 (#110): shared setting file; the file lists the EXCLUDED projects of the product lines ----
+     Missing file = nothing excluded (state 'none'); unreadable / malformed file = nothing excluded + a visible warning ('broken'). */
+  const TRACKED_URL = 'data/config/tracked-projects.json';
+  let T = { excluded: new Set(), updated_at: null, state: 'none', msg: '' };
+  async function loadTracked() {
+    try {
+      const r = await fetch(TRACKED_URL, { cache: 'no-store' });
+      if (r.status === 404) { T = { excluded: new Set(), updated_at: null, state: 'none', msg: '' }; return; }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      if (!j || !Array.isArray(j.excluded) || j.excluded.some((x) => typeof x !== 'string')) throw new Error('excluded 목록 형식이 아닙니다');
+      T = { excluded: new Set(j.excluded), updated_at: j.updated_at || null, state: 'ok', msg: '' };
+    } catch (e) { T = { excluded: new Set(), updated_at: null, state: 'broken', msg: e.message }; }
+  }
+  // only projects that belong to a product line can be excluded; anything else (and every new project) stays in scope
+  const lineIdents = () => new Set(((I && I.product_lines) || []).flatMap((l) => l.projects));
+  const isTracked = (ident) => !T.excluded.has(ident) || !lineIdents().has(ident);
+  const identOfName = (name) => { const p = ((I && I.project_status) || []).find((x) => x.project === name); return p ? p.identifier : null; };
+  const trackedName = (name) => { const id = identOfName(name); return id === null || isTracked(id); };
+  const excludedIdents = () => [...T.excluded].filter((id) => lineIdents().has(id));
+  // numbers of the excluded projects, subtracted from the global basis figures so the screen counts one scope
+  function excludedSums() {
+    const ex = new Set(excludedIdents()), z = { open: 0, with_due: 0, assigned: 0, overdue: 0 };
+    ((I && I.project_stats) || []).filter((p) => ex.has(p.identifier)).forEach((p) => { z.open += p.open; z.with_due += p.with_due; z.assigned += p.assigned; });
+    const names = new Set(((I && I.project_status) || []).filter((p) => ex.has(p.identifier)).map((p) => p.project));
+    ((H && H.project_health) || []).filter((p) => names.has(p.project)).forEach((p) => { z.overdue += p.overdue; });
+    return z;
+  }
+  // 주간 흐름 limited to the tracked scope (Hermes classifies every project; the screen drops the excluded ones and recounts)
+  const BUCKET_KEYS = ['done_last', 'carry', 'new_week', 'due_week', 'decide'];
+  function scopedWeekly(w) {
+    if (!w || !excludedIdents().length) return w;
+    const live = new Set(((I && I.product_lines) || []).filter((l) => l.projects.some(isTracked)).map((l) => l.name));
+    const lines = (w.lines || []).filter((l) => l.regulatory || live.has(l.name)).map((l) => {
+      const o = Object.assign({}, l);
+      BUCKET_KEYS.forEach((k) => { o[k] = (l[k] || []).filter((i) => trackedName(i.project)); });
+      return o;
+    });
+    const totals = {};
+    BUCKET_KEYS.forEach((k) => { totals[k] = lines.reduce((n, l) => n + l[k].length, 0); });
+    totals.decided = lines.reduce((n, l) => n + l.decide.filter((d) => d.decided_at).length, 0);
+    return Object.assign({}, w, { lines, totals });
+  }
+  async function saveTracked(excluded) {
+    const body = JSON.stringify({ version: 1, excluded: [...excluded].sort(), updated_at: new Date().toISOString() });
+    const r = await fetch(TRACKED_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
+    if (!r.ok) throw new Error(`저장하지 못했습니다 (HTTP ${r.status})`);
+    await loadTracked();
+  }
+
   async function load() {
     loading = true;
     try {
@@ -26,6 +76,7 @@
       // ra.json (Q4 tile + regulatory block) and weekly.json (주간 흐름, #101) each degrade on their own; neither hides the rest
       try { const r = await fetch('data/ra.json', { cache: 'no-store' }); RA = r.ok ? await r.json() : null; } catch (e) { RA = null; }
       try { const w = await fetch('data/weekly.json', { cache: 'no-store' }); W = w.ok ? await w.json() : null; } catch (e) { W = null; }
+      await loadTracked();   // never throws; a missing / broken file means nothing is excluded
     } catch (e) { err = e.message; }
     loading = false;
     if (window.App?.refresh) window.App.refresh();
@@ -36,7 +87,7 @@
 
   /* ---- per product line ---- */
   function lineStats(line) {
-    const projs = new Set(line.projects);
+    const projs = new Set(line.projects.filter(isTracked));
     const identOf = {}; (I.project_status || []).forEach((p) => { identOf[p.project] = p.identifier; });
     const inLine = (name) => projs.has(identOf[name]);
     const ph = H.project_health.filter((p) => inLine(p.project));
@@ -130,7 +181,7 @@
   function strip(stats, allStats) {   // stats: RA excluded (product lines only); allStats: includes the RA line for Q2/Q4
     const UI = window.UI;
     const cnt = (c) => stats.filter((s) => s.status === c).length;
-    const blocks = H.items.filter((i) => i.flags.includes('blocked_aging'));
+    const blocks = H.items.filter((i) => i.flags.includes('blocked_aging') && trackedName(i.project));
     const oldest = Math.max(0, ...blocks.map((i) => i.blocked_since ? days(today(), i.blocked_since.slice(0, 10)) : 0));
     const g = H.goal_health; const q0 = new Date(today().slice(0, 4) + '-10-01'), q1 = new Date(today().slice(0, 4) + '-12-31');
     const elapsed = Math.max(0, Math.min(1, (new Date(today()) - q0) / (q1 - q0)));
@@ -159,8 +210,9 @@
 
   // Shared core for the first screen (views/home.js): same data, same rules, one source of truth.
   window.ExecCore = {
-    data: () => ({ H, I, RA, W, err, loading }),
+    data: () => ({ H, I, RA, W: scopedWeekly(W), err, loading }),
     load, lineStats, lineRow, strip, nextMeeting, days,
+    tracked: () => ({ state: T.state, msg: T.msg, updated_at: T.updated_at, excluded: excludedIdents() }), isTracked, trackedName, saveTracked, loadTracked, excludedSums,
     today: () => H && H.today,
     esc, wp, DOT, TXT, COL,
   };

@@ -8,4 +8,6 @@ services:
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ../design_handoff_plm_dashboard:/dashboard:ro
+      # 주요 과제 선택 (#110): the only writable directory (host dir must exist and be writable by uid 101; see README)
+      - ../design_handoff_plm_dashboard/data/config:/dashboard/data/config:rw
     restart: unless-stopped

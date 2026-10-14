@@ -11,6 +11,24 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # 주요 과제 선택 (#110): the ONE writable path. The dashboard saves its shared setting here with PUT.
+    # Only this exact file can be written (dav_methods is PUT only; no DELETE/MKCOL/MOVE), body capped at 64k,
+    # and writes are limited to the same internal networks as /op/. The server cannot validate the JSON;
+    # the dashboard ignores a malformed file and shows everything with a warning (P7).
+    location = /data/config/tracked-projects.json {
+        limit_except GET {
+            allow 127.0.0.1;
+            allow 192.168.100.0/24;
+            allow 10.20.6.0/24;
+            allow 100.64.0.0/10;
+            deny all;
+        }
+        dav_methods PUT;
+        dav_access user:rw group:rw all:r;
+        client_max_body_size 64k;
+        add_header Cache-Control "no-store" always;
+    }
+
     # Proxy /op/* -> OpenProject API v3
     # Authorization header injected server-side; token never reaches the browser.
     location /op/ {

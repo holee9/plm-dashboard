@@ -54,7 +54,7 @@ open http://127.0.0.1:8080/
 
 - `docker-compose.yml`: `../design_handoff_plm_dashboard/data/config` 를 `/dashboard/data/config:rw` 로 마운트한다.
 - `nginx/default.conf.template`: 정확히 `/data/config/tracked-projects.json` 한 경로에만 `dav_methods PUT`을 켠다. 본문은 64k로 제한하고, 쓰기는 `/op/`와 같은 내부망(127.0.0.1, 192.168.100.0/24, 10.20.6.0/24, 100.64.0.0/10)에서만 허용한다. DELETE·POST 등 다른 방법과 다른 경로의 PUT은 거부된다(시험: 405·404·413·403).
-- **호스트 준비(처음 한 번, 컨테이너를 만들기 전)**: 마운트 지점이 읽기 전용 트리 안이라 폴더가 미리 있어야 한다. nginx 컨테이너는 uid 101로 쓰므로 그 계정에 ACL을 준다.
+- **호스트 준비(처음 한 번, 컨테이너를 만들기 전)**: `start.sh`가 아래를 자동으로 하고, 직접 `docker compose`를 쓸 때만 손으로 한다. 마운트 지점이 읽기 전용 트리 안이라 폴더가 미리 있어야 한다. nginx 컨테이너는 uid 101로 쓰므로 그 계정에 ACL을 준다.
 
 ```bash
 mkdir -p ../design_handoff_plm_dashboard/data/config

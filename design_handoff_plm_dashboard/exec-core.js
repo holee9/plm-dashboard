@@ -32,7 +32,7 @@
     } catch (e) { T = { excluded: new Set(), updated_at: null, state: 'broken', msg: e.message }; }
   }
   // only projects that belong to a product line can be excluded; anything else (and every new project) stays in scope
-  const lineIdents = () => new Set(((I && I.product_lines) || []).flatMap((l) => l.projects));
+  const lineIdents = () => new Set(((I && I.product_lines) || []).filter((l) => !l.regulatory).flatMap((l) => l.projects));
   const isTracked = (ident) => !T.excluded.has(ident) || !lineIdents().has(ident);
   const identOfName = (name) => { const p = ((I && I.project_status) || []).find((x) => x.project === name); return p ? p.identifier : null; };
   const trackedName = (name) => { const id = identOfName(name); return id === null || isTracked(id); };
@@ -133,7 +133,7 @@
 
   /* ---- product-line detail (expands under the row) ---- */
   function lineDetail(s) {
-    const idents = new Set(s.line.projects);
+    const idents = new Set(s.line.projects.filter(isTracked));
     const ps = (I.project_stats || []).filter((p) => idents.has(p.identifier));
     const sum = (k) => ps.reduce((a, p) => a + p[k], 0);
     const open = sum('open'), due = sum('with_due'), asg = sum('assigned');

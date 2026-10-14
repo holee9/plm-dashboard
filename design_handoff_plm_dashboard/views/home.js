@@ -100,7 +100,8 @@
     const t = C.tracked(), UI = window.UI;
     const lines = I.product_lines.filter((l) => !l.regulatory);
     const total = lines.reduce((n, l) => n + l.projects.length, 0);
-    const when = t.updated_at ? ` · 마지막 변경 ${C.esc(String(t.updated_at).slice(0, 10))}` : '';
+    const ud = t.updated_at ? new Date(t.updated_at) : null;   // the viewer's calendar day, not the UTC day
+    const when = ud && !isNaN(ud) ? ` · 마지막 변경 ${iso(ud)}` : '';
     const warn = t.state === 'broken' ? ` · <b data-home-scope-warn style="color:var(--c-amber)">⚠ 선택 파일을 읽지 못해 전체 과제를 보여줍니다 (${C.esc(t.msg)})</b>` : '';
     const head = `<div class="muted mono" data-home-scope style="font-size:11px;margin:0 0 var(--grid-1)">
       주요 과제 <b data-home-scope-n>${total - t.excluded.length}</b>개 기준 (제외 <b data-home-scope-x>${t.excluded.length}</b>개)${when}${warn}

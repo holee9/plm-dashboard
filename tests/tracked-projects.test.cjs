@@ -143,3 +143,27 @@ test('excluding every project is refused', async () => {
   assert.equal(puts.length, 0);
   assert.match(env.c.Views.home({}), /하나 이상 남겨/);
 });
+
+// audit F1 (#110): the expandable detail row must count the same scope as the summary row above it
+test('the line detail row counts only tracked projects', async () => {
+  const env0 = setup(), { line, id, stats } = pick(env0.insights, env0.weekly);
+  const openOf = (ids) => ids.reduce((n, p) => n + ((env0.insights.project_stats.find((s) => s.identifier === p) || {}).open || 0), 0);
+  const html = await render(setup({ config: { version: 1, excluded: [id] } }));
+  const detail = html.match(new RegExp(`data-exec-detail="${line.name.replace(/[()/]/g, '.')}"[\\s\\S]*?</tr>`))[0];
+  assert.match(detail, new RegExp(`열린 ${openOf(line.projects) - stats.open}건`));
+  assert.ok(openOf(line.projects) - stats.open !== openOf(line.projects), 'the chosen project must have open work');
+});
+
+// audit F2 (#110): the last-change date is shown in the viewer's local calendar day, not the UTC day
+test('last change date uses the local day', async () => {
+  const html = await render(setup({ config: { version: 1, excluded: [], updated_at: '2026-10-13T16:30:00Z' } }));
+  const d = new Date('2026-10-13T16:30:00Z'), local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  assert.match(html, new RegExp(`마지막 변경 ${local}`));
+});
+
+// audit F5 (#110): the regulatory line is not selectable, so naming it in the file changes nothing
+test('excluding the regulatory line in the file is ignored', async () => {
+  const env0 = setup(), ra = env0.insights.product_lines.find((l) => l.regulatory);
+  const html = await render(setup({ config: { version: 1, excluded: ra.projects } }));
+  assert.equal(num(html, 'data-home-scope-x'), 0);
+});

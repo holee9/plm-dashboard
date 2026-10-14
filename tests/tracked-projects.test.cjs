@@ -65,7 +65,8 @@ test('P2 P4 excluding a project removes exactly its numbers everywhere', async (
   assert.match(html, new RegExp(`열린 일감 <b>${m.open - stats.open}</b>건`));
   assert.equal(num(html, 'data-home-scope-x'), 1);
   assert.equal(num(html, 'data-home-scope-n'), num(base, 'data-home-scope-n') - 1);
-  assert.match(html, /마지막 변경 2026-10-14/);
+  const d = new Date('2026-10-14T01:00:00Z');   // shown as the viewer's local day, so the expectation is computed the same way
+  assert.match(html, new RegExp(`마지막 변경 ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`));
   // 주간 흐름 total = recount over the same weekly.json without that project's items
   const w = env.weekly, keys = ['done_last', 'carry', 'new_week', 'due_week', 'decide'];
   const totalRow = (html.match(/data-home-wftotal>([\s\S]*?)<\/tr>/) || [])[1];
@@ -156,8 +157,10 @@ test('the line detail row counts only tracked projects', async () => {
 
 // audit F2 (#110): the last-change date is shown in the viewer's local calendar day, not the UTC day
 test('last change date uses the local day', async () => {
-  const html = await render(setup({ config: { version: 1, excluded: [], updated_at: '2026-10-13T16:30:00Z' } }));
-  const d = new Date('2026-10-13T16:30:00Z'), local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  // 23:30 local time is the same calendar day locally but, east of UTC, a different one in UTC; 00:30 local is the reverse west of UTC.
+  const at = new Date(2026, 9, 14, 0, 30).toISOString();
+  const html = await render(setup({ config: { version: 1, excluded: [], updated_at: at } }));
+  const d = new Date(at), local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   assert.match(html, new RegExp(`마지막 변경 ${local}`));
 });
 

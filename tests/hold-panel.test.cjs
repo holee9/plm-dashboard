@@ -211,3 +211,40 @@ test('old-shaped data (dashboard deployed before Hermes): holds stay out of deci
   assert.doesNotMatch(html, /data-home-basis-hold/);                           // the open counts still contain the holds: saying they are excluded would be false
   assert.equal(count(html, /data-home-holdrow="/g), holds.length);             // the panel itself works on either shape
 });
+
+// ---- second audit follow-ups (#112): guards on the old-shaped path that no test pinned ----
+test('old-shaped data: a line\'s detail (decisions, long-running work) lists no hold, and no-owner decisions skip holds', async () => {
+  // craft a hold that WOULD be first in both detail lists if the guards were missing: judged (overdue), ownerless, long in the flow list
+  const craft = (e) => {
+    const idOf = Object.fromEntries(e.insights.project_status.map((p) => [p.project, p.identifier]));
+    const inLine = new Set(e.insights.product_lines.filter((l) => !l.regulatory).flatMap((l) => l.projects));
+    const h = e.health.items.find((i) => i.status === 'On Hold' && inLine.has(idOf[i.project]));      // a hold whose line is in the table
+    h.flags = ['overdue', 'blocked']; h.assignee = null; h.due = '2026-01-01';
+    e.health.items = [h, ...e.health.items.filter((i) => i.id !== h.id)];
+    e.insights.flow.open_items = [{ id: h.id, display_id: h.display_id, subject: h.subject, project: h.project, assignee: null, status: 'On Hold', start_days: 400 },
+      ...e.insights.flow.open_items.filter((i) => i.id !== h.id)];
+    e.crafted = h; e.lineName = e.insights.product_lines.find((l) => l.projects.includes(idOf[h.project])).name;
+  };
+  const env = build({ raw: true, mutate: craft });
+  const ctx = mount(env); ctx.Views.home({}); await new Promise((r) => setTimeout(r, 0));
+  const C = ctx.ExecCore, line = env.insights.product_lines.find((l) => l.name === env.lineName), h = env.crafted;
+  const st = C.lineStats(line), row = C.lineRow(st);                          // the row markup includes the expandable detail
+  assert.ok(row.length > 1500 && row.includes('결정 필요'), 'detail is rendered');
+  assert.equal(row.includes(`>${h.display_id}<`), false, `${h.display_id} listed in the detail`);
+  assert.equal(st.noOwner.some((i) => i.id === h.id), false);
+  assert.equal(st.holds.some((i) => i.id === h.id), true);                      // it is still known as a hold of this line
+});
+
+test('inline RA due dates ignore holds (DB items with the status On Hold)', async () => {
+  const env = build();
+  const ctx = mount(env);
+  const today = new Date(env.health.today + 'T00:00:00');
+  const iso = (n) => { const d = new Date(today.getTime() + n * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const ra = env.insights.product_lines.find((l) => l.regulatory), ident = ra.projects[0];
+  const mk = (id, status) => ({ id, displayId: `R-${id}`, subject: 'x', projectId: 1, statusId: status, dueDate: iso(5), _due: new Date(iso(5) + 'T00:00:00') });
+  ctx.window.DB = { TODAY: today, WORK_PACKAGES: [mk(1, 2), mk(2, 7)], S: { 2: { name: 'In Progress' }, 7: { name: 'On Hold' } }, P: { 1: { name: 'RA', identifier: ident } },
+    isOpen: () => true, isOpenWork: () => true, dueWithin: () => true, isOverdue: () => false };
+  ctx.Views.home({}); await new Promise((r) => setTimeout(r, 0));
+  const s = ctx.ExecCore.lineStats(ra);
+  assert.match(s.why.join(' '), /제출 마감일 1건/);                                   // only the In Progress one, not the hold
+});

@@ -125,7 +125,7 @@
     if (noOwner.length) why.push(`담당자 없는 결정 ${noOwner.length}건`);
     if (!why.length) why.push(open ? `열린 ${open}건, 예외 없음` : holds.length ? `열린 일감 없음 — 보류 ${holds.length}건은 「보류 현황」에 따로 표시` : '열린 일감 없음 — 판단할 자료가 없습니다');
     const idents = new Set(line.projects);
-    const regDue = (window.DB?.WORK_PACKAGES || []).filter((w) => window.DB.isOpen(w) && w.dueDate && idents.has((window.DB.P[w.projectId] || {}).identifier));
+    const regDue = (window.DB?.WORK_PACKAGES || []).filter((w) => window.DB.isOpen(w) && ((window.DB.S || {})[w.statusId] || {}).name !== 'On Hold' && w.dueDate && idents.has((window.DB.P[w.projectId] || {}).identifier));
     const regNext = regDue.map((w) => w.dueDate).filter((d) => d >= today()).sort()[0] || null;
     const krIds = new Set(H.goal_health.objectives.flatMap((o) => o.key_results.flatMap((k) => (k.related || []).map((r) => r.id))));
     const krMs = ms.filter((m) => krIds.has(m.id));
@@ -169,7 +169,7 @@
       return `<tr><td>${esc(p.project)}</td><td class="num">${p.open}</td><td class="num">${pct(p.with_due, p.open)}</td><td class="num">${pct(p.assigned, p.open)}</td><td style="font-size:12px">${msTxt}</td></tr>`;
     }).join('');
     const names = new Set(ps.map((p) => p.project));
-    const flowRows = (I.flow.open_items || []).filter((i) => names.has(i.project)).map((i) => ({ i, d: i.start_days })).filter((x) => x.d != null)
+    const flowRows = (I.flow.open_items || []).filter((i) => i.status !== 'On Hold' && names.has(i.project)).map((i) => ({ i, d: i.start_days })).filter((x) => x.d != null)
       .sort((a, b) => b.d - a.d).slice(0, 5);
     const flowTxt = flowRows.length ? `<table class="tbl"><thead><tr><th>번호</th><th>제목</th><th>상태</th><th>담당자</th><th class="num">경과</th></tr></thead><tbody>${flowRows.map(({ i, d }) => `<tr><td>${wp(i)}</td><td>${esc(i.subject.slice(0, 36))}</td><td>${esc(i.status)}</td><td>${esc(i.assignee || '담당자 없음')}</td><td class="num">${i.status === 'On Hold' ? '보류 ' : '시작 후 '}${d}일</td></tr>`).join('')}</tbody></table>` : '<span class="muted">진행·검토·보류 중인 일감 없음</span>';
     const NEED = ['overdue', 'missing_update', 'triage_overdue'];

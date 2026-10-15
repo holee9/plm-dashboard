@@ -103,7 +103,7 @@
     // #99: one basis for every number on the first screen — the Hermes snapshot (health.json). The live OP
     // count is only the fallback while the snapshot has not loaded yet.
     const snapH = window.ExecCore && window.ExecCore.data().H;
-    const overdueTotal = snapH && snapH.exception_counts ? snapH.exception_counts.overdue : D.WORK_PACKAGES.filter(D.isOverdue).length;
+    const overdueTotal = snapH && snapH.exception_counts ? snapH.exception_counts.overdue - window.ExecCore.excludedSums().overdue : D.WORK_PACKAGES.filter(D.isOverdue).length;   // #110: same scope as the selected main projects
     // A saved view that no longer exists falls back to home before the menu is built, so the first paint marks it active.
     if (!VIEWS.some((v) => v.key === state.view)) { state.view = 'home'; save(); }
     let nav = '', lastSection = '';

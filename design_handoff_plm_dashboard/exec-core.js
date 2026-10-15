@@ -105,7 +105,7 @@
     const next = ms.filter((m) => m.date && m.date >= today()).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
     const holds = items.filter((i) => i.status === 'On Hold');   // #112: a hold is a deliberate pause, listed apart and never judged
     const triage = items.filter((i) => i.flags.includes('triage_overdue'));
-    const noOwner = items.filter((i) => !i.assignee && !i.flags.includes('triage_overdue') && i.flags.some((f) => ['overdue', 'missing_update'].includes(f)));
+    const noOwner = items.filter((i) => i.status !== 'On Hold' && !i.assignee && !i.flags.includes('triage_overdue') && i.flags.some((f) => ['overdue', 'missing_update'].includes(f)));
     const people = I.people.filter((p) => true); // participation measured at line level below
     // participation at line level: share of open WPs touched in 7 days (from project_health weekly rates is global; use items proxy)
     const lineProjects = ph.map((p) => p.project);
@@ -137,6 +137,8 @@
   }
 
   /* ---- 보류 현황 (#112): work On Hold, listed apart from every indicator ---- */
+  // true only when Hermes already writes the separated numbers (project_status carries on_hold): until then the open counts still hold the holds
+  const holdAware = () => ((I && I.project_status) || []).some((p) => 'on_hold' in p);
   function holdItems() {
     const ps = (I && I.project_status) || [], lines = (I && I.product_lines) || [];
     const lineOf = {}; lines.forEach((l) => l.projects.forEach((id) => { lineOf[id] = l.name; }));
@@ -171,7 +173,7 @@
       .sort((a, b) => b.d - a.d).slice(0, 5);
     const flowTxt = flowRows.length ? `<table class="tbl"><thead><tr><th>번호</th><th>제목</th><th>상태</th><th>담당자</th><th class="num">경과</th></tr></thead><tbody>${flowRows.map(({ i, d }) => `<tr><td>${wp(i)}</td><td>${esc(i.subject.slice(0, 36))}</td><td>${esc(i.status)}</td><td>${esc(i.assignee || '담당자 없음')}</td><td class="num">${i.status === 'On Hold' ? '보류 ' : '시작 후 '}${d}일</td></tr>`).join('')}</tbody></table>` : '<span class="muted">진행·검토·보류 중인 일감 없음</span>';
     const NEED = ['overdue', 'missing_update', 'triage_overdue'];
-    const need = s.items.filter((i) => i.flags.some((f) => NEED.includes(f)));
+    const need = s.items.filter((i) => i.status !== 'On Hold' && i.flags.some((f) => NEED.includes(f)));
     const needTxt = need.length ? `<table class="tbl"><thead><tr><th>번호</th><th>제목</th><th>이유</th><th>담당자</th></tr></thead><tbody>${need.slice(0, 8).map((i) => `<tr><td>${wp(i)}</td><td>${esc(i.subject.slice(0, 36))}</td><td style="font-size:12px">${esc(i.flags.map((f) => ({ overdue: '마감 지남', missing_update: '마감 후 갱신 없음', triage_overdue: '이슈 분류 지연' }[f])).filter(Boolean).join(', '))}</td><td>${esc(i.assignee || '담당자 없음')}</td></tr>`).join('')}</tbody></table>${need.length > 8 ? `<div class="muted" style="font-size:11px">외 ${need.length - 8}건</div>` : ''}` : '<span class="muted">이번 주 결정 필요 없음</span>';
     return `<div style="padding:8px 4px;font-size:12px">
       <div style="margin-bottom:6px"><b>입력 충족도</b> 열린 ${open}건 · 담당 지정 ${pct(asg, open)} · 마감일 ${pct(due, open)} <button type="button" class="tb-chip" data-exec-roadmap="${esc(s.line.name)}">로드맵에서 보기</button></div>
@@ -199,7 +201,7 @@
     const UI = window.UI;
     const cnt = (c) => stats.filter((s) => s.status === c).length;
     // Q2 (#112): decisions waiting = the 「결정 필요」 rule (overdue, missing_update, triage_overdue); work On Hold is not part of it
-    const need = H.items.filter((i) => i.flags.some((f) => ['overdue', 'missing_update', 'triage_overdue'].includes(f)) && trackedName(i.project));
+    const need = H.items.filter((i) => i.status !== 'On Hold' && i.flags.some((f) => ['overdue', 'missing_update', 'triage_overdue'].includes(f)) && trackedName(i.project));   // the status test also guards an old-shaped health.json
     const waited = (i) => (i.flags.includes('triage_overdue') ? days(today(), i.created) : i.due ? days(today(), i.due) : 0);
     const oldest = Math.max(0, ...need.map(waited));
     const q2tone = oldest > 30 ? DOT.red : need.length ? DOT.amber : DOT.green;
@@ -231,7 +233,7 @@
   // Shared core for the first screen (views/home.js): same data, same rules, one source of truth.
   window.ExecCore = {
     data: () => ({ H, I, RA, W: scopedWeekly(W), err, loading }),
-    load, lineStats, lineRow, strip, nextMeeting, days, holdItems,
+    load, lineStats, lineRow, strip, nextMeeting, days, holdItems, holdAware,
     tracked: () => ({ state: T.state, msg: T.msg, updated_at: T.updated_at, excluded: excludedIdents() }), isTracked, trackedName, saveTracked, loadTracked, excludedSums,
     today: () => H && H.today,
     esc, wp, DOT, TXT, COL,

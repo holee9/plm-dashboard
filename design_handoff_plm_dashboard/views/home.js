@@ -25,7 +25,7 @@
     const mm = { open: m0.open - x.open, with_due: m0.with_due - x.with_due, assigned: m0.assigned - x.assigned };
     const overdue = H.exception_counts ? H.exception_counts.overdue - x.overdue : null;
     return `<div class="muted mono" data-home-basis style="font-size:11px;margin:0 0 var(--grid-1)">
-      이 숫자의 바탕: 열린 일감 <b>${mm.open ?? '–'}</b>건<span class="muted" data-home-basis-hold> (보류 ${C.holdItems().length}건 제외)</span> · 마감 지남 <b data-home-overdue>${overdue ?? '–'}</b>건 · 마감일 입력 <b>${pct(mm.with_due, mm.open)}</b> · 담당 지정 <b>${pct(mm.assigned, mm.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
+      이 숫자의 바탕: 열린 일감 <b>${mm.open ?? '–'}</b>건${C.holdAware() ? `<span class="muted" data-home-basis-hold> (보류 ${C.holdItems().length}건 제외)</span>` : ''} · 마감 지남 <b data-home-overdue>${overdue ?? '–'}</b>건 · 마감일 입력 <b>${pct(mm.with_due, mm.open)}</b> · 담당 지정 <b>${pct(mm.assigned, mm.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
       ${low ? ' · ⚪ 갱신률이 50% 아래라 일정·부하 판단은 보류 표시' : ''} · 기준 <b>${C.esc(new Date(H.generated_at).toLocaleString('ko-KR'))}</b> (Hermes 30분 스냅숏 — 이 화면의 모든 숫자가 이 시각 기준)
     </div>`;
   }

@@ -39,12 +39,14 @@ function reshape(env, origFlags) {
   }
   weekly.totals = Object.fromEntries([...BUCKETS, 'decide'].map((k) => [k, weekly.lines.reduce((n, l) => n + l[k].length, 0)]).concat([['decided', weekly.lines.reduce((n, l) => n + l.decide.filter((d) => d.decided_at).length, 0)]]));
 }
-function build({ drop = false, config, mutate } = {}) {
+function build({ drop = false, config, mutate, raw = false } = {}) {
   const env = { health: read('health.json'), insights: read('insights.json'), weekly: read('weekly.json') };
   const orig = new Map(env.health.items.map((i) => [i.id, i.flags.slice()]));
   const holds0 = env.health.items.filter((i) => i.status === 'On Hold');
-  for (const i of holds0) i.flags = ['blocked'];
-  reshape(env, orig);
+  if (!raw) {                                  // raw = the OLD Hermes shape: holds still flagged and still counted in open
+    for (const i of holds0) i.flags = ['blocked'];
+    reshape(env, orig);
+  }
   if (drop) { const ids = new Set(holds0.map((i) => i.id)); env.health.items = env.health.items.filter((i) => !ids.has(i.id)); }
   if (mutate) mutate(env);
   return env;
@@ -165,4 +167,47 @@ test('the panel keys on the status On Hold, not on a flag: a Won\'t Fix item nev
   const html = await render(build({ mutate: (e) => { e.health.items.find((i) => i.id === holds[0].id).status = "Won't Fix"; } }));   // flag "blocked" stays
   assert.doesNotMatch(html, new RegExp(`data-home-holdrow="${holds[0].id}"`));
   assert.equal(count(html, /data-home-holdrow="/g), holds.length - 1);
+});
+
+// ---- audit follow-ups (#112) ----
+const q2 = (html) => html.match(/Q2 결정 지연<\/div>\s*<div class="kpi-value">([^<]*)<\/div>\s*<div class="kpi-foot">([^<]*)</);
+const clearNeed = (e) => { for (const i of e.health.items) i.flags = i.flags.filter((f) => !['overdue', 'missing_update', 'triage_overdue', 'unmanaged'].includes(f)); };
+const daysAgo = (e, n) => new Date(new Date(e.health.today).getTime() - n * 86400000).toISOString().slice(0, 10);
+
+test('Q2 colour: 🟢 without decisions, 🟡 when waiting up to 30 days, 🔴 beyond 30 days', async () => {
+  const one = (n) => (e) => { clearNeed(e); const t = e.health.items.find((i) => i.status !== 'On Hold'); t.flags = ['overdue']; t.due = daysAgo(e, n); t.assignee = t.assignee || 'x'; };
+  const none = q2(await render(build({ mutate: clearNeed })));
+  assert.match(none[1], /🟢 0건/); assert.match(none[2], /최장 0일 지연/);
+  const recent = q2(await render(build({ mutate: one(5) })));
+  assert.match(recent[1], /🟡 1건/); assert.match(recent[2], /최장 5일 지연/);
+  const old = q2(await render(build({ mutate: one(31) })));
+  assert.match(old[1], /🔴 1건/); assert.match(old[2], /최장 31일 지연/);
+  assert.match(q2(await render(build({ mutate: one(30) })))[1], /🟡 1건/);          // the boundary: 30 days is still amber
+});
+
+test('a hold without an assignee is not a decision without an owner, and shows 담당자 없음 in the panel', async () => {
+  const base = build(), h = base.health.items.filter((i) => i.status === 'On Hold');
+  const noOwnerOf = (html) => +q2(html)[2].match(/담당자 없는 결정 (\d+)건/)[1];
+  const withOwner = noOwnerOf(await render(build({ mutate: (e) => { clearNeed(e); e.health.items.filter((i) => i.status === 'On Hold').forEach((i) => { i.assignee = '김명섭'; }); } })));
+  const html = await render(build({ mutate: (e) => { clearNeed(e); e.health.items.filter((i) => i.status === 'On Hold').forEach((i) => { i.assignee = null; }); } }));
+  assert.equal(noOwnerOf(html), withOwner);
+  assert.equal(count(html, new RegExp(`data-home-holdrow="[0-9]+">(?:(?!</tr>)[\\s\\S])*담당자 없음`, 'g')), h.length);
+});
+
+test('a hold without blocked_since shows a dash, not 0 days', async () => {
+  const base = build(), id = base.health.items.find((i) => i.status === 'On Hold').id;
+  const html = await render(build({ mutate: (e) => { e.health.items.find((i) => i.id === id).blocked_since = null; } }));
+  const row = html.match(new RegExp(`<tr data-home-holdrow="${id}">[\\s\\S]*?</tr>`))[0];
+  assert.match(row, /<td class="num">–<\/td>/);
+});
+
+test('old-shaped data (dashboard deployed before Hermes): holds stay out of decisions and no false 「제외」 note appears', async () => {
+  const env = build({ raw: true });
+  const holds = env.health.items.filter((i) => i.status === 'On Hold');
+  assert.ok(holds.some((i) => i.flags.includes('overdue') || i.flags.includes('blocked_aging')), 'raw fixture has judged holds');
+  const html = await render(env);
+  const need = env.health.items.filter((i) => i.status !== 'On Hold' && i.flags.some((f) => ['overdue', 'missing_update', 'triage_overdue'].includes(f))).length;
+  assert.match(q2(html)[1], new RegExp(`${need}건`));
+  assert.doesNotMatch(html, /data-home-basis-hold/);                           // the open counts still contain the holds: saying they are excluded would be false
+  assert.equal(count(html, /data-home-holdrow="/g), holds.length);             // the panel itself works on either shape
 });

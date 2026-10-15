@@ -21,11 +21,11 @@ function reply(r, code, message) {
 function check(j) {
     if (j === null || typeof j !== 'object' || Array.isArray(j)) return '최상위 값이 객체가 아닙니다';
     var k;
-    for (k in j) { if (!KEYS[k]) return '알 수 없는 항목: ' + String(k).slice(0, 32); }
+    for (k in j) { if (!Object.prototype.hasOwnProperty.call(KEYS, k)) return '알 수 없는 항목: ' + String(k).slice(0, 32); }
     if (j.version !== 1) return 'version은 1이어야 합니다';
     if (!Array.isArray(j.excluded)) return 'excluded는 배열이어야 합니다';
     if (j.excluded.length > MAX_ITEMS) return 'excluded는 ' + MAX_ITEMS + '개를 넘을 수 없습니다';
-    var seen = {};
+    var seen = Object.create(null);   // a plain {} would already hold 'constructor', 'toString', ... and reject them as duplicates
     for (var i = 0; i < j.excluded.length; i++) {
         var id = j.excluded[i];
         if (typeof id !== 'string' || !IDENT.test(id)) return 'excluded[' + i + ']가 과제 식별자 형식이 아닙니다';

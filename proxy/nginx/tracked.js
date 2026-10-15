@@ -17,6 +17,17 @@ function reply(r, code, message) {
     r.return(code, JSON.stringify({ error: message }));
 }
 
+// printable ASCII without space, 1-64 chars. The charCode loop is deliberate: njs's regex lets '$' match before a trailing
+// newline, so "HVR\n" passes the regex alone (seen in the docker test), and a newline inside the setting file is not acceptable.
+function validIdent(id) {
+    if (typeof id !== 'string' || id.length < 1 || id.length > 64) return false;
+    for (var i = 0; i < id.length; i++) {
+        var c = id.charCodeAt(i);
+        if (c < 33 || c > 126) return false;
+    }
+    return IDENT.test(id);
+}
+
 // returns an error message, or null when the object is a valid setting
 function check(j) {
     if (j === null || typeof j !== 'object' || Array.isArray(j)) return '최상위 값이 객체가 아닙니다';
@@ -28,7 +39,7 @@ function check(j) {
     var seen = Object.create(null);   // a plain {} would already hold 'constructor', 'toString', ... and reject them as duplicates
     for (var i = 0; i < j.excluded.length; i++) {
         var id = j.excluded[i];
-        if (typeof id !== 'string' || !IDENT.test(id)) return 'excluded[' + i + ']가 과제 식별자 형식이 아닙니다';
+        if (!validIdent(id)) return 'excluded[' + i + ']가 과제 식별자 형식이 아닙니다';
         if (seen[id]) return 'excluded에 중복이 있습니다: ' + id;
         seen[id] = 1;
     }
@@ -42,6 +53,7 @@ function save(r) {
         return reply(r, 405, '허용되지 않는 방법입니다');
     }
     var body = r.requestText;
+    if (body === undefined) return reply(r, 400, '본문을 읽지 못했습니다(64k를 넘거나 전송 형식이 맞지 않습니다)');
     if (typeof body !== 'string' || body.length === 0) return reply(r, 400, '본문이 비어 있습니다');
     var j;
     try { j = JSON.parse(body); } catch (e) { return reply(r, 400, 'JSON 형식이 아닙니다'); }

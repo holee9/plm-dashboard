@@ -65,7 +65,7 @@ setfacl -m u:101:rwx ../design_handoff_plm_dashboard/data/config
 ```
 
 - 저장된 파일은 `rw-r--r--`로 만들어져 호스트 계정도 읽을 수 있다. `data/`는 git이 추적하지 않으므로 설정 파일은 저장소에 들어가지 않는다.
-- 적용: 설정 템플릿과 마운트가 바뀌었으므로 컨테이너를 재생성한다(`docker compose up -d --force-recreate`). nginx 설정 변경 뒤에는 reload가 아니라 재시작을 쓴다.
+- 적용: 설정 템플릿과 마운트가 바뀌었으므로 컨테이너를 재생성한다. `start.sh`가 재생성 전에 임시 컨테이너에서 `nginx -t`로 설정(기본 설정, 템플릿, njs 파일)을 먼저 점검하고, 실패하면 실행 중인 컨테이너를 그대로 두고 중단한다. 점검 없이 재생성하면 설정 오류 시 컨테이너가 재시작을 반복해 대시보드와 `/op/`가 함께 내려간다. nginx 설정 변경 뒤에는 reload가 아니라 재시작을 쓴다(파일 마운트는 `git pull`로 inode가 바뀌면 reload로 반영되지 않는다).
 - 되돌리기: 이 PR을 revert하고 컨테이너를 재생성한다. `data/config/tracked-projects.json`을 지우면 전체 과제 표시로 돌아간다.
 
 ## 파일 구성

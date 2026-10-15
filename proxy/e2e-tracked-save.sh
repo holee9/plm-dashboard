@@ -56,6 +56,7 @@ case_bad "identifier with a space"   '{"version":1,"excluded":["a b"]}' 400
 case_bad "identifier with a path"    '{"version":1,"excluded":["../x"]}' 400
 case_bad "duplicate identifiers"     '{"version":1,"excluded":["A","A"]}' 400
 case_bad "unknown key"               '{"version":1,"excluded":[],"x":1}' 400
+case_bad "identifier ending in a newline" '{"version":1,"excluded":["HVR\n"]}' 400
 case_bad "__proto__ key"              '{"__proto__":{"x":1},"version":1,"excluded":[]}' 400
 c=$(put "$U" '{"version":1,"excluded":["constructor","toString","hasOwnProperty"]}'); [ "$c" = 204 ] && grep -q constructor "$W/acl/$FILE" && ok "names that exist on every JS object are valid identifiers (204)" || bad "object-property names -> $c"
 base=$(sha "$W/acl")

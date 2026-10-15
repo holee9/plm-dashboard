@@ -9,15 +9,22 @@ const root = path.join(__dirname, '../design_handoff_plm_dashboard');
 const read = (f) => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/home', f), 'utf8'));
 const URL = 'data/config/tracked-projects.json';
 
-function setup({ config, puts = [], putStatus = 200 } = {}) {
+function setup({ config, puts = [], putStatus = 200, patchWeekly } = {}) {
   const health = read('health.json'), insights = read('insights.json'), weekly = read('weekly.json'), ra = read('ra.json');
+  if (patchWeekly) patchWeekly(weekly);
   const files = { 'data/health.json': health, 'data/insights.json': insights, 'data/ra.json': ra, 'data/weekly.json': weekly };
   const handlers = {};
   let cfg = config;       // string = raw file body, object = JSON, undefined = missing file
   const context = { console, Date, setTimeout, clearTimeout, localStorage: { getItem: () => null, setItem() {} },
     fetch: async (url, opts = {}) => {
       if (url === URL) {
-        if (opts.method === 'PUT') { puts.push(JSON.parse(opts.body)); if (putStatus === 200) cfg = JSON.parse(opts.body); return { ok: putStatus === 200, status: putStatus }; }
+        if (opts.method === 'PUT') {
+          puts.push(JSON.parse(opts.body));
+          if (putStatus === 400) return { ok: false, status: 400, json: async () => ({ error: 'excluded는 배열이어야 합니다' }) };
+          if (putStatus !== 200) return { ok: false, status: putStatus };
+          cfg = Object.assign({}, JSON.parse(opts.body), { updated_at: '2026-10-14T05:00:00Z' });   // the server stamps the time
+          return { ok: true, status: 204 };
+        }
         if (cfg === undefined) return { ok: false, status: 404 };
         return { ok: true, status: 200, json: async () => (typeof cfg === 'string' ? JSON.parse(cfg) : JSON.parse(JSON.stringify(cfg))) };
       }
@@ -116,7 +123,8 @@ test('the selector lists every line project, checks the tracked ones, and saves 
   await new Promise((r) => setTimeout(r, 5));
   assert.equal(puts.length, 1);
   assert.deepEqual(puts[0].excluded, [id]);
-  assert.ok(puts[0].updated_at && puts[0].version === 1);
+  assert.equal(puts[0].version, 1);
+  assert.equal(puts[0].updated_at, undefined);                                  // the client never sends a timestamp; the server stamps it
   assert.equal(num(env.c.Views.home({}), 'data-home-scope-x'), 1);              // re-read from the file after saving
 });
 
@@ -168,5 +176,35 @@ test('last change date uses the local day', async () => {
 test('excluding the regulatory line in the file is ignored', async () => {
   const env0 = setup(), ra = env0.insights.product_lines.find((l) => l.regulatory);
   const html = await render(setup({ config: { version: 1, excluded: ra.projects } }));
+  assert.equal(num(html, 'data-home-scope-x'), 0);
+});
+
+// P5 finding (#110): Hermes puts work of projects outside every product line into a 「기타」 row. Those projects are not
+// selectable, so excluding a project must never drop that row.
+test('the Hermes 「기타」 row survives an exclusion and keeps counting', async () => {
+  const mk = (id, extra = {}) => Object.assign({ id, display_id: `X-${id}`, subject: `기타 ${id}`, project: 'Unmapped Project', assignee: 'a', due: '2026-10-20', created: '2026-10-10', status: 'Open', url: '#' }, extra);
+  const patch = (w) => w.lines.push({ name: '기타', owner: '—', regulatory: false, done_last: [mk(90001, { closed_at: '2026-10-08T01:00:00Z' })], carry: [mk(90002, { overdue: false })],
+    new_week: [mk(90003), mk(90004)], due_week: [], decide: [] });
+  const env0 = setup({ patchWeekly: patch }), { id, name } = pick(env0.insights, env0.weekly);
+  const keys = ['done_last', 'carry', 'new_week', 'due_week', 'decide'];
+  const html = await render(setup({ config: { version: 1, excluded: [id] }, patchWeekly: patch }));
+  const totalRow = html.match(/data-home-wftotal>([\s\S]*?)<\/tr>/)[1];
+  const got = [...totalRow.matchAll(/<td><b>(\d+)<\/b>/g)].map((x) => +x[1]);
+  const want = keys.map((k) => env0.weekly.lines.reduce((n, l) => n + (l[k] || []).filter((i) => i.project !== name).length, 0));
+  assert.deepEqual(got, want);
+  assert.match(html, /data-home-wfline="기타"/);
+});
+
+test('a rejected save shows the server reason, keeps the panel open, and changes nothing', async () => {
+  const puts = [], env = setup({ puts, putStatus: 400 });
+  await render(env);
+  const { id } = pick(env.insights, env.weekly);
+  env.c.document._click('[data-home-scope-toggle]');
+  env.c.document._click('[data-home-scope-proj]', { homeScopeProj: id });
+  env.c.document._click('[data-home-scope-save]');
+  await new Promise((r) => setTimeout(r, 5));
+  const html = env.c.Views.home({});
+  assert.match(html, /HTTP 400\): excluded는 배열이어야 합니다/);
+  assert.match(html, /data-home-scope-panel/);
   assert.equal(num(html, 'data-home-scope-x'), 0);
 });

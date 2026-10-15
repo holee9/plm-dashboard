@@ -49,8 +49,10 @@
   const BUCKET_KEYS = ['done_last', 'carry', 'new_week', 'due_week', 'decide'];
   function scopedWeekly(w) {
     if (!w || !excludedIdents().length) return w;
-    const live = new Set(((I && I.product_lines) || []).filter((l) => l.projects.some(isTracked)).map((l) => l.name));
-    const lines = (w.lines || []).filter((l) => l.regulatory || live.has(l.name)).map((l) => {
+    const all = ((I && I.product_lines) || []), known = new Set(all.map((l) => l.name));
+    const live = new Set(all.filter((l) => l.projects.some(isTracked)).map((l) => l.name));
+    // rows Hermes builds outside the product lines (「기타」) are not selectable and always stay; their items are still filtered by project
+    const lines = (w.lines || []).filter((l) => l.regulatory || !known.has(l.name) || live.has(l.name)).map((l) => {
       const o = Object.assign({}, l);
       BUCKET_KEYS.forEach((k) => { o[k] = (l[k] || []).filter((i) => trackedName(i.project)); });
       return o;
@@ -61,9 +63,14 @@
     return Object.assign({}, w, { lines, totals });
   }
   async function saveTracked(excluded) {
-    const body = JSON.stringify({ version: 1, excluded: [...excluded].sort(), updated_at: new Date().toISOString() });
+    // the server validates the body, rejects a bad one with 400 and a reason, keeps the existing file, and stamps updated_at itself
+    const body = JSON.stringify({ version: 1, excluded: [...excluded].sort() });
     const r = await fetch(TRACKED_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
-    if (!r.ok) throw new Error(`저장하지 못했습니다 (HTTP ${r.status})`);
+    if (!r.ok) {
+      let why = '';
+      try { why = (await r.json()).error || ''; } catch (e) { /* the proxy answered without a JSON body */ }
+      throw new Error(`저장하지 못했습니다 (HTTP ${r.status})${why ? ': ' + why : ''}`);
+    }
     await loadTracked();
   }
 

@@ -53,7 +53,10 @@ open http://127.0.0.1:8080/
 대시보드는 읽기 전용 마운트(`/dashboard:ro`)지만, 「주요 과제 선택」 설정 파일 하나만 쓸 수 있도록 별도 마운트를 둔다.
 
 - `docker-compose.yml`: `../design_handoff_plm_dashboard/data/config` 를 `/dashboard/data/config:rw` 로 마운트한다.
-- `nginx/default.conf.template`: 정확히 `/data/config/tracked-projects.json` 한 경로에만 `dav_methods PUT`을 켠다. 본문은 64k로 제한하고, 쓰기는 `/op/`와 같은 내부망(127.0.0.1, 192.168.100.0/24, 10.20.6.0/24, 100.64.0.0/10)에서만 허용한다. DELETE·POST 등 다른 방법과 다른 경로의 PUT은 거부된다(시험: 405·404·413·403).
+- `nginx/default.conf.template`: 정확히 `/data/config/tracked-projects.json` 한 경로에서 GET은 정적으로 읽고, PUT은 njs(`nginx/tracked.js`)가 처리한다. 본문은 64k로 제한하고, 쓰기는 `/op/`와 같은 내부망(127.0.0.1, 192.168.100.0/24, 10.20.6.0/24, 100.64.0.0/10)에서만 허용한다. DELETE·POST 등 다른 방법과 다른 경로의 PUT은 거부된다.
+- `nginx/tracked.js`: PUT 본문을 JSON으로 읽어 `{"version":1,"excluded":[식별자,...]}` 형식인지 검사한다(알 수 없는 항목, 중복, 식별자 형식 오류, 501개 이상은 거부). 잘못된 요청은 400과 이유를 돌려주고 **기존 파일에 손대지 않는다**. 유효하면 같은 폴더에 임시 파일을 쓴 뒤 이름을 바꿔 교체하므로 읽는 쪽이 쓰다 만 파일을 볼 수 없다. 변경 시각(`updated_at`)은 서버가 찍는다.
+- `nginx/nginx.conf`: njs 모듈을 읽기 위한 `load_module` 한 줄만 이미지 기본 설정에 더한 사본이다. 이미지를 올릴 때 기본 설정과 달라진 곳이 없는지 비교한다.
+- 시험: `proxy/e2e-tracked-save.sh`(docker, setfacl 필요). 운영과 같은 조건(master root, worker uid 101, ACL 폴더)의 시험 컨테이너에서 잘못된 입력 거부와 기존 파일 보존, 쓰기 실패 시 보존, 동시 읽기 중 원자적 교체, 경로·방법·네트워크 규칙을 확인한다.
 - **호스트 준비(처음 한 번, 컨테이너를 만들기 전)**: `start.sh`가 아래를 자동으로 하고, 직접 `docker compose`를 쓸 때만 손으로 한다. 마운트 지점이 읽기 전용 트리 안이라 폴더가 미리 있어야 한다. nginx 컨테이너는 uid 101로 쓰므로 그 번호에 ACL을 준다(호스트에서는 숫자 101이 다른 시스템 계정일 수 있으며, 이 폴더에만 쓰기 권한이 생긴다). 폴더가 이미 root 소유로 만들어졌다면 `setfacl`이 실패하므로 지우고 다시 만든다.
 
 ```bash

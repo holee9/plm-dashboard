@@ -12,9 +12,11 @@ server {
     }
 
     # 주요 과제 선택 (#110): the ONE writable path. The dashboard saves its shared setting here with PUT.
-    # Only this exact file can be written (dav_methods is PUT only; no DELETE/MKCOL/MOVE), body capped at 64k,
-    # and writes are limited to the same internal networks as /op/. The server cannot validate the JSON;
-    # the dashboard ignores a malformed file and shows everything with a warning (P7).
+    # PUT is handled by njs (nginx/tracked.js): it validates the JSON, keeps the existing file when the body is
+    # invalid, and replaces the file atomically. GET/HEAD are plain static reads. Only this exact path can be written,
+    # the body is capped at 64k (kept in memory so njs can read it), and writes are limited to the same internal
+    # networks as /op/.
+    js_import tracked from /etc/nginx/njs/tracked.js;
     location = /data/config/tracked-projects.json {
         limit_except GET {
             allow 127.0.0.1;
@@ -22,10 +24,10 @@ server {
             allow 10.20.6.0/24;
             allow 100.64.0.0/10;
             deny all;
+            js_content tracked.save;
         }
-        dav_methods PUT;
-        dav_access user:rw group:rw all:r;
         client_max_body_size 64k;
+        client_body_buffer_size 64k;
         add_header Cache-Control "no-store" always;
     }
 

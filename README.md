@@ -89,6 +89,14 @@ PLM Dashboard는 OpenProject API v3 데이터를 정규화한 뒤 **6개 운영 
 
 주간 흐름의 「지난주 계획 중 완료」 비율은 분모가 지난 주간 리뷰 실행 때 저장한 「이번 주 마감」 일감 목록(`~/.hermes/state/weekly_flow/plan-<날짜>.json`의 `ids`)이고, 분자는 그 목록 중 그 뒤에 닫힌 일감 수다. 저장한 계획이 없는 첫 주에는 비율을 표시하지 않는다(`op_weekly_flow.py`의 `plan()`).
 
+### Backlog 제외 (#115)
+
+OP 상태 `Backlog`(id 21, 종료 아님)는 앞으로 할 일 목록이다. 일정·담당자가 있어도 대시보드 어느 화면·집계에도 넣지 않고, 완료로도 세지 않는다.
+
+- **구분 기준**: 기다리는 것이 있으면 On Hold(「보류 현황」에 표시), 없으면 Backlog(표시 안 함). Ticketed(이슈폼 접수, 7일 분류 기한)는 그대로다.
+- **대시보드 처리**: `op-adapter.js`가 상태 분류를 `backlog`로 따로 두고, `data.js`의 `reload()`가 Backlog 일감과 그 시간 기록·관계를 데이터에서 뺀다. `isOpen`·`isOpenWork`도 Backlog를 열린 일감으로 보지 않는다. 시험: `tests/backlog.test.cjs`.
+- **함께 바꾼 곳**: Hermes 예외·집계 스크립트가 Backlog를 뺀다(`op_exception_rules.BACKLOG_STATUS`). 규칙은 지표 정의서 §11이다. Backlog 일감은 칸반의 Backlog 열에서 본다.
+
 ### 보류 현황 (#112)
 
 OP 상태 On Hold(보류)는 일부러 멈춘 일감이라 지표로 관리하지 않고, 첫 화면 「주간 흐름」 아래 「보류 현황」에 따로 보여준다.

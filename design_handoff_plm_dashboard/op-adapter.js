@@ -196,6 +196,8 @@
       // wont must be checked before generic isClosed to avoid merging into 'closed'.
       cat: s.isClosed && /won.?t|reject/i.test(s.name || '') ? 'wont'
         : s.isClosed ? 'closed'
+        // Backlog = a pure future to-do list (not closed): its own category, never 'new', no board column, no count.
+        : /^\s*backlog\s*$/i.test(s.name || '') ? 'backlog'
         : /progress/i.test(s.name || '') ? 'inProgress'
         : /review/i.test(s.name || '') ? 'review'
         : /test/i.test(s.name || '') ? 'testing'

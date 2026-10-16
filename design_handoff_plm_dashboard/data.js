@@ -303,9 +303,15 @@
         T = byId(TYPES), PR = byId(PRIORITIES), V = byId(VERSIONS), A = byId(ACTIVITIES),
         R = byId(RELATIONS);
 
+  // Backlog (OP status "Backlog", not closed) is a pure future to-do list: outside every count, list and column, and not
+  // closed either. reload() drops Backlog work packages from the dataset; isOpen / isOpenWork also reject one defensively.
+  // Same rule as Hermes op_exception_rules.BACKLOG_STATUS.
+  const BACKLOG_STATUS = 'Backlog';
+  const isBacklogStatus = (status) => !!status && (status.cat === 'backlog' || status.name === BACKLOG_STATUS);
+  const isBacklog = (wp) => isBacklogStatus(S[wp.statusId]);
   const isOpen = (wp) => {
     const status = S[wp.statusId];
-    return !status || !status.isClosed;
+    return !status || (!status.isClosed && !isBacklogStatus(status));
   };
   const hasDueDate = (wp) => !!wp._due;
   // Same scope as Hermes op_exception_rules.py (spec §7) so every view, the Health
@@ -543,6 +549,11 @@
       prepared[key] = rows.map((row) => ({ ...row }));
     }
     ds = prepared;
+    const backlogStatusIds = new Set(ds.STATUSES.filter(isBacklogStatus).map((s) => s.id));
+    ds.WORK_PACKAGES = ds.WORK_PACKAGES.filter((wp) => !backlogStatusIds.has(wp.statusId));   // Backlog: in no view at all
+    const keptWpIds = new Set(ds.WORK_PACKAGES.map((wp) => wp.id));
+    ds.TIME_ENTRIES = ds.TIME_ENTRIES.filter((te) => !te.workPackageId || keptWpIds.has(te.workPackageId));
+    ds.RELATIONS = (ds.RELATIONS || []).filter((r) => keptWpIds.has(r.fromId) && keptWpIds.has(r.toId));
     ds.WORK_PACKAGES.forEach(hydrateWP);
     ds.TIME_ENTRIES.forEach(hydrateTE);
     ds.VERSIONS.forEach(hydrateVersion);
@@ -572,7 +583,7 @@
     WORK_PACKAGES, TIME_ENTRIES, RELATIONS,
     U, P, S, T, PR, V, A, R,
     usersByRole, versionsByProject, currentVersion,
-    isOpen, isOpenWork, isOverdue, isBulk, dueWithin,
+    isOpen, isOpenWork, isBacklog, isOverdue, isBulk, dueWithin,
     statusDistribution, kpis, openCloseTrend, backlogTrend,
     userUtilization, projectHealth, burndown, activityBreakdown,
     reload,

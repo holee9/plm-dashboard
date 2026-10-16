@@ -25,7 +25,7 @@
     const mm = { open: m0.open - x.open, with_due: m0.with_due - x.with_due, assigned: m0.assigned - x.assigned };
     const overdue = H.exception_counts ? H.exception_counts.overdue - x.overdue : null;
     return `<div class="muted mono" data-home-basis style="font-size:11px;margin:0 0 var(--grid-1)">
-      이 숫자의 바탕: 열린 일감 <b>${mm.open ?? '–'}</b>건 · 마감 지남 <b data-home-overdue>${overdue ?? '–'}</b>건 · 마감일 입력 <b>${pct(mm.with_due, mm.open)}</b> · 담당 지정 <b>${pct(mm.assigned, mm.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
+      이 숫자의 바탕: 열린 일감 <b>${mm.open ?? '–'}</b>건${C.holdAware() ? `<span class="muted" data-home-basis-hold> (보류 ${C.holdItems().length}건 제외)</span>` : ''} · 마감 지남 <b data-home-overdue>${overdue ?? '–'}</b>건 · 마감일 입력 <b>${pct(mm.with_due, mm.open)}</b> · 담당 지정 <b>${pct(mm.assigned, mm.open)}</b> · 7일 내 갱신 <b>${upd === null ? '–' : upd + '%'}</b>
       ${low ? ' · ⚪ 갱신률이 50% 아래라 일정·부하 판단은 보류 표시' : ''} · 기준 <b>${C.esc(new Date(H.generated_at).toLocaleString('ko-KR'))}</b> (Hermes 30분 스냅숏 — 이 화면의 모든 숫자가 이 시각 기준)
     </div>`;
   }
@@ -70,6 +70,17 @@
     const body = `<table class="tbl" data-home-wf><thead><tr><th>제품군</th>${BUCKETS.map(([, label]) => `<th>${label}</th>`).join('')}</tr></thead><tbody>${rows}${total}</tbody></table>
       <div class="muted mono" style="font-size:11px;margin-top:6px" data-home-wfplan>${plan} · 지난주 완료 = 상태가 완료로 바뀐 시각 기준 · 이어짐 = 지난주 마감이었거나 지난주에 사람이 손댄 열린 일감 · 결정됨 = 회의 뒤 담당자·마감일 변경(D-04)</div>`;
     return UI.panel({ title: '주간 흐름 — 지난주 완료 → 이어짐 → 이번 주 신규·마감 → 결정', sub, body });
+  }
+
+  /* ---- 보류 현황 (#112): work On Hold, kept out of every indicator and listed here, no colour judgement ---- */
+  function holdPanel(C) {
+    const UI = window.UI, items = C.holdItems();
+    const sub = '일부러 멈춘 일감(On Hold). 신호등·결정 필요·열린 일감 수에 넣지 않고 따로 보여줍니다. 닫힌 상태(Won\'t Fix 등)는 여기에 없습니다';
+    if (!items.length) return UI.panel({ title: '보류 현황 — 지표에서 제외', sub, body: '<span class="muted" data-home-hold="empty">보류 일감 없음</span>' });
+    const per = []; items.forEach((i) => { const e = per.find((x) => x.name === i.line); if (e) e.n++; else per.push({ name: i.line, n: 1 }); });
+    const summary = `<div class="muted" style="font-size:12px;margin:0 0 6px" data-home-hold-summary>보류 <b data-home-hold-n>${items.length}</b>건 · ${per.map((x) => `${C.esc(x.name)} ${x.n}`).join(' · ')}</div>`;
+    const rows = items.map((i) => `<tr data-home-holdrow="${i.id}"><td>${C.esc(i.line)}</td><td>${C.wp(i)} ${C.esc(String(i.subject || '').slice(0, 44))}</td><td>${C.esc(i.project || '')}</td><td>${C.esc(i.assignee || '담당자 없음')}</td><td class="num">${i.held_days === null ? '–' : i.held_days + '일'}</td></tr>`).join('');
+    return UI.panel({ title: '보류 현황 — 지표에서 제외', sub, body: `${summary}<table class="tbl" data-home-hold><thead><tr><th>제품군</th><th>일감</th><th>과제</th><th>담당자</th><th class="num">보류 일수</th></tr></thead><tbody>${rows}</tbody></table>` });
   }
 
   /* ---- 5. regulatory summary ---- */
@@ -139,9 +150,10 @@
       ${basis(C, H, I)}
       ${scopeBar(C, I)}
       ${C.strip(stats, allStats)}
-      <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 또는 보류 30일↑ · 🟡 마감 지남·보류·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 판단할 자료 부족</div>
+      <div class="muted mono" style="font-size:11px;margin:0 0 var(--grid-1)">신호등: 🔴 마일스톤 지남 · 🟡 마감 지남·담당자 없는 결정 · 🟢 예외 없음 · ⚪ 판단할 자료 부족 · 보류(On Hold)는 판정하지 않고 아래 「보류 현황」에 따로 표시</div>
       ${UI.panel({ title: '제품군별 상태 → 왜 → 이번 주 결정', sub: '행을 누르면 과제·일감이 펼쳐집니다 · 일감 번호를 누르면 OP 원본', body: `<table class="tbl" data-home-lines><thead><tr><th>제품군</th><th>상태</th><th>다음 마일스톤</th><th>왜 (규칙으로 생성)</th><th>이번 주 결정</th></tr></thead><tbody>${stats.map(C.lineRow).join('')}</tbody></table>` })}
       ${weeklyFlow(C, W)}
+      ${holdPanel(C)}
       ${regulatory(C, RA)}`;
   };
   document.addEventListener('click', (e) => {

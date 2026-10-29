@@ -1,45 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko" data-theme="dark" data-density="cozy" data-style="telemetry">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PLM Monitor · OpenProject Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="app.css" />
-  <script>
-    /* Host-persisted tweak defaults — rewritten on disk when the user changes a Tweak.
-       Mirrors the initial chrome on <html> above. */
-    window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-      "theme": "light",
-      "style": "telemetry",
-      "accent": "blue",
-      "density": "cozy"
-    }/*EDITMODE-END*/;
-  </script>
-</head>
-<body>
-  <div id="app" class="app"></div>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>개발·인허가 현황</title><link rel="stylesheet" href="style.css"></head><body><a class="skip" href="#main">본문으로 건너뛰기</a><aside class="sidebar"><a class="brand" href="#dev"><span class="brandmark">D<span>R</span></span><span>개발·인허가 현황<small>DR 개발 / 전사 인허가</small></span></a><div class="navlabel">WORKSPACE</div><nav aria-label="주 메뉴"><a href="#dev" data-view="dev">01 <span>DR 개발현황</span></a><a href="#ra" data-view="ra">02 <span>전사 인허가</span></a></nav><div class="sidefoot"><span class="dot"></span> 읽기 전용 · 데이터 스냅숏<p>원본 업무는 OpenProject에서 관리합니다.</p></div></aside><div class="workspace"><header class="topbar"><span>개발·인허가 <span class="slash">/</span> DR 개발 / 전사 인허가</span><div class="layout-toolbar"><button type="button" id="data-refresh">자료 새로 확인</button><button type="button" id="layout-edit" aria-pressed="false">구성 편집</button><button type="button" id="layout-reset" hidden>원래 배치 복원</button><span id="layout-status" role="status" aria-live="polite"></span><span id="view-preference-status" role="status" aria-live="polite"></span></div></header><main id="main" tabindex="-1"><div class="pagehead"><div><div class="eyebrow">DR 사업본부 · 전사 인허가</div><h1 id="page-title">DR 개발현황</h1><p id="page-desc">DR 개발과 전사 인허가를 각자의 범위에서 확인하세요.</p></div><div class="datebox"><span>DATA AS OF</span><b id="basis">확인 중</b><small>자동 갱신 미연결</small></div></div><div class="filters" id="dev-filters"><button type="button" id="selection-open" class="selection-button">관심 과제 선택</button><label>조회 범위 <select id="scope"><option value="all">선택된 과제의 전체 제품군</option></select></label><label class="search"><span>검색</span><input id="search" type="search" placeholder="제품군 · 과제 검색" autocomplete="off"></label><label>업무 목록 정렬 <select id="task-sort"><option value="source">원본 자료 순</option><option value="due">마감일순</option><option value="product">제품군순</option></select></label><span id="scope-note"></span><button class="quiet" id="reset">필터 초기화</button></div><div class="filters" id="ra-filters" hidden><label>시장 <select id="market"><option value="all">전체 시장</option></select></label><label>제품군 <select id="family"><option value="all">전체 제품군</option></select></label><label>검색 <input id="ra-search" type="search" placeholder="모델 · 인허가 · 요청 검색"></label><button class="quiet" id="ra-reset">필터 초기화</button></div><p class="comparison-note" id="scope-provenance"></p><div class="snapshot" id="snapshot">데이터를 불러오는 중입니다…</div><div id="content" aria-live="polite"><div class="empty">스냅숏을 불러오는 중입니다.</div></div><footer>개발·인허가 현황 <span>기존 스냅숏 · 읽기 전용</span><button class="quiet" id="method">지표 기준 보기</button></footer></main></div><dialog id="detail"><div class="dialogtop"><span>DETAIL & EVIDENCE</span><button id="close" aria-label="상세 닫기">✕</button></div><div id="detail-body"></div></dialog><dialog id="selection-dialog" aria-labelledby="selection-title"><h2 id="selection-title">관심 과제 선택</h2><p>조회할 과제를 선택합니다. 이 기기의 보기 설정만 저장하며 서버·업무 기록은 변경하지 않습니다.</p><div class="selection-tools"><button type="button" id="selection-all">전체 선택</button><button type="button" id="selection-clear">모두 해제</button><button type="button" id="selection-reset">기존 선택으로 되돌리기</button></div><p id="selection-count" aria-live="polite"></p><div id="selection-body"></div><p id="selection-message" role="alert"></p><div class="selection-actions"><button type="button" id="selection-cancel">취소</button><button type="button" id="selection-apply" class="selection-button">선택 적용</button></div></dialog><script src="executive-app.js?v=20261027-clean-url"></script></body></html>
 
-  <script src="user-overrides.js"></script>
-  <script src="op-adapter.js"></script>
-  <script src="data.js"></script>
-  <script src="charts.js"></script>
-  <script src="ui.js"></script>
-  <script src="views/overview.js"></script>
-  <script src="views/projects.js"></script>
-  <script src="views/resources.js"></script>
-  <script src="views/board.js"></script>
-  <script src="views/timeline.js"></script>
-  <script src="views/risks.js"></script>
-  <script src="views/people.js"></script>
-  <script src="exec-core.js"></script>
-  <script src="ra-panels.js"></script>
-  <script src="views/home.js"></script>
-  <script src="views/roadmap.js"></script>
-  <script src="app.js"></script>
-  <script src="tweaks.js"></script>
-</body>
-</html>
+
+

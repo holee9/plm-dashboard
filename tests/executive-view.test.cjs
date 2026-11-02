@@ -52,7 +52,7 @@ async function run(files) {
   vm.createContext(context);
   vm.runInContext(appSource, context, { filename: 'executive-app.js' });
   await new Promise((resolve) => setTimeout(resolve, 100));
-  return { content: String(nodes.get('#content') ? nodes.get('#content').innerHTML : ''), calls };
+  return { content: String(nodes.get('#content') ? nodes.get('#content').innerHTML : ''), calls, context, nodes };
 }
 
 const dataFiles = (overrides = {}) => ({
@@ -105,4 +105,25 @@ test('shows a plain error instead of inventing data when the required snapshots 
   const { content } = await run(files);
   assert.match(plain(content), /데이터를 불러오지 못했습니다/);
   assert.doesNotMatch(content, /일정·정보 확인 목록/);
+});
+
+test('the product-line detail window lists overdue work first and apart from the other exceptions', async () => {
+  const health = read('health.json');
+  const { context, nodes } = await run(dataFiles());
+  const lineNames = vm.runInContext('lines.map((l) => [l.name, [...l.names]])', context);
+  let checked = 0;
+  for (const [name, projects] of lineNames) {
+    const items = health.items.filter((i) => projects.includes(i.project));
+    const late = items.filter((i) => i.flags.includes('overdue'));
+    vm.runInContext(`lineDetail(${JSON.stringify(name)})`, context);
+    const html = String(nodes.get('#detail-body').innerHTML);
+    const at = html.indexOf('그 밖의 예외');
+    assert.ok(at > 0, `${name}: the other-exceptions section is missing`);
+    const upper = html.slice(0, at), lower = html.slice(at);
+    assert.match(upper, new RegExp(`마감 초과 ${late.length}건`), `${name}: overdue count heading`);
+    for (const i of late) { assert.ok(upper.includes(`>${i.display_id} ↗`), `${name}: ${i.display_id} must be listed as overdue`); assert.ok(!lower.includes(`>${i.display_id} ↗`), `${name}: ${i.display_id} must not repeat below`); }
+    for (const i of items.filter((x) => !late.includes(x))) assert.ok(!upper.includes(`>${i.display_id} ↗`), `${name}: ${i.display_id} is not overdue`);
+    if (late.length) checked += 1;
+  }
+  assert.ok(checked >= 1, 'the fixture must contain at least one line with overdue work');
 });
